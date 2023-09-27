@@ -14,7 +14,8 @@ public class Main {
             System.out.println("No argument were provided!");
             System.exit(1);
         }
-        executeChunk(loadFile(args[0]).toCharArray());
+        char[] code = preprocessData(loadFile(args[0]).toCharArray());
+        executeChunk(code);
     }
 
     public static void executeChunk(char[] inputData) {
@@ -58,6 +59,19 @@ public class Main {
             pointer         = pointer%tape.length;
             repetitionCount = 0;
         }
+    }
+
+    public static char[] preprocessData(char[] inputData) {
+        StringBuilder processed = new StringBuilder();
+        for (int i = 0; i < inputData.length; i++) {
+            char c = inputData[i];
+            if (c == '/' && i+1 < inputData.length && inputData[i+1] == '/') {
+                while (i < inputData.length && inputData[i] != '\n') i++;
+            } else if (Character.isDigit(c) || c == '+' || c == '-' || c == '>' || c == '<' || c == '[' || c == ']' || c == '.' || c == ',') {
+                processed.append(c);
+            }
+        }
+        return processed.toString().toCharArray();
     }
 
     public static String loadFile(String fileName) {
