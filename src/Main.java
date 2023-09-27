@@ -46,7 +46,8 @@ public class Main {
                     for (int j = 0; j < repetitionCount; j++) printChar();
                 }
                 case ']' -> {}
-                case ',' -> System.out.println("\nInput is not implemented yet");
+                case ',' -> System.out.println("\nInput is not implemented yet\n");
+                case '@' -> syscall(inputData, i);
                 default -> exit("Unknown character '"+c+"'");
             }
             pointer         = pointer%tape.length;
@@ -54,15 +55,33 @@ public class Main {
         }
     }
 
+    public static void syscall(char[] data, int i) {
+        if (i >= data.length-1) exit("Amount of arguments for syscall was not provided");
+        switch (data[i+1]) {
+            case '1' -> syscall1();
+            default -> exit("Not implemented yet");
+        }
+    }
+
+    public static void syscall1() {
+        if (tape[pointer] != 60) exit("Not implemented yet");
+        System.exit(tape[pointer-1]);
+    }
+
     public static char[] preprocessData(char[] inputData) {
+        char[]        allowed   = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', '@'};
         StringBuilder processed = new StringBuilder();
         for (int i = 0; i < inputData.length; i++) {
             char c = inputData[i];
             if (c == '/' && i+1 < inputData.length && inputData[i+1] == '/') {
                 while (i < inputData.length && inputData[i] != '\n') i++;
-            } else if (Character.isDigit(c) || c == '+' || c == '-' || c == '>' || c == '<' || c == '[' || c == ']' || c == '.' || c == ',') {
+            } else if (Character.isDigit(c)) {
                 processed.append(c);
-            }
+            } else for (char value: allowed)
+                if (c == value) {
+                    processed.append(c);
+                    break;
+                }
         }
         return processed.toString().toCharArray();
     }
