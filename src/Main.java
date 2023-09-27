@@ -10,11 +10,9 @@ public class Main {
     static int    pointer = 0;
 
     public static void main(String[] args) {
-        if (args.length == 0) {
-            System.out.println("No argument were provided!");
-            System.exit(1);
-        }
-        char[] code = preprocessData(loadFile(args[0]).toCharArray());
+        if (args.length == 0) exit("No argument were provided!");
+        char[] fileData = loadFile(args[0]).toCharArray();
+        char[] code     = preprocessData(fileData);
         executeChunk(code);
     }
 
@@ -23,8 +21,7 @@ public class Main {
         for (int i = 0; i < inputData.length; i++) {
             char c = inputData[i];
             if (Character.isDigit(c)) {
-                repetitionCount *= 10;
-                repetitionCount += c-'0';
+                repetitionCount = repetitionCount*10+c-'0';
                 continue;
             }
             switch (c) {
@@ -37,24 +34,20 @@ public class Main {
                     for (int j = i+1; j < inputData.length; j++) {
                         char g = inputData[j];
                         if (g == ']') break;
-                        if (j == inputData.length-1) {
-                            System.out.println("Unmatched brackets!\nFrom: "+i);
-                            System.exit(1);
-                        }
+                        if (j == inputData.length-1) exit("Unmatched brackets!\nFrom: "+i);
                         t.append(g);
                     }
                     char[] r = t.toString().toCharArray();
-                    while (tape[pointer] != 0) {
-                        executeChunk(r);
-                    }
+                    while (tape[pointer] != 0) executeChunk(r);
                     i += r.length;
                 }
                 case '.' -> {
-                    if (repetitionCount == 0) System.out.print(DEBUG ? (char) tape[pointer]+"("+tape[pointer]+")\n" : (char) tape[pointer]);
-                    for (int j = 0; j < repetitionCount; j++) System.out.print(DEBUG ? (char) tape[pointer]+"("+tape[pointer]+")\n" : (char) tape[pointer]);
+                    if (repetitionCount == 0) printChar();
+                    for (int j = 0; j < repetitionCount; j++) printChar();
                 }
+                case ']' -> {}
                 case ',' -> System.out.println("\nInput is not implemented yet");
-                default -> {}
+                default -> exit("Unknown character '"+c+"'");
             }
             pointer         = pointer%tape.length;
             repetitionCount = 0;
@@ -80,5 +73,14 @@ public class Main {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void exit(String message) {
+        System.out.println(message);
+        System.exit(1);
+    }
+
+    public static void printChar() {
+        System.out.print(DEBUG ? (char) tape[pointer]+"("+tape[pointer]+")\n" : (char) tape[pointer]);
     }
 }
