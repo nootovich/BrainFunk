@@ -6,8 +6,8 @@ public class Main {
 
     static boolean DEBUG = false;
 
-    static int[] tape    = new int[8];
-    static int   pointer = 0;
+    static byte[] tape    = new byte[256];
+    static int    pointer = 0;
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -18,13 +18,19 @@ public class Main {
     }
 
     public static void executeChunk(char[] inputData) {
+        int repetitionCount = 0;
         for (int i = 0; i < inputData.length; i++) {
             char c = inputData[i];
+            if (Character.isDigit(c)) {
+                repetitionCount *= 10;
+                repetitionCount += c-'0';
+                continue;
+            }
             switch (c) {
-                case '+' -> tape[pointer]++;
-                case '-' -> tape[pointer]--;
-                case '>' -> pointer++;
-                case '<' -> pointer--;
+                case '+' -> tape[pointer] += (byte) (repetitionCount > 0 ? repetitionCount : 1);
+                case '-' -> tape[pointer] -= (byte) (repetitionCount > 0 ? repetitionCount : 1);
+                case '>' -> pointer += repetitionCount > 0 ? repetitionCount : 1;
+                case '<' -> pointer -= repetitionCount > 0 ? repetitionCount : 1;
                 case '[' -> {
                     StringBuilder t = new StringBuilder();
                     for (int j = i+1; j < inputData.length; j++) {
@@ -43,11 +49,14 @@ public class Main {
                     i += r.length;
                 }
                 case '.' -> {
-                    System.out.print(DEBUG ? (char) tape[pointer]+"("+tape[pointer]+")\n" : (char) tape[pointer]);
+                    if (repetitionCount == 0) System.out.print(DEBUG ? (char) tape[pointer]+"("+tape[pointer]+")\n" : (char) tape[pointer]);
+                    for (int j = 0; j < repetitionCount; j++) System.out.print(DEBUG ? (char) tape[pointer]+"("+tape[pointer]+")\n" : (char) tape[pointer]);
                 }
                 case ',' -> System.out.println("\nInput is not implemented yet");
+                default -> {}
             }
-            pointer = pointer%256;
+            pointer         = pointer%tape.length;
+            repetitionCount = 0;
         }
     }
 
