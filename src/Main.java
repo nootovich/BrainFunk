@@ -21,7 +21,6 @@ public class Main {
     public static void executeChunk(char[] inputData) {
         int           repetitionCount = 0;
         boolean       nameStarted     = false;
-        boolean       patternInit     = false;
         StringBuilder name            = new StringBuilder();
         for (int i = 0; i < inputData.length; i++) {
             char c = inputData[i];
@@ -38,8 +37,6 @@ public class Main {
                 name.append(c);
                 continue;
             } else if (c != ':' && c != ';') exit("Unexpected character '"+c+"'\nFrom: "+i);
-            if (c == ':') patternInit = true;
-            else if (c == ';') patternInit = false;
             switch (c) {
                 case '+' -> tape[pointer] += (byte) (repetitionCount > 0 ? repetitionCount : 1);
                 case '-' -> tape[pointer] -= (byte) (repetitionCount > 0 ? repetitionCount : 1);
@@ -65,7 +62,7 @@ public class Main {
                 case ',' -> System.out.println("\nInput is not implemented yet\n");
                 case '@' -> syscall();
                 case ':' -> i = addPattern(inputData, i, name.toString());
-                case ';' -> {if (!patternInit) executePattern(name.toString());}
+                case ';' -> executePattern(name.toString());
                 default -> exit("Unknown character '"+c+"'");
             }
             pointer         = pointer%tape.length;
@@ -76,7 +73,7 @@ public class Main {
     }
 
     public static void syscall() {
-        try{
+        try {
             switch (tape[pointer]) {
                 case 60 -> syscall1();
                 case 35 -> syscall4();
