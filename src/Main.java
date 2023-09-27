@@ -9,7 +9,6 @@ public class Main {
 
     static byte[]                  tape     = new byte[256];
     static int                     pointer  = 0;
-    static int                     i        = 0;
     static HashMap<String, String> patterns = new HashMap<>();
 
     public static void main(String[] args) {
@@ -21,9 +20,10 @@ public class Main {
 
     public static void executeChunk(char[] inputData) {
         int           repetitionCount = 0;
-        boolean       nameStarted     = false;
-        StringBuilder name            = new StringBuilder();
-        for (; i < inputData.length; i++) {
+        boolean       nameStarted = false;
+        boolean       patternInit = false;
+        StringBuilder name        = new StringBuilder();
+        for (int i = 0; i < inputData.length; i++) {
             char c = inputData[i];
             if (!nameStarted) {
                 if (Character.isDigit(c)) {
@@ -37,7 +37,9 @@ public class Main {
             } else if (Character.isLetterOrDigit(c)) {
                 name.append(c);
                 continue;
-            } else if (c != ':') exit("Unexpected character '"+c+"'\nFrom: "+i);
+            } else if (c != ':' && c != ';') exit("Unexpected character '"+c+"'\nFrom: "+i);
+            if (c == ':') patternInit = true;
+            else if (c == ';') patternInit = false;
             switch (c) {
                 case '+' -> tape[pointer] += (byte) (repetitionCount > 0 ? repetitionCount : 1);
                 case '-' -> tape[pointer] -= (byte) (repetitionCount > 0 ? repetitionCount : 1);
@@ -61,8 +63,12 @@ public class Main {
                 }
                 case ']' -> {}
                 case ',' -> System.out.println("\nInput is not implemented yet\n");
-                case '@' -> syscall(inputData);
-                case ':' -> addPattern(inputData, name.toString());
+                case '@' -> {
+                    syscall(inputData, i);
+                    i++;
+                }
+                case ':' -> i = addPattern(inputData, i, name.toString());
+                case ';' -> {if (!patternInit) executePattern(name.toString());}
                 default -> exit("Unknown character '"+c+"'");
             }
             pointer         = pointer%tape.length;
@@ -72,7 +78,7 @@ public class Main {
         }
     }
 
-    public static void syscall(char[] data) {
+    public static void syscall(char[] data, int i) {
         if (i >= data.length-1) exit("Amount of arguments for syscall was not provided");
         switch (data[i+1]) {
             case '1' -> syscall1();
@@ -85,16 +91,22 @@ public class Main {
         System.exit(tape[pointer-1]);
     }
 
-    public static void addPattern(char[] input, String name) {
+    public static int addPattern(char[] data, int i, String name) {
         int           start   = i;
         StringBuilder pattern = new StringBuilder();
-        for (i++; i < input.length; i++) {
-            char c = input[i];
+        for (i++; i < data.length; i++) {
+            char c = data[i];
             if (c == ';') break;
             pattern.append(c);
         }
-        if (input[i] != ';') exit("Unmatched semicolon!\nFrom: "+start);
+        if (data[i] != ';') exit("Unmatched semicolon!\nFrom: "+start);
         patterns.put(name, pattern.toString());
+        return i;
+    }
+
+    public static void executePattern(String name) {
+        if (patterns.get(name) == null) exit("Pattern '"+name+"' was not found!");
+        executeChunk(patterns.get(name).toCharArray());
     }
 
     public static char[] preprocessData(char[] inputData) {
