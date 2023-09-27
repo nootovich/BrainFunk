@@ -12,7 +12,7 @@ public class Main {
     static HashMap<String, String> patterns = new HashMap<>();
 
     public static void main(String[] args) {
-        if (args.length == 0) exit("No argument were provided!");
+        if (args.length == 0) exit("No argument was provided!");
         char[] fileData = loadFile(args[0]).toCharArray();
         char[] code     = preprocessData(fileData);
         executeChunk(code);
@@ -20,9 +20,9 @@ public class Main {
 
     public static void executeChunk(char[] inputData) {
         int           repetitionCount = 0;
-        boolean       nameStarted = false;
-        boolean       patternInit = false;
-        StringBuilder name        = new StringBuilder();
+        boolean       nameStarted     = false;
+        boolean       patternInit     = false;
+        StringBuilder name            = new StringBuilder();
         for (int i = 0; i < inputData.length; i++) {
             char c = inputData[i];
             if (!nameStarted) {
@@ -63,10 +63,7 @@ public class Main {
                 }
                 case ']' -> {}
                 case ',' -> System.out.println("\nInput is not implemented yet\n");
-                case '@' -> {
-                    syscall(inputData, i);
-                    i++;
-                }
+                case '@' -> syscall();
                 case ':' -> i = addPattern(inputData, i, name.toString());
                 case ';' -> {if (!patternInit) executePattern(name.toString());}
                 default -> exit("Unknown character '"+c+"'");
@@ -78,17 +75,30 @@ public class Main {
         }
     }
 
-    public static void syscall(char[] data, int i) {
-        if (i >= data.length-1) exit("Amount of arguments for syscall was not provided");
-        switch (data[i+1]) {
-            case '1' -> syscall1();
-            default -> exit("Not implemented yet");
+    public static void syscall() {
+        try{
+            switch (tape[pointer]) {
+                case 60 -> syscall1();
+                case 35 -> syscall4();
+                default -> exit("This syscall is not implemented yet");
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
     public static void syscall1() {
-        if (tape[pointer] != 60) exit("Not implemented yet");
-        System.exit(tape[pointer-1]);
+        switch (tape[pointer]) {
+            case 60 -> System.exit(tape[pointer-1]);
+            default -> exit("This type of syscall1 is not implemented yet");
+        }
+    }
+
+    public static void syscall4() throws InterruptedException {
+        switch (tape[pointer]) {
+            case 35 -> Thread.sleep(Math.min(tape[pointer-4]<<24|tape[pointer-3]<<16|tape[pointer-2]<<8|(int) tape[pointer-1]&0xff, 99999999));
+            default -> exit("This type of syscall4 is not implemented yet");
+        }
     }
 
     public static int addPattern(char[] data, int i, String name) {
