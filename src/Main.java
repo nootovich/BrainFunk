@@ -13,17 +13,18 @@ public class Main {
 
     public static void main(String[] args) {
         if (args.length == 0) exit("No argument was provided!");
-        char[] fileData = loadFile(args[0]).toCharArray();
-        char[] code     = preprocessData(fileData);
+        String fileData = loadFile(args[0]);
+        String code     = preprocessData(fileData);
         executeChunk(code);
     }
 
-    public static void executeChunk(char[] inputData) {
+    public static void executeChunk(String data) {
+        int           dataLen         = data.length();
         int           repetitionCount = 0;
         boolean       nameStarted     = false;
         StringBuilder name            = new StringBuilder();
-        for (int i = 0; i < inputData.length; i++) {
-            char c = inputData[i];
+        for (int i = 0; i < dataLen; i++) {
+            char c = data.charAt(i);
             if (!nameStarted) {
                 if (Character.isDigit(c)) {
                     repetitionCount = repetitionCount*10+c-'0';
@@ -44,15 +45,15 @@ public class Main {
                 case '<' -> pointer -= repetitionCount > 0 ? repetitionCount : 1;
                 case '[' -> {
                     StringBuilder t = new StringBuilder();
-                    for (int j = i+1; j < inputData.length; j++) {
-                        char g = inputData[j];
+                    for (int j = i+1; j < dataLen; j++) {
+                        char g = data.charAt(j);
                         if (g == ']') break;
-                        if (j == inputData.length-1) exit("Unmatched brackets!\nFrom: "+i);
+                        if (j == dataLen-1) exit("Unmatched brackets!\nFrom: "+i);
                         t.append(g);
                     }
-                    char[] r = t.toString().toCharArray();
+                    String r = t.toString();
                     while (tape[pointer] != 0) executeChunk(r);
-                    i += r.length;
+                    i += r.length();
                 }
                 case '.' -> {
                     if (repetitionCount == 0) printChar();
@@ -61,7 +62,7 @@ public class Main {
                 case ']' -> {}
                 case ',' -> System.out.println("\nInput is not implemented yet\n");
                 case '@' -> syscall();
-                case ':' -> i = addPattern(inputData, i, name.toString());
+                case ':' -> i = addPattern(data, i, name.toString());
                 case ';' -> executePattern(name.toString());
                 default -> exit("Unknown character '"+c+"'");
             }
@@ -98,31 +99,32 @@ public class Main {
         }
     }
 
-    public static int addPattern(char[] data, int i, String name) {
+    public static int addPattern(String data, int i, String name) {
         int           start   = i;
         StringBuilder pattern = new StringBuilder();
-        for (i++; i < data.length; i++) {
-            char c = data[i];
+        for (i++; i < data.length(); i++) {
+            char c = data.charAt(i);
             if (c == ';') break;
             pattern.append(c);
         }
-        if (data[i] != ';') exit("Unmatched semicolon!\nFrom: "+start);
+        if (data.charAt(i) != ';') exit("Unmatched semicolon!\nFrom: "+start);
         patterns.put(name, pattern.toString());
         return i;
     }
 
     public static void executePattern(String name) {
         if (patterns.get(name) == null) exit("Pattern '"+name+"' was not found!");
-        executeChunk(patterns.get(name).toCharArray());
+        executeChunk(patterns.get(name));
     }
 
-    public static char[] preprocessData(char[] inputData) {
+    public static String preprocessData(String data) {
+        int           dataLen   = data.length();
         char[]        allowed   = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', '@', ':', ';'};
         StringBuilder processed = new StringBuilder();
-        for (int i = 0; i < inputData.length; i++) {
-            char c = inputData[i];
-            if (c == '/' && i+1 < inputData.length && inputData[i+1] == '/') {
-                while (i < inputData.length && inputData[i] != '\n') i++;
+        for (int i = 0; i < dataLen; i++) {
+            char c = data.charAt(i);
+            if (c == '/' && i+1 < dataLen && data.charAt(i+1) == '/') {
+                while (i < dataLen && data.charAt(i) != '\n') i++;
             } else if (Character.isLetterOrDigit(c)) {
                 processed.append(c);
             } else for (char value: allowed)
@@ -131,7 +133,7 @@ public class Main {
                     break;
                 }
         }
-        return processed.toString().toCharArray();
+        return processed.toString();
     }
 
     public static String loadFile(String fileName) {
