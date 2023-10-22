@@ -37,7 +37,7 @@ public class Main {
             } else if (Character.isLetterOrDigit(c)) {
                 name.append(c);
                 continue;
-            } else if (c != ':' && c != ';') exit("Unexpected character '"+c+"'\nFrom: "+i);
+            } else if (c != ':' && c != ' ') exit("Unexpected character '"+c+"'\nFrom: "+i);
             switch (c) {
                 case '+' -> tape[pointer] += (byte) (repetitionCount > 0 ? repetitionCount : 1);
                 case '-' -> tape[pointer] -= (byte) (repetitionCount > 0 ? repetitionCount : 1);
@@ -63,7 +63,10 @@ public class Main {
                 case ',' -> System.out.println("\nInput is not implemented yet\n");
                 case '@' -> syscall();
                 case ':' -> i = addPattern(data, i, name.toString());
-                case ';' -> executePattern(name.toString());
+                case ' ' -> {
+                    if (repetitionCount == 0) executePattern(name.toString());
+                    for (int j = 0; j < repetitionCount; j++) executePattern(name.toString());
+                }
                 default -> exit("Unknown character '"+c+"'");
             }
             pointer         = pointer%tape.length;
@@ -118,20 +121,33 @@ public class Main {
     }
 
     public static String preprocessData(String data) {
-        int           dataLen   = data.length();
-        char[]        allowed   = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', '@', ':', ';'};
-        StringBuilder processed = new StringBuilder();
+        int           dataLen     = data.length();
+        char[]        allowed     = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', '@', ':', ';'};
+        StringBuilder processed   = new StringBuilder();
+        boolean       nameStarted = false;
         for (int i = 0; i < dataLen; i++) {
             char c = data.charAt(i);
             if (c == '/' && i+1 < dataLen && data.charAt(i+1) == '/') {
                 while (i < dataLen && data.charAt(i) != '\n') i++;
-            } else if (Character.isLetterOrDigit(c)) {
-                processed.append(c);
-            } else for (char value: allowed)
-                if (c == value) {
+            } else if (!nameStarted) {
+                if (Character.isLetter(c)) {
+                    nameStarted = true;
                     processed.append(c);
-                    break;
+                } else if (Character.isDigit(c)) processed.append(c);
+                else for (char value: allowed)
+                        if (c == value) {
+                            processed.append(c);
+                            break;
+                        }
+            } else {
+                if (Character.isLetterOrDigit(c)) processed.append(c);
+                else {
+                    nameStarted = false;
+                    if (c == ':') processed.append(':');
+                    else if (c == ';') processed.append(" ;");
+                    else processed.append(' ');
                 }
+            }
         }
         return processed.toString();
     }
