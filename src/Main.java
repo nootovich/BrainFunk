@@ -1,15 +1,19 @@
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Scanner;
 
 public class Main {
 
     static boolean DEBUG = false;
 
-    static byte[]                  tape     = new byte[256];
-    static int                     pointer  = 0;
-    static HashMap<String, String> patterns = new HashMap<>();
+    static byte[]                  tape        = new byte[256];
+    static int                     pointer     = 0;
+    static HashMap<String, String> patterns    = new HashMap<>();
+    static Scanner                 input       = new Scanner(System.in);
+    static ArrayList<Byte>         inputBuffer = new ArrayList<>();
 
     public static void main(String[] args) {
         if (args.length == 0) exit("No argument was provided!");
@@ -60,7 +64,15 @@ public class Main {
                     for (int j = 0; j < repetitionCount; j++) printChar();
                 }
                 case ']' -> {}
-                case ',' -> System.out.println("\nInput is not implemented yet\n");
+                case ',' -> {
+                    if (inputBuffer.isEmpty()) {
+                        char[] in = input.nextLine().toCharArray();
+                        for (char inChar: in) inputBuffer.add((byte) inChar);
+                    }
+                    if (inputBuffer.isEmpty()) exit("Not enough input data was provided!");
+                    tape[pointer] = inputBuffer.get(0);
+                    inputBuffer.remove(0);
+                }
                 case '@' -> syscall();
                 case ':' -> i = addPattern(data, i, name.toString());
                 case ' ' -> {
