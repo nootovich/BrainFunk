@@ -48,16 +48,21 @@ public class Main {
                 case '>' -> pointer += repetitionCount > 0 ? repetitionCount : 1;
                 case '<' -> pointer -= repetitionCount > 0 ? repetitionCount : 1;
                 case '[' -> {
+                    int nestingCount = 0;
                     StringBuilder t = new StringBuilder();
                     for (int j = i+1; j < dataLen; j++) {
                         char g = data.charAt(j);
-                        if (g == ']') break;
+                        if (g == '[') nestingCount++;
+                        if (g == ']') {
+                            if (nestingCount == 0) break;
+                            else nestingCount--;
+                        }
                         if (j == dataLen-1) exit("Unmatched brackets!\nFrom: "+i);
                         t.append(g);
                     }
                     String r = t.toString();
                     while (tape[pointer] != 0) executeChunk(r);
-                    i += r.length();
+                    i += r.length()+1;
                 }
                 case '.' -> {
                     if (repetitionCount == 0) printChar();
@@ -79,9 +84,24 @@ public class Main {
                     if (repetitionCount == 0) executePattern(name.toString());
                     for (int j = 0; j < repetitionCount; j++) executePattern(name.toString());
                 }
+                case '"' -> {
+                    StringBuilder t = new StringBuilder();
+                    for (int j = i+1; j < dataLen; j++) {
+                        char g = data.charAt(j);
+                        if (g == '"') break;
+                        if (j == dataLen-1) exit("Unmatched double-quotes!\nFrom: "+i);
+                        t.append(g);
+                    }
+                    String r = t.toString();
+                    for (int j = 0; j < r.length(); j++) {
+                        tape[pointer] = (byte) r.charAt(j);
+                        pointer       = (pointer+1%tape.length+tape.length)%tape.length;
+                    }
+                    i += r.length()+1;
+                }
                 default -> exit("Unknown character '"+c+"'");
             }
-            pointer         = pointer%tape.length;
+            pointer         = (pointer%tape.length+tape.length)%tape.length;
             repetitionCount = 0;
             nameStarted     = false;
             name.setLength(0);
@@ -109,7 +129,13 @@ public class Main {
 
     public static void syscall4() throws InterruptedException {
         switch (tape[pointer]) {
-            case 35 -> Thread.sleep(Math.min(tape[pointer-4]<<24|tape[pointer-3]<<16|tape[pointer-2]<<8|(int) tape[pointer-1]&0xff, 99999999));
+            case 35 -> {
+                int pos0 = (pointer-4%tape.length+tape.length)%tape.length;
+                int pos1 = (pointer-3%tape.length+tape.length)%tape.length;
+                int pos2 = (pointer-2%tape.length+tape.length)%tape.length;
+                int pos3 = (pointer-1%tape.length+tape.length)%tape.length;
+                Thread.sleep(Math.min(tape[pos0]<<24|tape[pos1]<<16|tape[pos2]<<8|(int) tape[pos3]&0xff, 99999999));
+            }
             default -> exit("This type of syscall4 is not implemented yet");
         }
     }
@@ -134,13 +160,25 @@ public class Main {
 
     public static String preprocessData(String data) {
         int           dataLen     = data.length();
-        char[]        allowed     = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', '@', ':', ';'};
+        char[]        allowed     = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', '@', ':', ';', '"'};
         StringBuilder processed   = new StringBuilder();
         boolean       nameStarted = false;
         for (int i = 0; i < dataLen; i++) {
             char c = data.charAt(i);
             if (c == '/' && i+1 < dataLen && data.charAt(i+1) == '/') {
                 while (i < dataLen && data.charAt(i) != '\n') i++;
+            } else if (c == '"') {
+                processed.append('"');
+                for (int j = i+1; j < dataLen; j++) {
+                    c = data.charAt(j);
+                    if (c == '"') {
+                        processed.append('"');
+                        i = j+1;
+                        break;
+                    }
+                    if (j == dataLen-1) exit("Unmatched double-quotes!\nFrom: "+i);
+                    processed.append(c);
+                }
             } else if (!nameStarted) {
                 if (Character.isLetter(c)) {
                     nameStarted = true;
