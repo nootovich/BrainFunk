@@ -7,7 +7,8 @@ import java.util.Scanner;
 
 public class Main {
 
-    static boolean DEBUG = false;
+    public static boolean TESTING = false;
+    static        boolean DEBUG   = false;
 
     static byte[]                  tape        = new byte[256];
     static int                     pointer     = 0;
@@ -19,14 +20,15 @@ public class Main {
         if (args.length == 0) exit("No argument was provided!");
         String fileData = loadFile(args[0]);
         String code     = preprocessData(fileData);
-        executeChunk(code);
+        executeChunk(code, true);
     }
 
-    public static void executeChunk(String data) {
+    public static String executeChunk(String data, boolean consoleOut) {
         int           dataLen         = data.length();
         int           repetitionCount = 0;
         boolean       nameStarted     = false;
         StringBuilder name            = new StringBuilder();
+        StringBuilder output          = new StringBuilder();
         for (int i = 0; i < dataLen; i++) {
             char c = data.charAt(i);
             if (!nameStarted) {
@@ -48,8 +50,9 @@ public class Main {
                 case '>' -> pointer += repetitionCount > 0 ? repetitionCount : 1;
                 case '<' -> pointer -= repetitionCount > 0 ? repetitionCount : 1;
                 case '[' -> {
-                    int nestingCount = 0;
-                    StringBuilder t = new StringBuilder();
+                    // TODO: what should this thing even do if repetition count is > 1?
+                    int           nestingCount = 0;
+                    StringBuilder t            = new StringBuilder();
                     for (int j = i+1; j < dataLen; j++) {
                         char g = data.charAt(j);
                         if (g == '[') nestingCount++;
@@ -61,15 +64,21 @@ public class Main {
                         t.append(g);
                     }
                     String r = t.toString();
-                    while (tape[pointer] != 0) executeChunk(r);
+                    while (tape[pointer] != 0) output.append(executeChunk(r, consoleOut));
                     i += r.length()+1;
                 }
                 case '.' -> {
-                    if (repetitionCount == 0) printChar();
-                    for (int j = 0; j < repetitionCount; j++) printChar();
+                    if (repetitionCount == 0) {
+                        if (consoleOut) printChar();
+                        output.append((char) tape[pointer]);
+                    } else for (int j = 0; j < repetitionCount; j++) {
+                        if (consoleOut) printChar();
+                        output.append((char) tape[pointer]);
+                    }
                 }
                 case ']' -> {}
                 case ',' -> {
+                    // TODO: forgot to think about repetition count
                     if (inputBuffer.isEmpty()) {
                         char[] in = input.nextLine().toCharArray();
                         for (char inChar: in) inputBuffer.add((byte) inChar);
@@ -81,8 +90,8 @@ public class Main {
                 case '@' -> syscall();
                 case ':' -> i = addPattern(data, i, name.toString());
                 case ' ' -> {
-                    if (repetitionCount == 0) executePattern(name.toString());
-                    for (int j = 0; j < repetitionCount; j++) executePattern(name.toString());
+                    if (repetitionCount == 0) output.append(executePattern(name.toString(), consoleOut));
+                    else for (int j = 0; j < repetitionCount; j++) output.append(executePattern(name.toString(), consoleOut));
                 }
                 case '"' -> {
                     StringBuilder t = new StringBuilder();
@@ -106,6 +115,7 @@ public class Main {
             nameStarted     = false;
             name.setLength(0);
         }
+        return output.toString();
     }
 
     public static void syscall() {
@@ -122,7 +132,7 @@ public class Main {
 
     public static void syscall1() {
         switch (tape[pointer]) {
-            case 60 -> System.exit(tape[pointer-1]);
+            case 60 -> {if (!TESTING) System.exit(tape[pointer-1]);}
             default -> exit("This type of syscall1 is not implemented yet");
         }
     }
@@ -153,9 +163,9 @@ public class Main {
         return i;
     }
 
-    public static void executePattern(String name) {
+    public static String executePattern(String name, boolean consoleOut) {
         if (patterns.get(name) == null) exit("Pattern '"+name+"' was not found!");
-        executeChunk(patterns.get(name));
+        return executeChunk(patterns.get(name), consoleOut);
     }
 
     public static String preprocessData(String data) {
@@ -208,6 +218,13 @@ public class Main {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void reset() {
+        tape = new byte[256];
+        pointer = 0;
+        patterns.clear();
+        inputBuffer.clear();
     }
 
     public static void exit(String message) {
