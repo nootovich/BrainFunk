@@ -9,13 +9,15 @@ public class Testing {
     static final String EXPECTED_DIR      = TESTING_DIR+"/expected";
     static final String EXPECTED_SRC_EXT  = ".src";
     static final String EXPECTED_PREP_EXT = ".prep";
+    static final String EXPECTED_IN_EXT   = ".in";
     static final String EXPECTED_OUT_EXT  = ".out";
+    static final String EXPECTED_EXIT_EXT = ".exit";
 
     public static void main(String[] args) {
         Main.TESTING = true;
         try {
             Stream<Path> files = Files.list(Path.of(TESTING_DIR)).filter(f -> !Files.isDirectory(f));
-            if (args.length > 0) files = files.filter(f -> f.getFileName().toString().split("\\.")[0].equals(args[0]));
+            if (args.length > 0) files = files.filter(f -> f.getFileName().toString().equals(args[0]));
             files.forEach(f -> {
                 try {
                     Main.reset();
@@ -29,8 +31,13 @@ public class Testing {
                     String preprocessedData = Main.preprocessData(actualData);
                     checkPreprocessed(fileName, Path.of(basePath+EXPECTED_PREP_EXT), preprocessedData);
 
+                    loadInputData(Path.of(basePath+EXPECTED_IN_EXT));
                     String outputData = Main.executeChunk(preprocessedData, false);
                     checkOutput(fileName, Path.of(basePath+EXPECTED_OUT_EXT), outputData);
+
+                    checkInput(fileName, Path.of(basePath+EXPECTED_IN_EXT), Main.inputMemory.toString());
+
+                    checkExit(fileName, Path.of(basePath+EXPECTED_EXIT_EXT), Main.exitCode);
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -136,4 +143,49 @@ public class Testing {
         }
     }
 
+    private static void loadInputData(Path inPath) throws IOException {
+        if (Files.exists(inPath)) {
+            char[] inputs = Files.readString(inPath).toCharArray();
+            for (char c: inputs) Main.inputBuffer.add((byte) c);
+        }
+    }
+
+    private static void checkInput(String fileName, Path inPath, String actualData) throws IOException {
+        if (Files.exists(inPath)) {
+            String expectedData = Files.readString(inPath);
+            if (actualData.equals(expectedData)) {
+                System.out.println(fileName+" ".repeat(33-fileName.length())+"input OK");
+            } else {
+                System.out.println(fileName+" ".repeat(33-fileName.length())+"input doesn't match!");
+                for (int i = 0; i < expectedData.length() || i < actualData.length(); i++) {
+                    if (i == expectedData.length() || i == actualData.length() || expectedData.charAt(i) != actualData.charAt(i)) {
+                        System.out.println("  ACTUAL:"+actualData.substring(Math.max(i-10, 0), Math.min(i+20, actualData.length())));
+                        System.out.println("EXPECTED:"+expectedData.substring(Math.max(i-10, 0), Math.min(i+20, expectedData.length())));
+                        System.out.println(" ".repeat(19)+"^");
+                        break;
+                    }
+                }
+            }
+        } else {
+            Files.createFile(inPath);
+            Files.writeString(inPath, actualData);
+            System.out.println(fileName+" ".repeat(33-fileName.length())+"input SAVED");
+        }
+    }
+
+    private static void checkExit(String fileName, Path exitPath, byte actualData) throws IOException {
+        if (Files.exists(exitPath)) {
+            byte expectedData = Files.readAllBytes(exitPath)[0];
+            if (actualData == expectedData) {
+                System.out.println(fileName+" ".repeat(29-fileName.length())+"exit code OK");
+            } else {
+                System.out.println(fileName+" ".repeat(29-fileName.length())+"exit code doesn't match!"
+                                   +"\n  ACTUAL:"+actualData+"\nEXPECTED:"+expectedData+"\n         ^");
+            }
+        } else {
+            Files.createFile(exitPath);
+            Files.write(exitPath, new byte[]{actualData});
+            System.out.println(fileName+" ".repeat(29-fileName.length())+"exit code SAVED");
+        }
+    }
 }

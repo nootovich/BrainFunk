@@ -12,9 +12,11 @@ public class Main {
 
     static byte[]                  tape        = new byte[256];
     static int                     pointer     = 0;
+    static byte                    exitCode    = 0;
     static HashMap<String, String> patterns    = new HashMap<>();
     static Scanner                 input       = new Scanner(System.in);
     static ArrayList<Byte>         inputBuffer = new ArrayList<>();
+    static StringBuilder           inputMemory = new StringBuilder();
 
     public static void main(String[] args) {
         if (args.length == 0) exit("No argument was provided!");
@@ -85,6 +87,7 @@ public class Main {
                     }
                     if (inputBuffer.isEmpty()) exit("Not enough input data was provided!");
                     tape[pointer] = inputBuffer.get(0);
+                    inputMemory.append((char) tape[pointer]);
                     inputBuffer.remove(0);
                 }
                 case '@' -> syscall();
@@ -132,7 +135,10 @@ public class Main {
 
     public static void syscall1() {
         switch (tape[pointer]) {
-            case 60 -> {if (!TESTING) System.exit(tape[pointer-1]);}
+            case 60 -> {
+                if (!TESTING) System.exit(tape[pointer-1]);
+                else exitCode = tape[pointer-1];
+            }
             default -> exit("This type of syscall1 is not implemented yet");
         }
     }
@@ -221,10 +227,12 @@ public class Main {
     }
 
     public static void reset() {
-        tape = new byte[256];
-        pointer = 0;
+        tape     = new byte[256];
+        pointer  = 0;
+        exitCode = 0;
         patterns.clear();
         inputBuffer.clear();
+        inputMemory.setLength(0);
     }
 
     public static void exit(String message) {
