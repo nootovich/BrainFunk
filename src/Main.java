@@ -18,7 +18,7 @@ public class Main {
     public static void main(String[] args) {
         if (args.length == 0) exit("No argument was provided!");
         String fileData = FileSystem.loadFile(args[0]);
-        String code     = preprocessData(fileData);
+        String code     = Parser.parseBrainFunkExtended(fileData);
         executeChunk(code, true);
     }
 
@@ -170,50 +170,6 @@ public class Main {
     public static String executePattern(String name, boolean consoleOut) {
         if (patterns.get(name) == null) exit("Pattern '"+name+"' was not found!");
         return executeChunk(patterns.get(name), consoleOut);
-    }
-
-    public static String preprocessData(String data) {
-        int           dataLen     = data.length();
-        char[]        allowed     = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', '@', ':', ';', '"'};
-        StringBuilder processed   = new StringBuilder();
-        boolean       nameStarted = false;
-        for (int i = 0; i < dataLen; i++) {
-            char c = data.charAt(i);
-            if (c == '/' && i+1 < dataLen && data.charAt(i+1) == '/') {
-                while (i < dataLen && data.charAt(i) != '\n') i++;
-            } else if (c == '"') {
-                processed.append('"');
-                for (int j = i+1; j < dataLen; j++) {
-                    c = data.charAt(j);
-                    if (c == '"') {
-                        processed.append('"');
-                        i = j+1;
-                        break;
-                    }
-                    if (j == dataLen-1) exit("Unmatched double-quotes!\nFrom: "+i);
-                    processed.append(c);
-                }
-            } else if (!nameStarted) {
-                if (Character.isLetter(c)) {
-                    nameStarted = true;
-                    processed.append(c);
-                } else if (Character.isDigit(c)) processed.append(c);
-                else for (char value: allowed)
-                        if (c == value) {
-                            processed.append(c);
-                            break;
-                        }
-            } else {
-                if (Character.isLetterOrDigit(c)) processed.append(c);
-                else {
-                    nameStarted = false;
-                    if (c == ':') processed.append(':');
-                    else if (c == ';') processed.append(" ;");
-                    else processed.append(' ');
-                }
-            }
-        }
-        return processed.toString();
     }
 
     public static void reset() {

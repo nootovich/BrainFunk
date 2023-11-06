@@ -42,7 +42,7 @@ public class Testing {
                     if (!updateTests) checkSource(fileName, srcPath, actualData);
                     else FileSystem.saveFile(srcPath, actualData);
 
-                    String preprocessedData = Main.preprocessData(actualData);
+                    String preprocessedData = Parser.parseBrainFunk(actualData);
                     if (!updateTests) checkPreprocessed(fileName, prepPath, preprocessedData);
                     else FileSystem.saveFile(prepPath, preprocessedData);
 
