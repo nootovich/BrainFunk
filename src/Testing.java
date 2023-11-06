@@ -5,8 +5,8 @@ import java.util.stream.Stream;
 
 public class Testing {
 
-    static final String TESTING_DIR       = "./tests";
-    static final String EXPECTED_DIR      = TESTING_DIR+"/expected";
+    static final String TESTING_DIR       = "./tests/";
+    static final String EXPECTED_DIR      = TESTING_DIR+"expected/";
     static final String EXPECTED_SRC_EXT  = ".src";
     static final String EXPECTED_PREP_EXT = ".prep";
     static final String EXPECTED_IN_EXT   = ".in";
@@ -15,29 +15,47 @@ public class Testing {
 
     public static void main(String[] args) {
         Main.TESTING = true;
+        boolean updateTests = args.length > 0 && args[0].equals("-update");
         try {
-            Stream<Path> files = Files.list(Path.of(TESTING_DIR)).filter(f -> !Files.isDirectory(f));
-            if (args.length > 0) files = files.filter(f -> f.getFileName().toString().equals(args[0]));
+            if (updateTests) Files.list(Path.of(EXPECTED_DIR)).forEach(path -> {
+                try {
+                    Files.delete(path);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            Stream<Path> files = Files.list(Path.of(TESTING_DIR)).filter(f -> !Files.isDirectory(f) && f.getFileName().toString().endsWith(".bf"));
+            if (args.length > 0 && !args[0].equals("-update")) files = files.filter(f -> f.getFileName().toString().equals(args[0]));
             files.forEach(f -> {
                 try {
                     Main.reset();
 
                     String fileName = f.getFileName().toString();
-                    String basePath = EXPECTED_DIR+"/"+fileName.split("\\.")[0];
+                    String basePath = EXPECTED_DIR+fileName.split("\\.")[0];
+                    Path   srcPath  = Path.of(basePath+EXPECTED_SRC_EXT);
+                    Path   prepPath = Path.of(basePath+EXPECTED_PREP_EXT);
+                    Path   inPath   = Path.of(basePath+EXPECTED_IN_EXT);
+                    Path   outPath  = Path.of(basePath+EXPECTED_OUT_EXT);
+                    Path   exitPath = Path.of(basePath+EXPECTED_EXIT_EXT);
 
                     String actualData = Files.readString(f);
-                    checkSource(fileName, Path.of(basePath+EXPECTED_SRC_EXT), actualData);
+                    if (!updateTests) checkSource(fileName, srcPath, actualData);
+                    else FileSystem.saveFile(srcPath, actualData);
 
                     String preprocessedData = Main.preprocessData(actualData);
-                    checkPreprocessed(fileName, Path.of(basePath+EXPECTED_PREP_EXT), preprocessedData);
+                    if (!updateTests) checkPreprocessed(fileName, prepPath, preprocessedData);
+                    else FileSystem.saveFile(prepPath, preprocessedData);
 
-                    loadInputData(Path.of(basePath+EXPECTED_IN_EXT));
+                    loadInputData(inPath);
                     String outputData = Main.executeChunk(preprocessedData, false);
-                    checkOutput(fileName, Path.of(basePath+EXPECTED_OUT_EXT), outputData);
+                    if (!updateTests) checkOutput(fileName, outPath, outputData);
+                    else FileSystem.saveFile(outPath, outputData);
 
-                    checkInput(fileName, Path.of(basePath+EXPECTED_IN_EXT), Main.inputMemory.toString());
+                    if (!updateTests) checkInput(fileName, inPath, Main.inputMemory.toString());
+                    else if (!Main.inputMemory.isEmpty()) FileSystem.saveFile(inPath, Main.inputMemory.toString());
 
-                    checkExit(fileName, Path.of(basePath+EXPECTED_EXIT_EXT), Main.exitCode);
+                    if (!updateTests) checkExit(fileName, exitPath, Main.exitCode);
+                    else FileSystem.saveFile(exitPath, String.valueOf((char) Main.exitCode));
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -78,8 +96,7 @@ public class Testing {
                 }
             }
         } else {
-            Files.createFile(srcPath);
-            Files.writeString(srcPath, actualData);
+            FileSystem.saveFile(srcPath, actualData);
             System.out.println(fileName+" ".repeat(32-fileName.length())+"source SAVED");
         }
     }
@@ -101,8 +118,7 @@ public class Testing {
                 }
             }
         } else {
-            Files.createFile(prepPath);
-            Files.writeString(prepPath, actualData);
+            FileSystem.saveFile(prepPath, actualData);
             System.out.println(fileName+" ".repeat(26-fileName.length())+"preprocessed SAVED");
         }
     }
@@ -137,8 +153,7 @@ public class Testing {
                 }
             }
         } else {
-            Files.createFile(outPath);
-            Files.writeString(outPath, actualData);
+            FileSystem.saveFile(outPath, actualData);
             System.out.println(fileName+" ".repeat(32-fileName.length())+"output SAVED");
         }
     }
@@ -166,9 +181,8 @@ public class Testing {
                     }
                 }
             }
-        } else {
-            Files.createFile(inPath);
-            Files.writeString(inPath, actualData);
+        } else if (!actualData.isEmpty()) {
+            FileSystem.saveFile(inPath, actualData);
             System.out.println(fileName+" ".repeat(33-fileName.length())+"input SAVED");
         }
     }
@@ -183,8 +197,7 @@ public class Testing {
                                    +"\n  ACTUAL:"+actualData+"\nEXPECTED:"+expectedData+"\n         ^");
             }
         } else {
-            Files.createFile(exitPath);
-            Files.write(exitPath, new byte[]{actualData});
+            FileSystem.saveFile(exitPath, String.valueOf((char) actualData));
             System.out.println(fileName+" ".repeat(29-fileName.length())+"exit code SAVED");
         }
     }

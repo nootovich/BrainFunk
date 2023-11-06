@@ -1,6 +1,3 @@
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -20,7 +17,7 @@ public class Main {
 
     public static void main(String[] args) {
         if (args.length == 0) exit("No argument was provided!");
-        String fileData = loadFile(args[0]);
+        String fileData = FileSystem.loadFile(args[0]);
         String code     = preprocessData(fileData);
         executeChunk(code, true);
     }
@@ -82,6 +79,7 @@ public class Main {
                 case ',' -> {
                     // TODO: forgot to think about repetition count
                     if (inputBuffer.isEmpty()) {
+                        System.out.print("Awaiting input: ");
                         char[] in = input.nextLine().toCharArray();
                         for (char inChar: in) inputBuffer.add((byte) inChar);
                     }
@@ -216,14 +214,6 @@ public class Main {
             }
         }
         return processed.toString();
-    }
-
-    public static String loadFile(String fileName) {
-        try {
-            return Files.readString(Path.of(fileName));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public static void reset() {
