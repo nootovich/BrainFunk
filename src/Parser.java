@@ -93,7 +93,8 @@ public class Parser {
                 if (Character.isLetterOrDigit(c)) parsed.append(c);
                 else {
                     nameStarted = false;
-                    if (c == ':' || c == ';') parsed.append(" ;");
+                    if (c == ':') parsed.append(':');
+                    else if (c == ';') parsed.append(" ;");
                     else parsed.append(' ');
                 }
             }
