@@ -1,184 +1,39 @@
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Scanner;
-
 public class Main {
 
-    public static boolean TESTING = false;
-    static        boolean DEBUG   = false;
-
-    static byte[]                  tape        = new byte[256];
-    static int                     pointer     = 0;
-    static byte                    exitCode    = 0;
-    static HashMap<String, String> patterns    = new HashMap<>();
-    static Scanner                 input       = new Scanner(System.in);
-    static ArrayList<Byte>         inputBuffer = new ArrayList<>();
-    static StringBuilder           inputMemory = new StringBuilder();
-
     public static void main(String[] args) {
-        if (args.length == 0) exit("No argument was provided!");
-        String fileData = FileSystem.loadFile(args[0]);
-        String code     = Parser.parseBrainFunkExtended(fileData);
-        executeChunk(code, true);
-    }
-
-    public static String executeChunk(String data, boolean consoleOut) {
-        int           dataLen         = data.length();
-        int           repetitionCount = 0;
-        boolean       nameStarted     = false;
-        StringBuilder name            = new StringBuilder();
-        StringBuilder output          = new StringBuilder();
-        for (int i = 0; i < dataLen; i++) {
-            char c = data.charAt(i);
-            if (!nameStarted) {
-                if (Character.isDigit(c)) {
-                    repetitionCount = repetitionCount*10+c-'0';
-                    continue;
-                } else if (Character.isLetter(c)) {
-                    nameStarted = true;
-                    name.append(c);
-                    continue;
-                }
-            } else if (Character.isLetterOrDigit(c)) {
-                name.append(c);
-                continue;
-            } else if (c != ':' && c != ' ') exit("Unexpected character '"+c+"'\nFrom: "+i);
-            switch (c) {
-                case '+' -> tape[pointer] += (byte) (repetitionCount > 0 ? repetitionCount : 1);
-                case '-' -> tape[pointer] -= (byte) (repetitionCount > 0 ? repetitionCount : 1);
-                case '>' -> pointer += repetitionCount > 0 ? repetitionCount : 1;
-                case '<' -> pointer -= repetitionCount > 0 ? repetitionCount : 1;
-                case '[' -> {
-                    // TODO: what should this thing even do if repetition count is > 1?
-                    int           nestingCount = 0;
-                    StringBuilder t            = new StringBuilder();
-                    for (int j = i+1; j < dataLen; j++) {
-                        char g = data.charAt(j);
-                        if (g == '[') nestingCount++;
-                        if (g == ']') {
-                            if (nestingCount == 0) break;
-                            else nestingCount--;
-                        }
-                        if (j == dataLen-1) exit("Unmatched brackets!\nFrom: "+i);
-                        t.append(g);
-                    }
-                    String r = t.toString();
-                    while (tape[pointer] != 0) output.append(executeChunk(r, consoleOut));
-                    i += r.length()+1;
-                }
-                case '.' -> {
-                    if (repetitionCount == 0) {
-                        if (consoleOut) printChar();
-                        output.append((char) tape[pointer]);
-                    } else for (int j = 0; j < repetitionCount; j++) {
-                        if (consoleOut) printChar();
-                        output.append((char) tape[pointer]);
-                    }
-                }
-                case ']' -> {}
-                case ',' -> {
-                    // TODO: forgot to think about repetition count
-                    if (inputBuffer.isEmpty()) {
-                        System.out.print("Awaiting input: ");
-                        char[] in = input.nextLine().toCharArray();
-                        for (char inChar: in) inputBuffer.add((byte) inChar);
-                    }
-                    if (inputBuffer.isEmpty()) exit("Not enough input data was provided!");
-                    tape[pointer] = inputBuffer.get(0);
-                    inputMemory.append((char) tape[pointer]);
-                    inputBuffer.remove(0);
-                }
-                case '@' -> syscall();
-                case ':' -> i = addPattern(data, i, name.toString());
-                case ' ' -> {
-                    if (repetitionCount == 0) output.append(executePattern(name.toString(), consoleOut));
-                    else for (int j = 0; j < repetitionCount; j++) output.append(executePattern(name.toString(), consoleOut));
-                }
-                case '"' -> {
-                    StringBuilder t = new StringBuilder();
-                    for (int j = i+1; j < dataLen; j++) {
-                        char g = data.charAt(j);
-                        if (g == '"') break;
-                        if (j == dataLen-1) exit("Unmatched double-quotes!\nFrom: "+i);
-                        t.append(g);
-                    }
-                    String r = t.toString();
-                    for (int j = 0; j < r.length(); j++) {
-                        tape[pointer] = (byte) r.charAt(j);
-                        pointer       = (pointer+1%tape.length+tape.length)%tape.length;
-                    }
-                    i += r.length()+1;
-                }
-                default -> exit("Unknown character '"+c+"'");
+        // TODO: make a proper system
+        if (args.length < 2) exit("Not enough arguments were provided!");
+        String fileName = args[0];
+        String settings = args[1];
+        String fileData = FileSystem.loadFile(fileName);
+        switch (settings) {
+            case "r" -> {
+                if (fileName.endsWith(".bfnx")) {
+                    String parsed = Parser.parseBrainFunkExtended(fileData);
+                    Interpreter.executeBrainFunkExtended(parsed, true);
+                } else if (fileName.endsWith(".bfn")) {
+                    String parsed = Parser.parseBrainFunk(fileData);
+                    // TODO: make a non-extended version of this ↓
+                    Interpreter.executeBrainFunkExtended(parsed, true);
+                } else if (fileName.endsWith(".bf")) {
+                    String parsed = Parser.parsePureBF(fileData);
+                    Interpreter.executeBF(parsed, true);
+                } else exit("[ERROR]: Invalid file format. Expected a .bf, .bfn or .bfx file.");
             }
-            pointer         = (pointer%tape.length+tape.length)%tape.length;
-            repetitionCount = 0;
-            nameStarted     = false;
-            name.setLength(0);
-        }
-        return output.toString();
-    }
-
-    public static void syscall() {
-        try {
-            switch (tape[pointer]) {
-                case 60 -> syscall1();
-                case 35 -> syscall4();
-                default -> exit("This syscall is not implemented yet");
+            case "tr" -> {
+                if (fileName.endsWith(".bfx")) {
+                    exit("[ERROR]: BrainFunkExtended(.bfx) files can't be transpiled since "
+                         +"they use functionality not available in pure bf (like syscalls).");
+                } else if (fileName.endsWith(".bfn")) {
+                    String preparsed  = Parser.parseBrainFunk(fileData);
+                    String transpiled = Transpiler.transpile(preparsed);
+                    String parsedPure = Parser.parsePureBF(transpiled);
+                    Interpreter.executeBF(parsedPure, true);
+                } else exit("[ERROR]: Invalid file format. Expected a .bfn file.");
             }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            // and so on...
+            default -> exit("[ERROR]: Invalid settings.");
         }
-    }
-
-    public static void syscall1() {
-        switch (tape[pointer]) {
-            case 60 -> {
-                if (!TESTING) System.exit(tape[pointer-1]);
-                else exitCode = tape[pointer-1];
-            }
-            default -> exit("This type of syscall1 is not implemented yet");
-        }
-    }
-
-    public static void syscall4() throws InterruptedException {
-        switch (tape[pointer]) {
-            case 35 -> {
-                int pos0 = (pointer-4%tape.length+tape.length)%tape.length;
-                int pos1 = (pointer-3%tape.length+tape.length)%tape.length;
-                int pos2 = (pointer-2%tape.length+tape.length)%tape.length;
-                int pos3 = (pointer-1%tape.length+tape.length)%tape.length;
-                Thread.sleep(Math.min(tape[pos0]<<24|tape[pos1]<<16|tape[pos2]<<8|(int) tape[pos3]&0xff, 99999999));
-            }
-            default -> exit("This type of syscall4 is not implemented yet");
-        }
-    }
-
-    public static int addPattern(String data, int i, String name) {
-        int           start   = i;
-        StringBuilder pattern = new StringBuilder();
-        for (i++; i < data.length(); i++) {
-            char c = data.charAt(i);
-            if (c == ';') break;
-            pattern.append(c);
-        }
-        if (data.charAt(i) != ';') exit("Unmatched semicolon!\nFrom: "+start);
-        patterns.put(name, pattern.toString());
-        return i;
-    }
-
-    public static String executePattern(String name, boolean consoleOut) {
-        if (patterns.get(name) == null) exit("Pattern '"+name+"' was not found!");
-        return executeChunk(patterns.get(name), consoleOut);
-    }
-
-    public static void reset() {
-        tape     = new byte[256];
-        pointer  = 0;
-        exitCode = 0;
-        patterns.clear();
-        inputBuffer.clear();
-        inputMemory.setLength(0);
     }
 
     public static void exit(String message) {
@@ -186,7 +41,6 @@ public class Main {
         System.exit(1);
     }
 
-    public static void printChar() {
-        System.out.print(DEBUG ? (char) tape[pointer]+"("+tape[pointer]+")\n" : (char) tape[pointer]);
-    }
+    // TODO: proper logging system
+
 }

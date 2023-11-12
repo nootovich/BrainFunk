@@ -47,7 +47,7 @@ public class Parser {
                     nameStarted = false;
                     if (c == ':') parsed.append(':');
                     else if (c == ';') parsed.append(" ;");
-                    else parsed.append(' ');
+                    else parsed.append(' ').append(isAllowedBrainFunk(c) ? c : "");
                 }
             }
         }
@@ -95,7 +95,7 @@ public class Parser {
                     nameStarted = false;
                     if (c == ':') parsed.append(':');
                     else if (c == ';') parsed.append(" ;");
-                    else parsed.append(' ');
+                    else parsed.append(' ').append(isAllowedBrainFunkExtended(c) ? c : "");
                 }
             }
         }

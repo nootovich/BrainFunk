@@ -1,6 +1,6 @@
 println:print 10+.[-];
 print:<[<]>[.>]<clear;
-clear:[[-]<];
+clear:[[-]<]>;
 
 "Hello, world!" println
 
@@ -10,5 +10,3 @@ clear:[[-]<];
 "Brainfuck requires one to break commands into microscopic steps." println
 "The language's name is a reference to the slang term brainfuck, which refers to things so complicated or unusual that they exceed the limits of one's understanding, " print
 "as it was not meant or made for designing actual software but to challenge the boundaries of computer programming." println
-
-

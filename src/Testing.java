@@ -14,7 +14,7 @@ public class Testing {
     static final String EXPECTED_EXIT_EXT = ".exit";
 
     public static void main(String[] args) {
-        Main.TESTING = true;
+        Interpreter.TESTING = true;
         boolean updateTests = args.length > 0 && args[0].equals("-update");
         try {
             if (updateTests) Files.list(Path.of(EXPECTED_DIR)).forEach(path -> {
@@ -28,7 +28,7 @@ public class Testing {
             if (args.length > 0 && !args[0].equals("-update")) files = files.filter(f -> f.getFileName().toString().equals(args[0]));
             files.forEach(f -> {
                 try {
-                    Main.reset();
+                    Interpreter.reset();
 
                     String fileName = f.getFileName().toString();
                     String basePath = EXPECTED_DIR+fileName.split("\\.")[0];
@@ -47,15 +47,15 @@ public class Testing {
                     else FileSystem.saveFile(prepPath, preprocessedData);
 
                     loadInputData(inPath);
-                    String outputData = Main.executeChunk(preprocessedData, false);
+                    String outputData = Interpreter.executeBrainFunkExtended(preprocessedData, false);
                     if (!updateTests) checkOutput(fileName, outPath, outputData);
                     else FileSystem.saveFile(outPath, outputData);
 
-                    if (!updateTests) checkInput(fileName, inPath, Main.inputMemory.toString());
-                    else if (!Main.inputMemory.isEmpty()) FileSystem.saveFile(inPath, Main.inputMemory.toString());
+                    if (!updateTests) checkInput(fileName, inPath, Interpreter.inputMemory.toString());
+                    else if (!Interpreter.inputMemory.isEmpty()) FileSystem.saveFile(inPath, Interpreter.inputMemory.toString());
 
-                    if (!updateTests) checkExit(fileName, exitPath, Main.exitCode);
-                    else FileSystem.saveFile(exitPath, String.valueOf((char) Main.exitCode));
+                    if (!updateTests) checkExit(fileName, exitPath, Interpreter.exitCode);
+                    else FileSystem.saveFile(exitPath, String.valueOf((char) Interpreter.exitCode));
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -161,7 +161,7 @@ public class Testing {
     private static void loadInputData(Path inPath) throws IOException {
         if (Files.exists(inPath)) {
             char[] inputs = Files.readString(inPath).toCharArray();
-            for (char c: inputs) Main.inputBuffer.add((byte) c);
+            for (char c: inputs) Interpreter.inputBuffer.add((byte) c);
         }
     }
 

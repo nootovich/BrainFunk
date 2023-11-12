@@ -8,7 +8,7 @@ public class Transpiler {
 
     public static void main(String[] args) {
         if (args.length == 0) Main.exit("No argument was provided!");
-        if (Path.of(args[0]).getFileName().toString().endsWith(".bfx")) {
+        if (args[0].endsWith(".bfx")) {
             Main.exit("[ERROR]: BrainFunkExtended(.bfx) files can't be transpiled since "
                       +"they use functionality not available in pure bf (like syscalls).");
         }
