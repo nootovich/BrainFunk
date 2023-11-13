@@ -14,7 +14,8 @@ public class Testing {
     static final String EXPECTED_EXIT_EXT = ".exit";
 
     public static void main(String[] args) {
-        Interpreter.TESTING = true;
+        Interpreter.TESTING     = true;
+        Interpreter.CONSOLE_OUT = false;
         boolean updateTests = args.length > 0 && args[0].equals("-update");
         try {
             if (updateTests) Files.list(Path.of(EXPECTED_DIR)).forEach(path -> {
@@ -24,7 +25,7 @@ public class Testing {
                     throw new RuntimeException(e);
                 }
             });
-            Stream<Path> files = Files.list(Path.of(TESTING_DIR)).filter(f -> !Files.isDirectory(f) && f.getFileName().toString().endsWith(".bf"));
+            Stream<Path> files = Files.list(Path.of(TESTING_DIR)).filter(f -> !Files.isDirectory(f));
             if (args.length > 0 && !args[0].equals("-update")) files = files.filter(f -> f.getFileName().toString().equals(args[0]));
             files.forEach(f -> {
                 try {
@@ -42,12 +43,13 @@ public class Testing {
                     if (!updateTests) checkSource(fileName, srcPath, actualData);
                     else FileSystem.saveFile(srcPath, actualData);
 
-                    String preprocessedData = Parser.parseBrainFunk(actualData);
+                    String preprocessedData = Parser.parseBrainFunkExtended(actualData);
                     if (!updateTests) checkPreprocessed(fileName, prepPath, preprocessedData);
                     else FileSystem.saveFile(prepPath, preprocessedData);
 
                     loadInputData(inPath);
-                    String outputData = Interpreter.executeBrainFunkExtended(preprocessedData, false);
+                    Interpreter.executeBrainFunkExtended(preprocessedData);
+                    String outputData = Interpreter.output.toString();
                     if (!updateTests) checkOutput(fileName, outPath, outputData);
                     else FileSystem.saveFile(outPath, outputData);
 

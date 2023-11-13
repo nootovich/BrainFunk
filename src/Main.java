@@ -10,14 +10,13 @@ public class Main {
             case "r" -> {
                 if (fileName.endsWith(".bfnx")) {
                     String parsed = Parser.parseBrainFunkExtended(fileData);
-                    Interpreter.executeBrainFunkExtended(parsed, true);
+                    Interpreter.executeBrainFunkExtended(parsed);
                 } else if (fileName.endsWith(".bfn")) {
                     String parsed = Parser.parseBrainFunk(fileData);
-                    // TODO: make a non-extended version of this ↓
-                    Interpreter.executeBrainFunkExtended(parsed, true);
+                    Interpreter.executeBrainFunk(parsed);
                 } else if (fileName.endsWith(".bf")) {
                     String parsed = Parser.parsePureBF(fileData);
-                    Interpreter.executeBF(parsed, true);
+                    Interpreter.executeBF(parsed);
                 } else exit("[ERROR]: Invalid file format. Expected a .bf, .bfn or .bfx file.");
             }
             case "tr" -> {
@@ -28,7 +27,7 @@ public class Main {
                     String preparsed  = Parser.parseBrainFunk(fileData);
                     String transpiled = Transpiler.transpile(preparsed);
                     String parsedPure = Parser.parsePureBF(transpiled);
-                    Interpreter.executeBF(parsedPure, true);
+                    Interpreter.executeBF(parsedPure);
                 } else exit("[ERROR]: Invalid file format. Expected a .bfn file.");
             }
             // and so on...
