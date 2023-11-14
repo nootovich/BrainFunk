@@ -80,6 +80,7 @@ public class Interpreter {
     public static void executeBrainFunkExtended(String data) {
         EXTENDED = true;
         executeBrainFunk(data);
+        EXTENDED = false;
     }
 
     private static void addsub(boolean addition, int amount) {

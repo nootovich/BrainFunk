@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.stream.Stream;
 
 public class Testing {
@@ -17,48 +18,69 @@ public class Testing {
         Interpreter.TESTING     = true;
         Interpreter.CONSOLE_OUT = false;
         boolean updateTests = args.length > 0 && args[0].equals("-update");
+        if (updateTests) deleteOldTests(EXPECTED_DIR);
+        Stream<Path> files = getBFFiles(TESTING_DIR);
+        if (args.length > 0 && !updateTests) files = files.filter(f -> f.getFileName().toString().equals(args[0]));
+        files.forEach(f -> test(f, updateTests));
+    }
+
+    private static void test(Path f, boolean updateTests) {
+        Interpreter.reset();
+        String  fileName = f.getFileName().toString();
+        String  basePath = EXPECTED_DIR+fileName.split("\\.")[0];
+        Path    srcPath  = Path.of(basePath+EXPECTED_SRC_EXT);
+        Path    prepPath = Path.of(basePath+EXPECTED_PREP_EXT);
+        Path    inPath   = Path.of(basePath+EXPECTED_IN_EXT);
+        Path    outPath  = Path.of(basePath+EXPECTED_OUT_EXT);
+        Path    exitPath = Path.of(basePath+EXPECTED_EXIT_EXT);
+        boolean bfnx     = fileName.endsWith(".bfnx");
+        boolean bfn      = fileName.endsWith(".bfn");
         try {
-            if (updateTests) Files.list(Path.of(EXPECTED_DIR)).forEach(path -> {
-                try {
-                    Files.delete(path);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+            String actualData = Files.readString(f);
+            if (!updateTests) checkSource(fileName, srcPath, actualData);
+            else FileSystem.saveFile(srcPath, actualData);
+
+            String parsedData = bfnx ? Parser.parseBrainFunkExtended(actualData) :
+                                bfn ? Parser.parseBrainFunk(actualData)
+                                    : Parser.parsePureBF(actualData);
+            if (!updateTests) checkPreprocessed(fileName, prepPath, parsedData);
+            else FileSystem.saveFile(prepPath, parsedData);
+
+            loadInputData(inPath);
+            if (bfnx) Interpreter.executeBrainFunkExtended(parsedData);
+            else if (bfn) Interpreter.executeBrainFunk(parsedData);
+            else Interpreter.executeBF(parsedData);
+            String outputData = Interpreter.output.toString();
+            if (!updateTests) checkOutput(fileName, outPath, outputData);
+            else FileSystem.saveFile(outPath, outputData);
+
+            if (!updateTests) checkInput(fileName, inPath, Interpreter.inputMemory.toString());
+            else if (!Interpreter.inputMemory.isEmpty()) FileSystem.saveFile(inPath, Interpreter.inputMemory.toString());
+
+            if (!updateTests && bfnx) checkExit(fileName, exitPath, Interpreter.exitCode);
+            else if (bfnx) FileSystem.saveFile(exitPath, String.valueOf((char) Interpreter.exitCode));
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+    }
+
+    private static Stream<Path> getBFFiles(String dir) {
+        try {
+            return Files.list(Path.of(dir)).filter(f -> {
+                String name = f.getFileName().toString();
+                return !Files.isDirectory(f) && (name.endsWith(".bf") || name.endsWith(".bfn") || name.endsWith(".bfnx"));
             });
-            Stream<Path> files = Files.list(Path.of(TESTING_DIR)).filter(f -> !Files.isDirectory(f));
-            if (args.length > 0 && !args[0].equals("-update")) files = files.filter(f -> f.getFileName().toString().equals(args[0]));
-            files.forEach(f -> {
+        } catch (IOException e) {
+            System.out.println(e);
+            return Arrays.stream((new Path[0])).limit(0);
+        }
+    }
+
+    private static void deleteOldTests(String dir) {
+        try {
+            Files.list(Path.of(dir)).forEach(path -> {
                 try {
-                    Interpreter.reset();
-
-                    String fileName = f.getFileName().toString();
-                    String basePath = EXPECTED_DIR+fileName.split("\\.")[0];
-                    Path   srcPath  = Path.of(basePath+EXPECTED_SRC_EXT);
-                    Path   prepPath = Path.of(basePath+EXPECTED_PREP_EXT);
-                    Path   inPath   = Path.of(basePath+EXPECTED_IN_EXT);
-                    Path   outPath  = Path.of(basePath+EXPECTED_OUT_EXT);
-                    Path   exitPath = Path.of(basePath+EXPECTED_EXIT_EXT);
-
-                    String actualData = Files.readString(f);
-                    if (!updateTests) checkSource(fileName, srcPath, actualData);
-                    else FileSystem.saveFile(srcPath, actualData);
-
-                    String preprocessedData = Parser.parseBrainFunkExtended(actualData);
-                    if (!updateTests) checkPreprocessed(fileName, prepPath, preprocessedData);
-                    else FileSystem.saveFile(prepPath, preprocessedData);
-
-                    loadInputData(inPath);
-                    Interpreter.executeBrainFunkExtended(preprocessedData);
-                    String outputData = Interpreter.output.toString();
-                    if (!updateTests) checkOutput(fileName, outPath, outputData);
-                    else FileSystem.saveFile(outPath, outputData);
-
-                    if (!updateTests) checkInput(fileName, inPath, Interpreter.inputMemory.toString());
-                    else if (!Interpreter.inputMemory.isEmpty()) FileSystem.saveFile(inPath, Interpreter.inputMemory.toString());
-
-                    if (!updateTests) checkExit(fileName, exitPath, Interpreter.exitCode);
-                    else FileSystem.saveFile(exitPath, String.valueOf((char) Interpreter.exitCode));
-
+                    Files.deleteIfExists(path);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
