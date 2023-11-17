@@ -26,8 +26,9 @@ public class Main {
                 } else if (fileName.endsWith(".bfn")) {
                     String preparsed  = Parser.parseBrainFunk(fileData);
                     String transpiled = Transpiler.transpile(preparsed);
-                    String parsedPure = Parser.parsePureBF(transpiled);
+                    String parsedPure = Parser.parseBrainFunk(transpiled);
                     Interpreter.executeBF(parsedPure);
+                    System.out.println("\n------------------------------------------\nResulting code:\n"+parsedPure);
                 } else exit("[ERROR]: Invalid file format. Expected a .bfn file.");
             }
             // and so on...
