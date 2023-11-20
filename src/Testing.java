@@ -6,13 +6,14 @@ import java.util.stream.Stream;
 
 public class Testing {
 
-    static final String TESTING_DIR       = "./tests/";
-    static final String EXPECTED_DIR      = TESTING_DIR+"expected/";
-    static final String EXPECTED_SRC_EXT  = ".src";
-    static final String EXPECTED_PREP_EXT = ".prep";
-    static final String EXPECTED_IN_EXT   = ".in";
-    static final String EXPECTED_OUT_EXT  = ".out";
-    static final String EXPECTED_EXIT_EXT = ".exit";
+    static final String TESTING_DIR        = "./tests/";
+    static final String EXPECTED_DIR       = TESTING_DIR+"expected/";
+    static final String EXPECTED_SRC_FILE  = "src";
+    static final String EXPECTED_PREP_FILE = "prep";
+    static final String EXPECTED_TRSP_FILE = "trsp";
+    static final String EXPECTED_IN_FILE   = "in";
+    static final String EXPECTED_OUT_FILE  = "out";
+    static final String EXPECTED_EXIT_FILE = "exit";
 
     public static void main(String[] args) {
         Interpreter.TESTING     = true;
@@ -27,12 +28,13 @@ public class Testing {
     private static void test(Path f, boolean updateTests) {
         Interpreter.reset();
         String  fileName = f.getFileName().toString();
-        String  basePath = EXPECTED_DIR+fileName.split("\\.")[0];
-        Path    srcPath  = Path.of(basePath+EXPECTED_SRC_EXT);
-        Path    prepPath = Path.of(basePath+EXPECTED_PREP_EXT);
-        Path    inPath   = Path.of(basePath+EXPECTED_IN_EXT);
-        Path    outPath  = Path.of(basePath+EXPECTED_OUT_EXT);
-        Path    exitPath = Path.of(basePath+EXPECTED_EXIT_EXT);
+        String  basePath = EXPECTED_DIR+fileName.split("\\.")[0]+'/';
+        Path    srcPath  = Path.of(basePath+EXPECTED_SRC_FILE);
+        Path    prepPath = Path.of(basePath+EXPECTED_PREP_FILE);
+        Path    trspPath = Path.of(basePath+EXPECTED_TRSP_FILE);
+        Path    inPath   = Path.of(basePath+EXPECTED_IN_FILE);
+        Path    outPath  = Path.of(basePath+EXPECTED_OUT_FILE);
+        Path    exitPath = Path.of(basePath+EXPECTED_EXIT_FILE);
         boolean bfnx     = fileName.endsWith(".bfnx");
         boolean bfn      = fileName.endsWith(".bfn");
         try {
@@ -53,6 +55,17 @@ public class Testing {
             String outputData = Interpreter.output.toString();
             if (!updateTests) checkOutput(fileName, outPath, outputData);
             else FileSystem.saveFile(outPath, outputData);
+
+            if (!bfnx) {
+                Interpreter.reset();
+                String transpiledData = Transpiler.transpile(parsedData);
+                if (!updateTests) checkTranspiled(fileName, trspPath, transpiledData);
+                else FileSystem.saveFile(trspPath, transpiledData);
+                loadInputData(inPath);
+                Interpreter.executeBF(Parser.parseBrainFunk(transpiledData));
+                String transpiledOutData = Interpreter.output.toString();
+                checkOutput(fileName, outPath, transpiledOutData);
+            }
 
             if (!updateTests) checkInput(fileName, inPath, Interpreter.inputMemory.toString());
             else if (!Interpreter.inputMemory.isEmpty()) FileSystem.saveFile(inPath, Interpreter.inputMemory.toString());
@@ -179,6 +192,41 @@ public class Testing {
         } else {
             FileSystem.saveFile(outPath, actualData);
             System.out.println(fileName+" ".repeat(32-fileName.length())+"output SAVED");
+        }
+    }
+
+    private static void checkTranspiled(String fileName, Path trspPath, String actualData) throws IOException {
+        if (Files.exists(trspPath)) {
+            String expectedData = Files.readString(trspPath);
+            if (actualData.equals(expectedData)) {
+                System.out.println(fileName+" ".repeat(28-fileName.length())+"transpiled OK");
+            } else {
+                System.out.println(fileName+" ".repeat(28-fileName.length())+"transpiled doesn't match!");
+                String[] expectedLines = expectedData.split("\n", -1);
+                String[] actualLines   = actualData.split("\n", -1);
+                for (int i = 0; i < expectedLines.length || i < actualLines.length; i++) {
+                    int pad = (int) Math.ceil(4.f-Math.log10(Math.max(i, 2)));
+                    if (i >= actualLines.length) {
+                        System.out.println(" ".repeat(pad)+i+"   ACTUAL:{NULL}");
+                        System.out.println(" ".repeat(pad)+i+" EXPECTED:"+expectedLines[i]);
+                    } else if (i >= expectedLines.length) {
+                        System.out.println(" ".repeat(pad)+i+"   ACTUAL:"+actualLines[i]);
+                        System.out.println(" ".repeat(pad)+i+" EXPECTED:{NULL}");
+                    } else if (!actualLines[i].equals(expectedLines[i])) {
+                        System.out.println(" ".repeat(pad)+i+"   ACTUAL:"+actualLines[i]);
+                        System.out.println(" ".repeat(pad)+i+" EXPECTED:"+expectedLines[i]);
+                        for (int j = 0; j < actualLines[i].length() || j < expectedLines[i].length(); j++) {
+                            if (j == expectedLines[i].length() || j == actualLines[i].length() || actualLines[i].charAt(j) != expectedLines[i].charAt(j)) {
+                                System.out.println(" ".repeat(15+j)+"^");
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            FileSystem.saveFile(trspPath, actualData);
+            System.out.println(fileName+" ".repeat(32-fileName.length())+"transpiled SAVED");
         }
     }
 
