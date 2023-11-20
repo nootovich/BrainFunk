@@ -290,12 +290,12 @@ public class Interpreter {
     }
 
     private static void error(String message) {
-        System.out.println("[INTERPRETER_ERROR!]: "+message);
+        System.out.println("[INTERPRETER_ERROR]: "+message);
         System.exit(1);
     }
 
     private static void error(Token tk, String message) {
-        System.out.printf("[INTERPRETER_ERROR!]: %s: %s%n", tk, message);
+        System.out.printf("[INTERPRETER_ERROR]: %s: %s%n", tk, message);
         System.exit(1);
     }
 

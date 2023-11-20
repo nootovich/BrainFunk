@@ -8,8 +8,9 @@ public class FileSystem {
         try {
             return Files.readString(Path.of(filepath));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            error(String.valueOf(e));
         }
+        return null;
     }
 
     public static void saveFile(Path path, String data) {
@@ -17,8 +18,12 @@ public class FileSystem {
             if (Files.notExists(path.getParent())) Files.createDirectories(path.getParent());
             Files.writeString(path, data);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            error(String.valueOf(e));
         }
     }
 
+    private static void error(String message) {
+        System.out.printf("[FILESYSTEM_ERROR!]: %s%n", message);
+        System.exit(1);
+    }
 }

@@ -7,13 +7,13 @@ public class Main {
     public static void main(String[] args) {
         boolean showTokens = false;
 
-        if (args.length < 1) exit("Please provide a .bf file as a command line argument.");
+        if (args.length < 1) error("Please provide a .bf or .bfn file as a command line argument.");
         String filepath = args[0];
         filename = Path.of(filepath).getFileName().toString();
 
         for (int i = 1; i < args.length; i++) {
             if (args[i].equals("-st")) showTokens = true;
-            else exit("Unknown argument `"+args[i]+"`.");
+            else error("Unknown argument `"+args[i]+"`.");
         }
 
         Token[] lexedTokens = Lexer.lexFile(filepath);
@@ -22,8 +22,8 @@ public class Main {
         Interpreter.executeBF(lexedTokens);
     }
 
-    public static void exit(String message) {
-        System.out.println(message);
+    private static void error(String message) {
+        System.out.printf("[HUMONGOLONGOUS_ERROR!]: %s%n", message);
         System.exit(1);
     }
 

@@ -12,10 +12,10 @@ public class Transpiler {
     private static       Stack<Integer>          ptrHistory        = new Stack<>();
 
     public static void main(String[] args) {
-        if (args.length == 0) Main.exit("No argument was provided!");
+        if (args.length == 0) error("No argument was provided!");
         if (args[0].endsWith(".bfx")) {
-            Main.exit("[ERROR]: BrainFunkExtended(.bfx) files can't be transpiled since "
-                      +"they use functionality not available in pure bf (like syscalls).");
+            error("[ERROR]: BrainFunkExtended(.bfx) files can't be transpiled since "
+                  +"they use functionality not available in pure bf (like syscalls).");
         }
         String code = Parser.parseBrainFunk(FileSystem.loadFile(args[0]));
         FileSystem.saveFile(Path.of(TRANSPILED_FOLDER+Path.of(args[0]).getFileName()), transpile(code));
@@ -41,7 +41,7 @@ public class Transpiler {
             } else if (Character.isLetterOrDigit(c)) {
                 name.append(c);
                 continue;
-            } else if (c != ':' && c != ' ') Main.exit("Unexpected character '"+c+"'\nFrom: "+op);
+            } else if (c != ':' && c != ' ') error("Unexpected character '"+c+"'\nFrom: "+op);
             switch (c) {
                 case '>' -> {
                     movePointer(true, amount);
@@ -65,7 +65,7 @@ public class Transpiler {
                     for (int j = op+1; j < dataLen; j++) {
                         char g = data.charAt(j);
                         if (g == '"') break;
-                        if (j == dataLen-1) Main.exit("Unmatched double-quotes!\nFrom: "+op);
+                        if (j == dataLen-1) error("Unmatched double-quotes!\nFrom: "+op);
                         t.append(g);
                     }
                     String r = t.toString();
@@ -88,14 +88,14 @@ public class Transpiler {
                 }
                 case '#' -> {
                     if (ptrHistory.isEmpty())
-                        Main.exit("ERROR: there is not enough pointer history to go back to.");
+                        error("ERROR: there is not enough pointer history to go back to.");
                     int target = ptrHistory.pop();
                     if (pointer > target) output.append("<".repeat(pointer-target));
                     else if (pointer < target) output.append(">".repeat(target-pointer));
                     pointer = target;
                 }
                 case '_' -> {}
-                default -> Main.exit("Unknown character '"+c+"'");
+                default -> error("Unknown character '"+c+"'");
             }
             amount      = 0;
             nameStarted = false;
@@ -119,14 +119,23 @@ public class Transpiler {
             if (c == ';') break;
             pattern.append(c);
         }
-        if (data.charAt(i) != ';') Main.exit("Unmatched semicolon!\nFrom: "+start);
+        if (data.charAt(i) != ';') error("Unmatched semicolon!\nFrom: "+start);
         patterns.put(name, pattern.toString());
         return i;
     }
 
     public static String unfoldPattern(String name) {
-        if (patterns.get(name) == null) Main.exit("Pattern '"+name+"' was not found!");
+        if (patterns.get(name) == null) error("Pattern '"+name+"' was not found!");
         return "\n"+transpile(patterns.get(name))+"\n";
     }
 
+    private static void error(String message) {
+        System.out.printf("[TRANSPILER_ERROR]: %s%n", message);
+        System.exit(1);
+    }
+
+    private static void error(Token tk, String message) {
+        System.out.printf("[TRANSPILER_ERROR]: %s: %s%n", tk, message);
+        System.exit(1);
+    }
 }

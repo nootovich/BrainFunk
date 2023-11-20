@@ -26,5 +26,10 @@ public class Lexer {
         }
         return tokens.toArray(new Token[0]);
     }
+
+    private static void error(String message) {
+        System.out.printf("[LEXER_ERROR]: %s%n", message);
+        System.exit(1);
+    }
 }
 

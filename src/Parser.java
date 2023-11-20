@@ -24,7 +24,7 @@ public class Parser {
             else if (c == '"') {
                 parsed.append('"');
                 for (int j = i+1; j < dataLen; j++) {
-                    if (j == dataLen-1) Main.exit("Unmatched double-quotes!\nFrom: "+i);
+                    if (j == dataLen-1) error("Unmatched double-quotes!\nFrom: "+i);
                     c = data.charAt(j);
                     if (c != '"') {
                         parsed.append(c);
@@ -51,7 +51,7 @@ public class Parser {
                     if (ptr == -1) ptr = 0;
                     ptr = ptr*10+c-'0';
                 }
-                if (ptr == -1) Main.exit("[ERROR]: pointer value expected but got nothing\nAt:"+i);
+                if (ptr == -1) error("[ERROR]: pointer value expected but got nothing\nAt:"+i);
                 parsed.append(ptr).append("_");
                 if (isAllowedBrainFunk(c)) parsed.append(c);
             }
@@ -95,6 +95,15 @@ public class Parser {
     private static boolean isAllowed(char c, char[] allowedList) {
         for (char a: allowedList) if (c == a) return true;
         return false;
+    }
+
+    private static void error(String message) {
+        System.out.printf("[PARSER_ERROR]: %s%n", message);
+        System.exit(1);
+    }
+    private static void error(Token tk, String message) {
+        System.out.printf("[PARSER_ERROR]: %s: %s%n", tk, message);
+        System.exit(1);
     }
 }
 
