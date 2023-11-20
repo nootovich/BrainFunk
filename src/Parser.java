@@ -25,13 +25,11 @@ public class Parser {
                 parsed.append('"');
                 for (int j = i+1; j < dataLen; j++) {
                     if (j == dataLen-1) Main.exit("Unmatched double-quotes!\nFrom: "+i);
-
                     c = data.charAt(j);
                     if (c != '"') {
                         parsed.append(c);
                         continue;
                     }
-
                     parsed.append('"');
                     i = j;
                     break;
@@ -39,6 +37,24 @@ public class Parser {
 
             }
 
+            // parse pointers
+            else if (c == '$') {
+                parsed.append('$');
+                int ptr = -1;
+                for (int j = i+1; j < dataLen; j++) {
+                    // TODO: error reporting (and in a proper way)
+                    c = data.charAt(j);
+                    if (!Character.isDigit(c)) {
+                        i = j;
+                        break;
+                    }
+                    if (ptr == -1) ptr = 0;
+                    ptr = ptr*10+c-'0';
+                }
+                if (ptr == -1) Main.exit("[ERROR]: pointer value expected but got nothing\nAt:"+i);
+                parsed.append(ptr).append("_");
+                if (isAllowedBrainFunk(c)) parsed.append(c);
+            }
 
             // parse data
             else if (!nameStarted) {

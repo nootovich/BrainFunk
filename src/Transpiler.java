@@ -92,6 +92,7 @@ public class Transpiler {
                     else if (pointer < target) output.append(">".repeat(target-pointer));
                     pointer = target;
                 }
+                case '_' -> {}
                 default -> Main.exit("Unknown character '"+c+"'");
             }
             amount      = 0;

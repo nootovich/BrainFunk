@@ -88,6 +88,7 @@ public class Interpreter {
                         Main.exit("ERROR: there is not enough pointer history to go back to.");
                     pointer = ptrHistory.pop();
                 }
+                case '_' -> {}
                 case '@' -> syscall();
                 default -> Main.exit("Unknown character '"+c+"'");
             }
