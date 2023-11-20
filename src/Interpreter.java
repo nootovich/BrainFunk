@@ -10,18 +10,19 @@ public class Interpreter {
     public static boolean CONSOLE_OUT = true;
     public static boolean EXTENDED    = false;
 
-    public static final int TAPE_LEN = 256;
-
-    static byte[]                  tape        = new byte[TAPE_LEN];
-    static int                     pointer     = 0;
     static Stack<Integer>          ptrHistory  = new Stack<>();
     static HashMap<String, String> patterns    = new HashMap<>();
-    static Scanner                 input       = new Scanner(System.in);
-    static ArrayList<Byte>         inputBuffer = new ArrayList<>();
     static StringBuilder           inputMemory = new StringBuilder();
     static StringBuilder           output      = new StringBuilder();
     static byte                    exitCode    = 0;
 
+
+    public static final int             TAPE_LEN    = 256;
+    private static      int             savedVal    = -1;
+    private static      int             pointer     = 0;
+    private static      byte[]          tape        = new byte[TAPE_LEN];
+    private static      Scanner         input       = new Scanner(System.in);
+    public static       ArrayList<Byte> inputBuffer = new ArrayList<>();
 
     public static void executeBF(String data) {
         int dataLen = data.length();
@@ -64,7 +65,9 @@ public class Interpreter {
                     System.arraycopy(tokens, start+1, innerTokens, 0, innerTokens.length);
                     while (tape[pointer] != 0) executeBF(innerTokens);
                 }
-                case ENDWHILE -> {}
+                case ENDWHILE -> {
+                    // TODO: report an error when there is more `ENDWHILE` than `WHILE` tokens
+                }
                 case WRITE -> System.out.print((char) tape[pointer]);
                 case READ -> processInput(1);
                 default -> error(tk, "Unknown token type `"+tk.type+"`");
@@ -72,8 +75,79 @@ public class Interpreter {
         }
     }
 
+    public static void executeBrainFunk(Token[] tokens) {
+        for (int i = 0; i < tokens.length; i++) {
+            Token tk = tokens[i];
+            switch (tk.type) {
+                case ADD -> tape[pointer] += (byte) getVal();
+                case SUB -> tape[pointer] -= (byte) getVal();
+                case PTRADD -> ptradd(getVal());
+                case PTRSUB -> ptradd(-getVal());
+                case WHILE -> {
+                    int start = i;
+                    int depth = getVal();
+                    int len   = 0;
+                    while (depth > 0) {
+                        len++;
+                        tk = tokens[++i];
+                        if (tk.type == Token.Type.WHILE) depth += getVal();
+                        else if (tk.type == Token.Type.ENDWHILE) depth -= getVal();
+                        else if (tk.type == Token.Type.NUMBER) saveVal(tk);
+                        if (i == tokens.length-1) error(tokens[start], "Unmatched brackets.");
+                    }
+                    Token[] innerTokens = new Token[len-1];
+                    System.arraycopy(tokens, start+1, innerTokens, 0, innerTokens.length);
+                    while (tape[pointer] != 0) executeBrainFunk(innerTokens);
+                }
+                case ENDWHILE -> {
+                    // TODO: report an error when there is more `ENDWHILE` than `WHILE` tokens
+                }
+                case WRITE -> {
+                    int val = getVal();
+                    for (int j = 0; j < val; j++) System.out.print((char) tape[pointer]);
+                }
+                case READ -> processInput(getVal());
+                case NUMBER -> saveVal(tk);
+                // case ':' -> op = addPattern(data, op, name.toString());
+                // case ' ' -> executePattern(name.toString(), amount);
+                // case '"' -> op = processString(data, op);
+                // case '$' -> {
+                //     int target = -1;
+                //     for (int i = op+1; i < dataLen; i++) {
+                //         char b = data.charAt(i);
+                //         if (!Character.isDigit(b)) break;
+                //         if (target == -1) target = 0;
+                //         target = target*10+b-'0';
+                //     }
+                //     ptrHistory.push(pointer);
+                //     pointer = target;
+                // }
+                // case '#' -> {
+                //     if (ptrHistory.isEmpty())
+                //         error("There is not enough pointer history to go back to.");
+                //     pointer = ptrHistory.pop();
+                // }
+                // case '@' -> syscall();
+                default -> error(tk, "Unknown token type `"+tk.type+"`");
+            }
+        }
+    }
+
     private static void ptradd(int n) {
         pointer = ((pointer+n)%TAPE_LEN+TAPE_LEN)%TAPE_LEN;
+    }
+
+    private static void saveVal(Token tk) {
+        if (savedVal >= 0) error(tk, "Two consecutive numbers after one another are not supported. "+
+                                     "Or this might be a bug in Lexer.");
+        savedVal = tk.value;
+    }
+
+    private static int getVal() {
+        if (savedVal < 0) return 1;
+        int temp = savedVal;
+        savedVal = -1;
+        return temp;
     }
 
     public static void executeBrainFunk(String data) {

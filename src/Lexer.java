@@ -3,15 +3,19 @@ import java.util.ArrayList;
 public class Lexer {
 
     public static Token[] lexFile(String filepath) {
-        String           rawData = FileSystem.loadFile(filepath);
-        String[]         lines   = rawData.split("\n");
-        ArrayList<Token> tokens  = new ArrayList<>();
+        String rawData = FileSystem.loadFile(filepath);
+        if (rawData == null) error("Could not get file data.");
+        String[]         lines  = rawData.split("\n");
+        ArrayList<Token> tokens = new ArrayList<>();
         for (int row = 0; row < lines.length; row++) {
             String line = lines[row];
             for (int col = 0; col < line.length(); col++) {
-                Token.Type tokenType = null;
-
                 char c = line.charAt(col);
+
+                Token.Type tokenType = null;
+                int        value     = 0;
+
+                // VANILLA
                 if (c == '+') tokenType = Token.Type.ADD;
                 else if (c == '-') tokenType = Token.Type.SUB;
                 else if (c == '>') tokenType = Token.Type.PTRADD;
@@ -21,7 +25,21 @@ public class Lexer {
                 else if (c == '.') tokenType = Token.Type.WRITE;
                 else if (c == ',') tokenType = Token.Type.READ;
 
-                if (tokenType != null) tokens.add(new Token(tokenType, row, col));
+                else if (c == '/' && col < line.length()-1 && line.charAt(col+1) == '/') break;
+                else if (Character.isDigit(c)) {
+                    tokenType = Token.Type.NUMBER;
+                    value     = c-'0';
+                    while (col < line.length()-1 && Character.isDigit(line.charAt(col+1))) {
+                        c     = line.charAt(++col);
+                        value = value*10+c-'0';
+                    }
+                }
+
+                if (tokenType != null) {
+                    Token tk = new Token(tokenType, row, col);
+                    tokens.add(tk);
+                    if (tokenType == Token.Type.NUMBER) tk.value = value;
+                }
             }
         }
         return tokens.toArray(new Token[0]);

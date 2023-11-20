@@ -16,17 +16,21 @@ public class Main {
             else error("Unknown argument `"+args[i]+"`.");
         }
 
+        // TODO: should lexer be separate between different filetypes?
         Token[] lexedTokens = Lexer.lexFile(filepath);
         if (showTokens) for (Token tk: lexedTokens) System.out.println(tk);
+        if (filename.endsWith(".bf")) {
+            Interpreter.executeBF(lexedTokens);
+        } else if (filename.endsWith(".bfn")) {
+            Interpreter.executeBrainFunk(lexedTokens);
+        } else {
+            error("Invalid file format. Please provide a .bf or .bfn file as a command line argument.");
+        }
 
-        Interpreter.executeBF(lexedTokens);
     }
 
     private static void error(String message) {
         System.out.printf("[HUMONGOLONGOUS_ERROR!]: %s%n", message);
         System.exit(1);
     }
-
-    // TODO: proper logging system
-
 }
