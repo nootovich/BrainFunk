@@ -44,7 +44,7 @@ public class Testing {
 
             String parsedData = bfnx ? Parser.parseBrainFunkExtended(actualData) :
                                 bfn ? Parser.parseBrainFunk(actualData)
-                                    : Parser.parsePureBF(actualData);
+                                    : Parser.parseBF(actualData);
             if (!updateTests) checkPreprocessed(fileName, prepPath, parsedData);
             else FileSystem.saveFile(prepPath, parsedData);
 

@@ -41,6 +41,40 @@ public class Interpreter {
         }
     }
 
+    public static void executeBF(Token[] tokens) {
+        for (int i = 0; i < tokens.length; i++) {
+            Token tk = tokens[i];
+            switch (tk.type) {
+                case ADD -> tape[pointer]++;
+                case SUB -> tape[pointer]--;
+                case PTRADD -> ptradd(1);
+                case PTRSUB -> ptradd(-1);
+                case WHILE -> {
+                    int start = i;
+                    int depth = 1;
+                    int len   = 0;
+                    while (depth > 0) {
+                        len++;
+                        tk = tokens[++i];
+                        if (tk.type == Token.Type.WHILE) depth++;
+                        else if (tk.type == Token.Type.ENDWHILE) depth--;
+                    }
+                    Token[] innerTokens = new Token[len-1];
+                    System.arraycopy(tokens, start+1, innerTokens, 0, innerTokens.length);
+                    while (tape[pointer] != 0) executeBF(innerTokens);
+                }
+                case ENDWHILE -> {}
+                case WRITE -> System.out.print((char) tape[pointer]);
+                case READ -> processInput(1);
+                default -> error("Unknown token type `"+tk.type+"`");
+            }
+        }
+    }
+
+    private static void ptradd(int n) {
+        pointer = ((pointer+n)%TAPE_LEN+TAPE_LEN)%TAPE_LEN;
+    }
+
     public static void executeBrainFunk(String data) {
         int           dataLen     = data.length();
         int           amount      = 0;
@@ -73,7 +107,10 @@ public class Interpreter {
                 case ']' -> {}
                 case ',' -> processInput(amount);
                 case ':' -> op = addPattern(data, op, name.toString());
-                case ' ' -> executePattern(name.toString(), amount);
+                case ' ' -> {
+                    // TODO: this thing gotta change
+                    // executePattern(name.toString(), amount);
+                }
                 case '"' -> op = processString(data, op);
                 case '$' -> {
                     int target = -1;
@@ -132,7 +169,9 @@ public class Interpreter {
                 if (nestingCount == 0) break;
                 else nestingCount--;
             }
-            if (j == dataLen-1) Main.exit("[ERROR]: Unmatched brackets:\n"+data.substring(Math.max(op-50, 0), Math.min(op+50, dataLen-1)));
+            // if (j == dataLen-1)
+            //     error("Unmatched brackets: (op="+op+")\n"
+            //           +data.substring(Math.max(0, op-10), Math.min(op+10, dataLen-1)));
             t.append(g);
         }
         while (tape[pointer] != 0)

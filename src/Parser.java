@@ -2,9 +2,9 @@ public class Parser {
 
     public static boolean EXTENDED = false;
 
-    public static String parsePureBF(String data) {
+    public static String parseBF(String data) {
         StringBuilder parsed = new StringBuilder();
-        for (char c: data.toCharArray()) if (isAllowedPureBF(c)) parsed.append(c);
+        for (char c: data.toCharArray()) if (isAllowedBF(c)) parsed.append(c);
         return parsed.toString();
     }
 
@@ -80,7 +80,7 @@ public class Parser {
         return result;
     }
 
-    private static boolean isAllowedPureBF(char c) {
+    private static boolean isAllowedBF(char c) {
         char[] allowedList = new char[]{'+', '-', '>', '<', '[', ']', '.', ','};
         return isAllowed(c, allowedList);
     }
