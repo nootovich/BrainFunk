@@ -35,16 +35,17 @@ public class Interpreter {
                 case '.' -> printChar(1);
                 case ']' -> {}
                 case ',' -> processInput(1);
-                default -> Main.exit("Unknown character '"+data.charAt(op)+"'");
+                default -> error("Unknown character: '"+data.charAt(op)+"' (op="+op+")\n"+
+                                 data.substring(Math.max(0, op-5), Math.min(op+5, dataLen-1)));
             }
         }
     }
 
     public static void executeBrainFunk(String data) {
-        int            dataLen     = data.length();
-        int            amount      = 0;
-        boolean        nameStarted = false;
-        StringBuilder  name        = new StringBuilder();
+        int           dataLen     = data.length();
+        int           amount      = 0;
+        boolean       nameStarted = false;
+        StringBuilder name        = new StringBuilder();
         for (int op = 0; op < dataLen; op++) {
             char c = data.charAt(op);
             if (!nameStarted) {
@@ -59,7 +60,9 @@ public class Interpreter {
             } else if (Character.isLetterOrDigit(c)) {
                 name.append(c);
                 continue;
-            } else if (c != ':' && c != ' ') Main.exit("Unexpected character '"+c+"'\nFrom: "+op);
+            } else if (c != ':' && c != ' ')
+                error("Unknown character: '"+data.charAt(op)+"' (op="+op+")\n"+
+                      data.substring(Math.max(0, op-5), Math.min(op+5, dataLen-1)));
             switch (c) {
                 case '+' -> addsub(true, amount);
                 case '-' -> addsub(false, amount);
@@ -85,12 +88,13 @@ public class Interpreter {
                 }
                 case '#' -> {
                     if (ptrHistory.isEmpty())
-                        Main.exit("ERROR: there is not enough pointer history to go back to.");
+                        error("There is not enough pointer history to go back to.");
                     pointer = ptrHistory.pop();
                 }
                 case '_' -> {}
                 case '@' -> syscall();
-                default -> Main.exit("Unknown character '"+c+"'");
+                default -> error("Unknown character: '"+data.charAt(op)+"' (op="+op+")\n"+
+                                 data.substring(Math.max(0, op-5), Math.min(op+5, dataLen-1)));
             }
             amount      = 0;
             nameStarted = false;
@@ -152,7 +156,7 @@ public class Interpreter {
             char[] in = input.nextLine().toCharArray();
             for (char inChar: in) inputBuffer.add((byte) inChar);
         }
-        if (inputBuffer.isEmpty()) Main.exit("Not enough input data was provided!");
+        if (inputBuffer.isEmpty()) error("Not enough input data was provided!");
         tape[pointer] = inputBuffer.get(0);
         inputMemory.append((char) tape[pointer]);
         inputBuffer.remove(0);
@@ -166,13 +170,15 @@ public class Interpreter {
             if (c == ';') break;
             pattern.append(c);
         }
-        if (data.charAt(op) != ';') Main.exit("Unmatched semicolon!\nFrom: "+start);
+        if (data.charAt(op) != ';')
+            error("Unmatched semicolon: (op="+start+")\n"
+                  +data.substring(Math.max(0, start-10), Math.min(start+10, data.length()-1)));
         patterns.put(name, pattern.toString());
         return op;
     }
 
     private static void executePattern(String name, int amount) {
-        if (patterns.get(name) == null) Main.exit("Pattern '"+name+"' was not found!");
+        if (patterns.get(name) == null) error("Pattern '"+name+"' was not found!");
         amount = (amount > 0 ? amount : 1);
         for (int i = 0; i < amount; i++) executeBrainFunk(patterns.get(name));
     }
@@ -183,7 +189,9 @@ public class Interpreter {
         for (int j = op+1; j < dataLen; j++) {
             char g = data.charAt(j);
             if (g == '"') break;
-            if (j == dataLen-1) Main.exit("Unmatched double-quotes!\nFrom: "+op);
+            if (j == dataLen-1)
+                error("Unmatched semicolon: (op="+op+")\n"
+                      +data.substring(Math.max(0, op-10), Math.min(op+10, dataLen-1)));
             t.append(g);
         }
         String r = t.toString();
@@ -195,12 +203,12 @@ public class Interpreter {
     }
 
     private static void syscall() {
-        if (!EXTENDED) Main.exit("Unknown character '@'");
+        if (!EXTENDED) error("Unknown character '@'");
         try {
             switch (tape[pointer]) {
                 case 60 -> syscall1();
                 case 35 -> syscall4();
-                default -> Main.exit("This syscall is not implemented yet");
+                default -> error("This syscall is not implemented yet");
             }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -213,7 +221,7 @@ public class Interpreter {
                 if (!TESTING) System.exit(tape[pointer-1]);
                 else exitCode = tape[pointer-1];
             }
-            default -> Main.exit("This type of syscall1 is not implemented yet");
+            default -> error("This type of syscall1 is not implemented yet");
         }
     }
 
@@ -227,7 +235,7 @@ public class Interpreter {
                 int pos3 = (pointer-1%TAPE_LEN+TAPE_LEN)%TAPE_LEN;
                 Thread.sleep(Math.min(tape[pos0]<<24|tape[pos1]<<16|tape[pos2]<<8|(int) tape[pos3]&0xff, 99999999));
             }
-            default -> Main.exit("This type of syscall4 is not implemented yet");
+            default -> error("This type of syscall4 is not implemented yet");
         }
     }
 
@@ -239,6 +247,11 @@ public class Interpreter {
         inputBuffer.clear();
         inputMemory.setLength(0);
         output.setLength(0);
+    }
+
+    private static void error(String message) {
+        System.out.println("[INTERPRETER_ERROR!]: "+message);
+        System.exit(1);
     }
 
 }

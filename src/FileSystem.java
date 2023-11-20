@@ -4,9 +4,9 @@ import java.nio.file.Path;
 
 public class FileSystem {
 
-    public static String loadFile(String fileName) {
+    public static String loadFile(String filepath) {
         try {
-            return Files.readString(Path.of(fileName));
+            return Files.readString(Path.of(filepath));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
