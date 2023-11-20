@@ -56,6 +56,9 @@ public class Testing {
             if (!updateTests) checkOutput(fileName, outPath, outputData);
             else FileSystem.saveFile(outPath, outputData);
 
+            if (!updateTests) checkInput(fileName, inPath, Interpreter.inputMemory.toString());
+            else if (!Interpreter.inputMemory.isEmpty()) FileSystem.saveFile(inPath, Interpreter.inputMemory.toString());
+
             if (!bfnx) {
                 Interpreter.reset();
                 String transpiledData = Transpiler.transpile(parsedData);
@@ -64,11 +67,8 @@ public class Testing {
                 loadInputData(inPath);
                 Interpreter.executeBF(Parser.parseBrainFunk(transpiledData));
                 String transpiledOutData = Interpreter.output.toString();
-                checkOutput(fileName, outPath, transpiledOutData);
+                if (!updateTests) checkOutput(fileName, outPath, transpiledOutData);
             }
-
-            if (!updateTests) checkInput(fileName, inPath, Interpreter.inputMemory.toString());
-            else if (!Interpreter.inputMemory.isEmpty()) FileSystem.saveFile(inPath, Interpreter.inputMemory.toString());
 
             if (!updateTests && bfnx) checkExit(fileName, exitPath, Interpreter.exitCode);
             else if (bfnx) FileSystem.saveFile(exitPath, String.valueOf((char) Interpreter.exitCode));
@@ -90,10 +90,18 @@ public class Testing {
     }
 
     private static void deleteOldTests(String dir) {
+        // TODO: this is a mess
         try {
-            Files.list(Path.of(dir)).forEach(path -> {
+            Files.list(Path.of(dir)).filter(Files::isDirectory).forEach(testDir -> {
                 try {
-                    Files.deleteIfExists(path);
+                    Files.list(testDir).forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                    Files.deleteIfExists(testDir);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

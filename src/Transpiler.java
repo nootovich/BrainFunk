@@ -20,16 +20,16 @@ public class Transpiler {
     }
 
     public static String transpile(String data) {
-        int           dataLen         = data.length();
-        int           repetitionCount = 0;
-        boolean       nameStarted     = false;
-        StringBuilder name            = new StringBuilder();
-        StringBuilder output          = new StringBuilder();
+        int           dataLen     = data.length();
+        int           amount      = 0;
+        boolean       nameStarted = false;
+        StringBuilder name        = new StringBuilder();
+        StringBuilder output      = new StringBuilder();
         for (int op = 0; op < dataLen; op++) {
             char c = data.charAt(op);
             if (!nameStarted) {
                 if (Character.isDigit(c)) {
-                    repetitionCount = repetitionCount*10+c-'0';
+                    amount = amount*10+c-'0';
                     continue;
                 } else if (Character.isLetter(c)) {
                     nameStarted = true;
@@ -42,21 +42,21 @@ public class Transpiler {
             } else if (c != ':' && c != ' ') Main.exit("Unexpected character '"+c+"'\nFrom: "+op);
             switch (c) {
                 case '>' -> {
-                    movePointer(true, repetitionCount);
-                    output.append('>');
+                    movePointer(true, amount);
+                    output.append(">".repeat(amount > 0 ? amount : 1));
                 }
                 case '<' -> {
-                    movePointer(false, repetitionCount);
-                    output.append('<');
+                    movePointer(false, amount);
+                    output.append("<".repeat(amount > 0 ? amount : 1));
                 }
-                case '+', '-', '[', ']', '.', ',', '\n' -> {
-                    if (repetitionCount == 0) output.append(c);
-                    else output.append(String.valueOf(c).repeat(repetitionCount));
+                case '+', '-', '[', ']', '.', ',' -> {
+                    if (amount == 0) output.append(c);
+                    else output.append(String.valueOf(c).repeat(amount));
                 }
                 case ':' -> op = addPattern(data, op, name.toString());
                 case ' ' -> {
-                    if (repetitionCount == 0) output.append(unfoldPattern(name.toString()));
-                    else for (int j = 0; j < repetitionCount; j++) output.append(unfoldPattern(name.toString()));
+                    if (amount == 0) output.append(unfoldPattern(name.toString()));
+                    else for (int j = 0; j < amount; j++) output.append(unfoldPattern(name.toString()));
                 }
                 case '"' -> {
                     StringBuilder t = new StringBuilder();
@@ -67,8 +67,7 @@ public class Transpiler {
                         t.append(g);
                     }
                     String r = t.toString();
-                    output.append("// push \"").append(r).append("\"\n");
-                    for (int j = 0; j < r.length(); j++) output.append("[-]").append("+".repeat((int) r.charAt(j)&0xFF)).append(">");
+                    for (int j = 0; j < r.length(); j++) output.append("[-]").append("+".repeat((int) r.charAt(j)&0xFF)).append(">\n");
                     movePointer(true, r.length());
                     op += r.length()+1;
                 }
@@ -95,8 +94,8 @@ public class Transpiler {
                 }
                 default -> Main.exit("Unknown character '"+c+"'");
             }
-            repetitionCount = 0;
-            nameStarted     = false;
+            amount      = 0;
+            nameStarted = false;
             name.setLength(0);
         }
         return output.toString();
@@ -124,7 +123,7 @@ public class Transpiler {
 
     public static String unfoldPattern(String name) {
         if (patterns.get(name) == null) Main.exit("Pattern '"+name+"' was not found!");
-        return "\n// "+name+"\n"+transpile(patterns.get(name))+"\n";
+        return "\n"+transpile(patterns.get(name))+"\n";
     }
 
 }

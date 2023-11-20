@@ -33,7 +33,7 @@ public class Parser {
                     }
 
                     parsed.append('"');
-                    i = j+1;
+                    i = j;
                     break;
                 }
 

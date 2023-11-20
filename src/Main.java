@@ -28,7 +28,6 @@ public class Main {
                     String transpiled = Transpiler.transpile(preparsed);
                     String parsedPure = Parser.parseBrainFunk(transpiled);
                     Interpreter.executeBF(parsedPure);
-                    System.out.println("\n------------------------------------------\nResulting code:\n"+parsedPure);
                 } else exit("[ERROR]: Invalid file format. Expected a .bfn file.");
             }
             // and so on...
