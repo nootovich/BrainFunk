@@ -1,0 +1,32 @@
+// 0-4 taken for reg
+r2:$0;
+
+// duplicates a number to a corresponding reg
+duptor2:r2[-]#[-r2+>+#]r2>[-#+r2>]#;
+dup2tor2:duptor2 r2>>[-]<<[->>+<<]#<duptor2 r2>>[-<+>]#;
+
+// a = tape[i], b = tape[i-1]; return a == b; (return value is saved on r2)
+// NEWER VERSION: "eq:dup2tor2 r2>>+<<[->-<]>[[-]>[-]<]>[-<<+>>]#;"
+eq:
+    duptor2 r2>[-]<[->>+<<]# <duptor2 r2 >>[-<+>] // copy the values to r2 like this: [b, a, -, -]
+    + // set the return value to 1. [b, a, 1, -]
+    <<[->-<] // a - b. [0, a-b, 1, -]
+    >[ // a-b == 0
+         [-] // [0, 0, 1, -]
+        >[-] // [0, 0, 0, -]
+        < // return to the same position as at the start of a loop (in this case condition)
+     ]
+     >[-<<+>>] // move the return value to r2
+     # // return
+;
+
+// writing output to console
+println:print 10+.[-];
+print:<[<]>[.>]<clear;
+clear:[[-]<]>;
+
+$4  2+ >2+   eq r2 48+ println
+$6  69+>69+  eq r2 48+ println
+$8  1+ >2+   eq r2 48+ println
+$10 2+ >254- eq r2 48+ println
+$12 2+ >255- eq r2 48+ println
