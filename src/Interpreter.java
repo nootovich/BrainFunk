@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.Stack;
 
 public class Interpreter {
 
@@ -9,8 +10,11 @@ public class Interpreter {
     public static boolean CONSOLE_OUT = true;
     public static boolean EXTENDED    = false;
 
-    static byte[]                  tape        = new byte[256];
+    public static final int TAPE_LEN = 256;
+
+    static byte[]                  tape        = new byte[TAPE_LEN];
     static int                     pointer     = 0;
+    static Stack<Integer>          ptrHistory  = new Stack<>();
     static HashMap<String, String> patterns    = new HashMap<>();
     static Scanner                 input       = new Scanner(System.in);
     static ArrayList<Byte>         inputBuffer = new ArrayList<>();
@@ -37,10 +41,10 @@ public class Interpreter {
     }
 
     public static void executeBrainFunk(String data) {
-        int           dataLen     = data.length();
-        int           amount      = 0;
-        boolean       nameStarted = false;
-        StringBuilder name        = new StringBuilder();
+        int            dataLen     = data.length();
+        int            amount      = 0;
+        boolean        nameStarted = false;
+        StringBuilder  name        = new StringBuilder();
         for (int op = 0; op < dataLen; op++) {
             char c = data.charAt(op);
             if (!nameStarted) {
@@ -68,6 +72,22 @@ public class Interpreter {
                 case ':' -> op = addPattern(data, op, name.toString());
                 case ' ' -> executePattern(name.toString(), amount);
                 case '"' -> op = processString(data, op);
+                case '$' -> {
+                    int target = -1;
+                    for (int i = op+1; i < dataLen; i++) {
+                        char b = data.charAt(i);
+                        if (!Character.isDigit(b)) break;
+                        if (target == -1) target = 0;
+                        target = target*10+b-'0';
+                    }
+                    ptrHistory.push(pointer);
+                    pointer = target;
+                }
+                case '#' -> {
+                    if (ptrHistory.isEmpty())
+                        Main.exit("ERROR: there is not enough pointer history to go back to.");
+                    pointer = ptrHistory.pop();
+                }
                 case '@' -> syscall();
                 default -> Main.exit("Unknown character '"+c+"'");
             }
@@ -92,7 +112,7 @@ public class Interpreter {
     private static void movePointer(boolean right, int amount) {
         amount  = (amount > 0 ? amount : 1);
         amount  = (right ? amount : -amount);
-        pointer = (((pointer+amount)%tape.length)+tape.length)%tape.length;
+        pointer = (((pointer+amount)%TAPE_LEN)+TAPE_LEN)%TAPE_LEN;
     }
 
     private static int processCycle(String data, int op, int amount, boolean pureBF) {
@@ -200,10 +220,10 @@ public class Interpreter {
         switch (tape[pointer]) {
             case 35 -> {
                 // TODO: a getValueAtPosition function or something
-                int pos0 = (pointer-4%tape.length+tape.length)%tape.length;
-                int pos1 = (pointer-3%tape.length+tape.length)%tape.length;
-                int pos2 = (pointer-2%tape.length+tape.length)%tape.length;
-                int pos3 = (pointer-1%tape.length+tape.length)%tape.length;
+                int pos0 = (pointer-4%TAPE_LEN+TAPE_LEN)%TAPE_LEN;
+                int pos1 = (pointer-3%TAPE_LEN+TAPE_LEN)%TAPE_LEN;
+                int pos2 = (pointer-2%TAPE_LEN+TAPE_LEN)%TAPE_LEN;
+                int pos3 = (pointer-1%TAPE_LEN+TAPE_LEN)%TAPE_LEN;
                 Thread.sleep(Math.min(tape[pos0]<<24|tape[pos1]<<16|tape[pos2]<<8|(int) tape[pos3]&0xff, 99999999));
             }
             default -> Main.exit("This type of syscall4 is not implemented yet");
@@ -211,7 +231,7 @@ public class Interpreter {
     }
 
     public static void reset() {
-        tape     = new byte[256];
+        tape     = new byte[TAPE_LEN];
         pointer  = 0;
         exitCode = 0;
         patterns.clear();

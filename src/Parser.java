@@ -71,8 +71,8 @@ public class Parser {
 
     private static boolean isAllowedBrainFunk(char c) {
         char[] allowedList;
-        if (EXTENDED) allowedList = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', ':', ';', '"', '@'};
-        else allowedList = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', ':', ';', '"'};
+        if (EXTENDED) allowedList = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', ':', ';', '"', '$', '#', '@'};
+        else allowedList = new char[]{'+', '-', '>', '<', '[', ']', '.', ',', ':', ';', '"', '$', '#'};
         return isAllowed(c, allowedList);
     }
 

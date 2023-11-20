@@ -1,10 +1,13 @@
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Stack;
 
 public class Transpiler {
 
     private static final String                  TRANSPILED_FOLDER = "./transpiled/";
     private static       HashMap<String, String> patterns          = new HashMap<>();
+    private static       int                     pointer           = 0;
+    private static       Stack<Integer>          ptrHistory        = new Stack<>();
 
     public static void main(String[] args) {
         if (args.length == 0) Main.exit("No argument was provided!");
@@ -22,8 +25,8 @@ public class Transpiler {
         boolean       nameStarted     = false;
         StringBuilder name            = new StringBuilder();
         StringBuilder output          = new StringBuilder();
-        for (int i = 0; i < dataLen; i++) {
-            char c = data.charAt(i);
+        for (int op = 0; op < dataLen; op++) {
+            char c = data.charAt(op);
             if (!nameStarted) {
                 if (Character.isDigit(c)) {
                     repetitionCount = repetitionCount*10+c-'0';
@@ -36,28 +39,59 @@ public class Transpiler {
             } else if (Character.isLetterOrDigit(c)) {
                 name.append(c);
                 continue;
-            } else if (c != ':' && c != ' ') Main.exit("Unexpected character '"+c+"'\nFrom: "+i);
+            } else if (c != ':' && c != ' ') Main.exit("Unexpected character '"+c+"'\nFrom: "+op);
             switch (c) {
-                case '+', '-', '>', '<', '[', ']', '.', ',', '\n' -> {
+                case '>' -> {
+                    movePointer(true, repetitionCount);
+                    output.append('>');
+                }
+                case '<' -> {
+                    movePointer(false, repetitionCount);
+                    output.append('<');
+                }
+                case '+', '-', '[', ']', '.', ',', '\n' -> {
                     if (repetitionCount == 0) output.append(c);
                     else output.append(String.valueOf(c).repeat(repetitionCount));
                 }
-                case ':' -> i = addPattern(data, i, name.toString());
+                case ':' -> op = addPattern(data, op, name.toString());
                 case ' ' -> {
                     if (repetitionCount == 0) output.append(unfoldPattern(name.toString()));
                     else for (int j = 0; j < repetitionCount; j++) output.append(unfoldPattern(name.toString()));
                 }
                 case '"' -> {
                     StringBuilder t = new StringBuilder();
-                    for (int j = i+1; j < dataLen; j++) {
+                    for (int j = op+1; j < dataLen; j++) {
                         char g = data.charAt(j);
                         if (g == '"') break;
-                        if (j == dataLen-1) Main.exit("Unmatched double-quotes!\nFrom: "+i);
+                        if (j == dataLen-1) Main.exit("Unmatched double-quotes!\nFrom: "+op);
                         t.append(g);
                     }
                     String r = t.toString();
+                    output.append("// push \"").append(r).append("\"\n");
                     for (int j = 0; j < r.length(); j++) output.append("[-]").append("+".repeat((int) r.charAt(j)&0xFF)).append(">");
-                    i += r.length()+1;
+                    movePointer(true, r.length());
+                    op += r.length()+1;
+                }
+                case '$' -> {
+                    int target = -1;
+                    for (int i = op+1; i < dataLen; i++) {
+                        char b = data.charAt(i);
+                        if (!Character.isDigit(b)) break;
+                        if (target == -1) target = 0;
+                        target = target*10+b-'0';
+                    }
+                    if (pointer > target) output.append("<".repeat(pointer-target));
+                    else if (pointer < target) output.append(">".repeat(target-pointer));
+                    ptrHistory.push(pointer);
+                    pointer = target;
+                }
+                case '#' -> {
+                    if (ptrHistory.isEmpty())
+                        Main.exit("ERROR: there is not enough pointer history to go back to.");
+                    int target = ptrHistory.pop();
+                    if (pointer > target) output.append("<".repeat(pointer-target));
+                    else if (pointer < target) output.append(">".repeat(target-pointer));
+                    pointer = target;
                 }
                 default -> Main.exit("Unknown character '"+c+"'");
             }
@@ -66,6 +100,13 @@ public class Transpiler {
             name.setLength(0);
         }
         return output.toString();
+    }
+
+    private static void movePointer(boolean right, int amount) {
+        amount = (amount > 0 ? amount : 1);
+        amount = (right ? amount : -amount);
+        int tapeLen = Interpreter.TAPE_LEN;
+        pointer = (((pointer+amount)%tapeLen)+tapeLen)%tapeLen;
     }
 
     public static int addPattern(String data, int i, String name) {
