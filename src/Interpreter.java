@@ -27,7 +27,7 @@ public class Interpreter {
                 case '-' -> tape[pointer]--;
                 case '>' -> movePointer(true, 1);
                 case '<' -> movePointer(false, 1);
-                case '[' -> processCycle(data, op, 1, true);
+                case '[' -> op = processCycle(data, op, 1, true);
                 case '.' -> printChar(1);
                 case ']' -> {}
                 case ',' -> processInput(1);
