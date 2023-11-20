@@ -4,6 +4,8 @@ import java.util.Stack;
 
 public class Transpiler {
 
+    // TODO: for some reason Transpiler is not working correctly but i can't understand why
+
     private static final String                  TRANSPILED_FOLDER = "./transpiled/";
     private static       HashMap<String, String> patterns          = new HashMap<>();
     private static       int                     pointer           = 0;
