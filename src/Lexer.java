@@ -13,8 +13,7 @@ public class Lexer {
                 char c = line.charAt(col);
 
                 Token.Type tokenType = null;
-                int        numValue  = -1;
-                String     strValue  = null;
+                Token      tk        = null;
 
                 // VANILLA
                 if (c == '+') tokenType = Token.Type.ADD;
@@ -25,34 +24,30 @@ public class Lexer {
                 else if (c == ']') tokenType = Token.Type.ENDWHILE;
                 else if (c == '.') tokenType = Token.Type.WRITE;
                 else if (c == ',') tokenType = Token.Type.READ;
+                if (tokenType != null) {
+                    tk = new Token(tokenType, row, col);
+                    tokens.add(tk);
+                }
 
                 else if (c == '/' && col < line.length()-1 && line.charAt(col+1) == '/') break;
                 else if (c == '"') {
-                    tokenType = Token.Type.STRING;
                     int start = col;
                     while (col < line.length()-1 && line.charAt(++col) != '"') {}
-                    if (line.charAt(col) != '"' || col == start) error("Unclosed string literal at "+new Token(tokenType, row, col));
-                    strValue = line.substring(start+1, col);
+                    tk = new Token(Token.Type.STRING, row, start);
+                    if (line.charAt(col) != '"' || start+1 > col-1) error("Unclosed string literal at "+tk);
+                    tk.strValue = line.substring(start+1, col);
+                    tokens.add(tk);
                 } else if (Character.isDigit(c)) {
-                    tokenType = Token.Type.NUMBER;
-                    numValue  = c-'0';
-                    while (col < line.length()-1 && Character.isDigit(line.charAt(col+1))) {
-                        c        = line.charAt(++col);
-                        numValue = numValue*10+c-'0';
-                    }
+                    int start = col;
+                    int val   = c-'0';
+                    while (col < line.length()-1 && Character.isDigit(line.charAt(col+1))) val = val*10+line.charAt(++col)-'0';
+                    tk = new Token(Token.Type.NUMBER, row, start);
+                    if (val < 1) error("Invalid value for a `NUMBER` token `"+val+"` at "+tk);
+                    tk.numValue = val;
+                    tokens.add(tk);
                 }
 
-                if (tokenType != null) {
-                    Token tk = new Token(tokenType, row, col);
-                    tokens.add(tk);
-                    if (tokenType == Token.Type.NUMBER) {
-                        if (numValue < 1) error("Invalid value for a `NUMBER` token `"+numValue+"`.");
-                        tk.numValue = numValue;
-                    } else if (tokenType == Token.Type.STRING) {
-                        if (strValue == null) error("Invalid value for a `STRING` token `"+strValue+"`.");
-                        tk.strValue = strValue;
-                    }
-                }
+                if (Main.showTokens && tk != null) System.out.println(tk);
             }
         }
         return tokens.toArray(new Token[0]);

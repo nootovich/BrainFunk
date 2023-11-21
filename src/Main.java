@@ -2,11 +2,10 @@ import java.nio.file.Path;
 
 public class Main {
 
-    public static String filename;
+    public static String  filename;
+    public static boolean showTokens;
 
     public static void main(String[] args) {
-        boolean showTokens = false;
-
         if (args.length < 1) error("Please provide a .bf or .bfn file as a command line argument.");
         String filepath = args[0];
         filename = Path.of(filepath).getFileName().toString();
@@ -18,7 +17,6 @@ public class Main {
 
         // TODO: should lexer be separate between different filetypes?
         Token[] lexedTokens = Lexer.lexFile(filepath);
-        if (showTokens) for (Token tk: lexedTokens) System.out.println(tk);
         if (filename.endsWith(".bf")) {
             Interpreter.executeBF(lexedTokens);
         } else if (filename.endsWith(".bfn")) {
