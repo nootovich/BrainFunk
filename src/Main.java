@@ -20,7 +20,8 @@ public class Main {
         if (filename.endsWith(".bf")) {
             Interpreter.executeBF(lexedTokens);
         } else if (filename.endsWith(".bfn")) {
-            Interpreter.executeBrainFunk(lexedTokens);
+            Token[] parsedTokens = Parser.parseTokens(lexedTokens);
+            Interpreter.executeBrainFunk(parsedTokens);
         } else {
             error("Invalid file format. Please provide a .bf or .bfn file as a command line argument.");
         }
