@@ -28,7 +28,8 @@ public class Main {
     }
 
     private static void error(String message) {
-        System.out.printf("[HUMONGOLONGOUS_ERROR!]: %s%n", message);
+        StackTraceElement errSrc = Thread.currentThread().getStackTrace()[2];
+        System.out.printf("%s:%d [ERROR]: %s%n", errSrc.getFileName(), errSrc.getLineNumber(), message);
         System.exit(1);
     }
 }

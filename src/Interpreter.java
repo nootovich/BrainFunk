@@ -59,7 +59,7 @@ public class Interpreter {
                         tk = tokens[++i];
                         if (tk.type == Token.Type.WHILE) depth++;
                         else if (tk.type == Token.Type.ENDWHILE) depth--;
-                        if (i == tokens.length-1) error(tokens[start], "Unmatched brackets.");
+                        if (i == tokens.length-1) error("Unmatched brackets at: "+tokens[start]);
                     }
                     Token[] innerTokens = new Token[len-1];
                     System.arraycopy(tokens, start+1, innerTokens, 0, innerTokens.length);
@@ -70,7 +70,7 @@ public class Interpreter {
                 }
                 case WRITE -> System.out.print((char) tape[pointer]);
                 case READ -> processInput(1);
-                default -> error(tk, "Unknown token type `"+tk.type+"`");
+                default -> error("Unknown token type `"+tk.type+"`");
             }
         }
     }
@@ -84,7 +84,7 @@ public class Interpreter {
                 case PTRADD -> ptradd(getVal());
                 case PTRSUB -> ptradd(-getVal());
                 case WHILE -> {
-                    if (i == tokens.length-1) error(tokens[i], "Unmatched brackets.");
+                    if (i == tokens.length-1) error("Unmatched brackets at: "+tokens[i]);
                     int start = i;
                     int depth = getVal();
                     int len   = 0;
@@ -94,7 +94,7 @@ public class Interpreter {
                         if (tk.type == Token.Type.WHILE) depth += getVal();
                         else if (tk.type == Token.Type.ENDWHILE) depth -= getVal();
                         else if (tk.type == Token.Type.NUMBER) saveVal(tk);
-                        if (depth != 0 && i == tokens.length-1) error(tokens[start], "Unmatched brackets.");
+                        if (depth != 0 && i == tokens.length-1) error("Unmatched brackets at: "+tokens[i]);
                     }
                     Token[] innerTokens = new Token[len-1];
                     System.arraycopy(tokens, start+1, innerTokens, 0, innerTokens.length);
@@ -115,9 +115,7 @@ public class Interpreter {
                         ptradd(1);
                     }
                 }
-                // case ':' -> op = addPattern(data, op, name.toString());
                 // case ' ' -> executePattern(name.toString(), amount);
-                // case '"' -> op = processString(data, op);
                 // case '$' -> {
                 //     int target = -1;
                 //     for (int i = op+1; i < dataLen; i++) {
@@ -135,7 +133,7 @@ public class Interpreter {
                 //     pointer = ptrHistory.pop();
                 // }
                 // case '@' -> syscall();
-                default -> error(tk, "Unknown token type `"+tk.type+"`");
+                default -> error("Unknown token type `"+tk.type+"`");
             }
         }
     }
@@ -145,8 +143,7 @@ public class Interpreter {
     }
 
     private static void saveVal(Token tk) {
-        if (savedVal >= 0) error(tk, "Two consecutive numbers after one another are not supported. "+
-                                     "Or this might be a bug in Lexer.");
+        if (savedVal >= 0) error("Two consecutive numbers after one another are not supported: "+tk);
         savedVal = tk.numValue;
     }
 
@@ -371,12 +368,8 @@ public class Interpreter {
     }
 
     private static void error(String message) {
-        System.out.println("[INTERPRETER_ERROR]: "+message);
-        System.exit(1);
-    }
-
-    private static void error(Token tk, String message) {
-        System.out.printf("[INTERPRETER_ERROR]: %s: %s%n", tk, message);
+        StackTraceElement errSrc = Thread.currentThread().getStackTrace()[2];
+        System.out.printf("%s:%d [ERROR]: %s%n", errSrc.getFileName(), errSrc.getLineNumber(), message);
         System.exit(1);
     }
 

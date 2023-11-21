@@ -98,12 +98,10 @@ public class Parser {
     }
 
     private static void error(String message) {
-        System.out.printf("[PARSER_ERROR]: %s%n", message);
+        StackTraceElement errSrc = Thread.currentThread().getStackTrace()[2];
+        System.out.printf("%s:%d [ERROR]: %s%n", errSrc.getFileName(), errSrc.getLineNumber(), message);
         System.exit(1);
     }
-    private static void error(Token tk, String message) {
-        System.out.printf("[PARSER_ERROR]: %s: %s%n", tk, message);
-        System.exit(1);
-    }
+
 }
 
