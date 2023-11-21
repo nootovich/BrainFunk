@@ -1,46 +1,18 @@
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Scanner;
-import java.util.Stack;
 
 public class Interpreter {
 
-    public static boolean TESTING     = false;
-    public static boolean DEBUG       = false;
-    public static boolean CONSOLE_OUT = true;
-    public static boolean EXTENDED    = false;
+    public static final int TAPE_LEN = 256;
+    public static final int REPETITION_CAP = 1000;
 
-    static Stack<Integer>          ptrHistory  = new Stack<>();
-    static HashMap<String, String> patterns    = new HashMap<>();
-    static StringBuilder           inputMemory = new StringBuilder();
-    static StringBuilder           output      = new StringBuilder();
-    static byte                    exitCode    = 0;
+    private static byte[] tape    = new byte[TAPE_LEN];
+    private static int    pointer = 0;
 
+    private static int savedVal = -1;
 
-    public static final int             TAPE_LEN    = 256;
-    private static      int             savedVal    = -1;
-    private static      int             pointer     = 0;
-    private static      byte[]          tape        = new byte[TAPE_LEN];
-    private static      Scanner         input       = new Scanner(System.in);
-    public static       ArrayList<Byte> inputBuffer = new ArrayList<>();
-
-    public static void executeBF(String data) {
-        int dataLen = data.length();
-        for (int op = 0; op < dataLen; op++) {
-            switch (data.charAt(op)) {
-                case '+' -> tape[pointer]++;
-                case '-' -> tape[pointer]--;
-                case '>' -> movePointer(true, 1);
-                case '<' -> movePointer(false, 1);
-                case '[' -> op = processCycle(data, op, 1, true);
-                case '.' -> printChar(1);
-                case ']' -> {}
-                case ',' -> processInput(1);
-                default -> error("Unknown character: '"+data.charAt(op)+"' (op="+op+")\n"+
-                                 data.substring(Math.max(0, op-5), Math.min(op+5, dataLen-1)));
-            }
-        }
-    }
+    private static Scanner         input       = new Scanner(System.in);
+    public static  ArrayList<Byte> inputBuffer = new ArrayList<>();
 
     public static void executeBF(Token[] tokens) {
         for (int i = 0; i < tokens.length; i++) {
@@ -154,174 +126,20 @@ public class Interpreter {
         return temp;
     }
 
-    public static void executeBrainFunk(String data) {
-        int           dataLen     = data.length();
-        int           amount      = 0;
-        boolean       nameStarted = false;
-        StringBuilder name        = new StringBuilder();
-        for (int op = 0; op < dataLen; op++) {
-            char c = data.charAt(op);
-            if (!nameStarted) {
-                if (Character.isDigit(c)) {
-                    amount = amount*10+c-'0';
-                    continue;
-                } else if (Character.isLetter(c)) {
-                    nameStarted = true;
-                    name.append(c);
-                    continue;
-                }
-            } else if (Character.isLetterOrDigit(c)) {
-                name.append(c);
-                continue;
-            } else if (c != ':' && c != ' ')
-                error("Unknown character: '"+data.charAt(op)+"' (op="+op+")\n"+
-                      data.substring(Math.max(0, op-5), Math.min(op+5, dataLen-1)));
-            switch (c) {
-                case '+' -> addsub(true, amount);
-                case '-' -> addsub(false, amount);
-                case '>' -> movePointer(true, amount);
-                case '<' -> movePointer(false, amount);
-                case '[' -> op = processCycle(data, op, amount, false);
-                case '.' -> printChar(amount);
-                case ']' -> {}
-                case ',' -> processInput(amount);
-                case ':' -> op = addPattern(data, op, name.toString());
-                case ' ' -> {
-                    // TODO: this thing gotta change
-                    // executePattern(name.toString(), amount);
-                }
-                case '"' -> op = processString(data, op);
-                case '$' -> {
-                    int target = -1;
-                    for (int i = op+1; i < dataLen; i++) {
-                        char b = data.charAt(i);
-                        if (!Character.isDigit(b)) break;
-                        if (target == -1) target = 0;
-                        target = target*10+b-'0';
-                    }
-                    ptrHistory.push(pointer);
-                    pointer = target;
-                }
-                case '#' -> {
-                    if (ptrHistory.isEmpty())
-                        error("There is not enough pointer history to go back to.");
-                    pointer = ptrHistory.pop();
-                }
-                case '_' -> {}
-                case '@' -> syscall();
-                default -> error("Unknown character: '"+data.charAt(op)+"' (op="+op+")\n"+
-                                 data.substring(Math.max(0, op-5), Math.min(op+5, dataLen-1)));
-            }
-            amount      = 0;
-            nameStarted = false;
-            name.setLength(0);
-        }
-    }
-
-    public static void executeBrainFunkExtended(String data) {
-        EXTENDED = true;
-        executeBrainFunk(data);
-        EXTENDED = false;
-    }
-
-    private static void addsub(boolean addition, int amount) {
-        amount = (amount > 0 ? amount : 1);
-        amount = (addition ? amount : -amount);
-        tape[pointer] += (byte) amount;
-    }
-
-    private static void movePointer(boolean right, int amount) {
-        amount  = (amount > 0 ? amount : 1);
-        amount  = (right ? amount : -amount);
-        pointer = (((pointer+amount)%TAPE_LEN)+TAPE_LEN)%TAPE_LEN;
-    }
-
-    private static int processCycle(String data, int op, int amount, boolean pureBF) {
-        // TODO: what should this thing even do if repetition count is > 1?
-        int           dataLen      = data.length();
-        int           nestingCount = 0;
-        StringBuilder t            = new StringBuilder();
-        for (int j = op+1; j < dataLen; j++) {
-            char g = data.charAt(j);
-            if (g == '[') nestingCount++;
-            if (g == ']') {
-                if (nestingCount == 0) break;
-                else nestingCount--;
-            }
-            // if (j == dataLen-1)
-            //     error("Unmatched brackets: (op="+op+")\n"
-            //           +data.substring(Math.max(0, op-10), Math.min(op+10, dataLen-1)));
-            t.append(g);
-        }
-        while (tape[pointer] != 0)
-            if (pureBF) executeBF(t.toString());
-            else executeBrainFunk(t.toString());
-        return op+t.length()+1;
-    }
-
-    private static void printChar(int amount) {
-        amount = (amount > 0 ? amount : 1);
-        for (int j = 0; j < amount; j++) {
-            output.append((char) tape[pointer]);
-            if (CONSOLE_OUT) System.out.print(DEBUG ? (char) tape[pointer]+"("+tape[pointer]+")\n" : (char) tape[pointer]);
-        }
-    }
-
     private static void processInput(int amount) {
-        // TODO: forgot to think about repetition count
-        if (inputBuffer.isEmpty()) {
+        for (int repetitions = 0; inputBuffer.size() < amount && repetitions < REPETITION_CAP; repetitions++) {
             System.out.print("Awaiting input: ");
             char[] in = input.nextLine().toCharArray();
             for (char inChar: in) inputBuffer.add((byte) inChar);
         }
-        if (inputBuffer.isEmpty()) error("Not enough input data was provided!");
-        tape[pointer] = inputBuffer.get(0);
-        inputMemory.append((char) tape[pointer]);
-        inputBuffer.remove(0);
-    }
-
-    private static int addPattern(String data, int op, String name) {
-        int           start   = op;
-        StringBuilder pattern = new StringBuilder();
-        for (op++; op < data.length(); op++) {
-            char c = data.charAt(op);
-            if (c == ';') break;
-            pattern.append(c);
+        if (inputBuffer.size() < amount) error("Not enough data for `READ` token. This should be unreachable unless there is a bug in processing user input.");
+        for (int i = 0; i < amount; i++) {
+            tape[pointer] = inputBuffer.get(0);
+            inputBuffer.remove(0);
         }
-        if (data.charAt(op) != ';')
-            error("Unmatched semicolon: (op="+start+")\n"
-                  +data.substring(Math.max(0, start-10), Math.min(start+10, data.length()-1)));
-        patterns.put(name, pattern.toString());
-        return op;
-    }
-
-    private static void executePattern(String name, int amount) {
-        if (patterns.get(name) == null) error("Pattern '"+name+"' was not found!");
-        amount = (amount > 0 ? amount : 1);
-        for (int i = 0; i < amount; i++) executeBrainFunk(patterns.get(name));
-    }
-
-    private static int processString(String data, int op) {
-        int           dataLen = data.length();
-        StringBuilder t       = new StringBuilder();
-        for (int j = op+1; j < dataLen; j++) {
-            char g = data.charAt(j);
-            if (g == '"') break;
-            if (j == dataLen-1)
-                error("Unmatched semicolon: (op="+op+")\n"
-                      +data.substring(Math.max(0, op-10), Math.min(op+10, dataLen-1)));
-            t.append(g);
-        }
-        String r = t.toString();
-        for (int j = 0; j < r.length(); j++) {
-            tape[pointer] = (byte) r.charAt(j);
-            movePointer(true, 1);
-        }
-        return op+r.length()+1;
     }
 
     private static void syscall() {
-        if (!EXTENDED) error("Unknown character '@'");
         try {
             switch (tape[pointer]) {
                 case 60 -> syscall1();
@@ -336,8 +154,7 @@ public class Interpreter {
     private static void syscall1() {
         switch (tape[pointer]) {
             case 60 -> {
-                if (!TESTING) System.exit(tape[pointer-1]);
-                else exitCode = tape[pointer-1];
+                System.exit(tape[pointer-1]);
             }
             default -> error("This type of syscall1 is not implemented yet");
         }
@@ -358,13 +175,9 @@ public class Interpreter {
     }
 
     public static void reset() {
-        tape     = new byte[TAPE_LEN];
-        pointer  = 0;
-        exitCode = 0;
-        patterns.clear();
+        tape    = new byte[TAPE_LEN];
+        pointer = 0;
         inputBuffer.clear();
-        inputMemory.setLength(0);
-        output.setLength(0);
     }
 
     private static void error(String message) {
