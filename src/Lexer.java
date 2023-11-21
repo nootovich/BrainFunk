@@ -13,7 +13,8 @@ public class Lexer {
                 char c = line.charAt(col);
 
                 Token.Type tokenType = null;
-                int        value     = 0;
+                int        numValue  = -1;
+                String     strValue  = null;
 
                 // VANILLA
                 if (c == '+') tokenType = Token.Type.ADD;
@@ -26,19 +27,31 @@ public class Lexer {
                 else if (c == ',') tokenType = Token.Type.READ;
 
                 else if (c == '/' && col < line.length()-1 && line.charAt(col+1) == '/') break;
-                else if (Character.isDigit(c)) {
+                else if (c == '"') {
+                    tokenType = Token.Type.STRING;
+                    int start = col;
+                    while (col < line.length()-1 && line.charAt(++col) != '"') {}
+                    if (line.charAt(col) != '"' || col == start) error("Unclosed string literal at "+new Token(tokenType, row, col));
+                    strValue = line.substring(start+1, col);
+                } else if (Character.isDigit(c)) {
                     tokenType = Token.Type.NUMBER;
-                    value     = c-'0';
+                    numValue  = c-'0';
                     while (col < line.length()-1 && Character.isDigit(line.charAt(col+1))) {
-                        c     = line.charAt(++col);
-                        value = value*10+c-'0';
+                        c        = line.charAt(++col);
+                        numValue = numValue*10+c-'0';
                     }
                 }
 
                 if (tokenType != null) {
                     Token tk = new Token(tokenType, row, col);
                     tokens.add(tk);
-                    if (tokenType == Token.Type.NUMBER) tk.value = value;
+                    if (tokenType == Token.Type.NUMBER) {
+                        if (numValue < 1) error("Invalid value for a `NUMBER` token `"+numValue+"`.");
+                        tk.numValue = numValue;
+                    } else if (tokenType == Token.Type.STRING) {
+                        if (strValue == null) error("Invalid value for a `STRING` token `"+strValue+"`.");
+                        tk.strValue = strValue;
+                    }
                 }
             }
         }

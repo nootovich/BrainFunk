@@ -84,6 +84,7 @@ public class Interpreter {
                 case PTRADD -> ptradd(getVal());
                 case PTRSUB -> ptradd(-getVal());
                 case WHILE -> {
+                    if (i == tokens.length-1) error(tokens[i], "Unmatched brackets.");
                     int start = i;
                     int depth = getVal();
                     int len   = 0;
@@ -93,7 +94,7 @@ public class Interpreter {
                         if (tk.type == Token.Type.WHILE) depth += getVal();
                         else if (tk.type == Token.Type.ENDWHILE) depth -= getVal();
                         else if (tk.type == Token.Type.NUMBER) saveVal(tk);
-                        if (i == tokens.length-1) error(tokens[start], "Unmatched brackets.");
+                        if (depth != 0 && i == tokens.length-1) error(tokens[start], "Unmatched brackets.");
                     }
                     Token[] innerTokens = new Token[len-1];
                     System.arraycopy(tokens, start+1, innerTokens, 0, innerTokens.length);
@@ -108,6 +109,12 @@ public class Interpreter {
                 }
                 case READ -> processInput(getVal());
                 case NUMBER -> saveVal(tk);
+                case STRING -> {
+                    for (int j = 0; j < tk.strValue.length(); j++) {
+                        tape[pointer] = (byte) tk.strValue.charAt(j);
+                        ptradd(1);
+                    }
+                }
                 // case ':' -> op = addPattern(data, op, name.toString());
                 // case ' ' -> executePattern(name.toString(), amount);
                 // case '"' -> op = processString(data, op);
@@ -140,7 +147,7 @@ public class Interpreter {
     private static void saveVal(Token tk) {
         if (savedVal >= 0) error(tk, "Two consecutive numbers after one another are not supported. "+
                                      "Or this might be a bug in Lexer.");
-        savedVal = tk.value;
+        savedVal = tk.numValue;
     }
 
     private static int getVal() {
