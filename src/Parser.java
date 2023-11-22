@@ -4,9 +4,10 @@ import java.util.Stack;
 
 public class Parser {
 
-    // TODO: limit recursive macro definitions
+    private static final int RECURSION_LIMIT = 1000;
+    private static       int recursionCount  = 0;
 
-    static HashMap<String, Token[]> macros = new HashMap<>();
+    private static HashMap<String, Token[]> macros = new HashMap<>();
 
     public static Token[] parseTokens(Token[] tokens) {
         macros.clear();
@@ -14,6 +15,7 @@ public class Parser {
     }
 
     private static Token[] privateParseTokens(Token[] tokens, Token origin) {
+        if (++recursionCount >= RECURSION_LIMIT) error("The recursion limit of %d was exceeded by: %s".formatted(RECURSION_LIMIT, origin));
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             Token tk = tokens[i];
@@ -29,6 +31,7 @@ public class Parser {
                 for (int j = 0; j < amount; j++) parsed.addAll(macroTokens);
             } else parsed.push(tk);
         }
+        recursionCount--;
         return parsed.toArray(new Token[0]);
     }
 
