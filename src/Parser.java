@@ -10,13 +10,14 @@ public class Parser {
 
     public static Token[] parseTokens(Token[] tokens) {
         macros.clear();
-        return privateParseTokens(tokens);
+        return privateParseTokens(tokens, null);
     }
 
-    private static Token[] privateParseTokens(Token[] tokens) {
+    private static Token[] privateParseTokens(Token[] tokens, Token origin) {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             Token tk = tokens[i];
+            if (tk.origin == null) tk.origin = origin;
             if (tk.type == Token.Type.MACRODEF) {
                 if (macros.containsKey(tk.strValue)) error("Redefinition of a macro %s.".formatted(tk));
                 macros.put(tk.strValue, tk.macroTokens);
@@ -24,7 +25,7 @@ public class Parser {
                 int amount = 1;
                 if (!parsed.isEmpty() && parsed.peek().type == Token.Type.NUMBER) amount = parsed.pop().numValue;
                 if (!macros.containsKey(tk.strValue)) error("Undefined macro %s.".formatted(tk));
-                var macroTokens = List.of(privateParseTokens(macros.get(tk.strValue)));
+                List<Token> macroTokens = List.of(privateParseTokens(macros.get(tk.strValue), tk));
                 for (int j = 0; j < amount; j++) parsed.addAll(macroTokens);
             } else parsed.push(tk);
         }

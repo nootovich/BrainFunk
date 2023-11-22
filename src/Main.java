@@ -9,6 +9,7 @@ public class Main {
         if (args.length < 1) error("Please provide a .bf or .bfn file as a command line argument.");
         String filepath = args[0];
         filename = new File(filepath).getName();
+        info("Running %s file.".formatted(filename));
 
         for (int i = 1; i < args.length; i++) {
             if (args[i].equals("-st")) showTokens = true;
@@ -26,6 +27,11 @@ public class Main {
             error("Invalid file format. Please provide a .bf or .bfn file as a command line argument.");
         }
 
+    }
+
+    private static void info(String message) {
+        StackTraceElement src = Thread.currentThread().getStackTrace()[2];
+        System.out.printf("%s:%d [INFO]: %s%n", src.getFileName(), src.getLineNumber(), message);
     }
 
     private static void error(String message) {

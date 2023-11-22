@@ -11,6 +11,7 @@ public class Token {
     public String  strValue = null;
     public Token[] macroTokens;
 
+    public Token origin;
     public String file;
     public int    row;
     public int    col;
@@ -18,13 +19,16 @@ public class Token {
     public Token(Type type, String file, int row, int col) {this.type = type; this.file = file; this.row = row; this.col = col;}
 
     public String toString() {
-        if (type == Type.NUMBER) return "%s:%d:%d [%s(%d)]".formatted(file, row+1, col, type.toString(), numValue);
-        else if (type == Type.STRING || type == Type.MACRO) return "%s:%d:%d [%s(%s)]".formatted(file, row+1, col, type.toString(), strValue);
+        StringBuilder result = new StringBuilder("%s:%d:%d [%s".formatted(file, row+1, col, type));
+
+        if (type == Type.NUMBER) result.append("(").append(numValue).append(")]");
+        else if (type == Type.STRING || type == Type.MACRO) result.append("(").append(strValue).append(")]");
         else if (type == Type.MACRODEF) {
-            StringBuilder result = new StringBuilder("%s:%d:%d [%s(%s)] {".formatted(file, row+1, col, type.toString(), strValue));
+            result.append("(").append(strValue).append(")] {");
             if (macroTokens != null) for (Token macroToken: macroTokens) result.append("%n%s".formatted(macroToken));
-            return result.append("\n}").toString();
-        }
-        return "%s:%d:%d [%s]".formatted(file, row+1, col, type.toString());
+            result.append("\n}");
+        } else result.append("]");
+        if (origin != null) result.append("]\n    [INFO]: Expanded from: ").append(origin);
+        return result.toString();
     }
 }
