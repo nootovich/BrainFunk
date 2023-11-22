@@ -4,9 +4,16 @@ import java.util.Stack;
 
 public class Parser {
 
+    // TODO: limit recursive macro definitions
+
     static HashMap<String, Token[]> macros = new HashMap<>();
 
     public static Token[] parseTokens(Token[] tokens) {
+        macros.clear();
+        return privateParseTokens(tokens);
+    }
+
+    private static Token[] privateParseTokens(Token[] tokens) {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             Token tk = tokens[i];
@@ -16,7 +23,8 @@ public class Parser {
             } else if (tk.type == Token.Type.MACRO) {
                 int amount = 1;
                 if (!parsed.isEmpty() && parsed.peek().type == Token.Type.NUMBER) amount = parsed.pop().numValue;
-                var macroTokens = List.of(parseTokens(macros.get(tk.strValue)));
+                if (!macros.containsKey(tk.strValue)) error("Undefined macro %s.".formatted(tk));
+                var macroTokens = List.of(privateParseTokens(macros.get(tk.strValue)));
                 for (int j = 0; j < amount; j++) parsed.addAll(macroTokens);
             } else parsed.push(tk);
         }

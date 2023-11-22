@@ -1,4 +1,4 @@
-import java.nio.file.Path;
+import java.io.File;
 
 public class Main {
 
@@ -8,7 +8,7 @@ public class Main {
     public static void main(String[] args) {
         if (args.length < 1) error("Please provide a .bf or .bfn file as a command line argument.");
         String filepath = args[0];
-        filename = Path.of(filepath).getFileName().toString();
+        filename = new File(filepath).getName();
 
         for (int i = 1; i < args.length; i++) {
             if (args[i].equals("-st")) showTokens = true;

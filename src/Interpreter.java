@@ -3,8 +3,10 @@ import java.util.Scanner;
 
 public class Interpreter {
 
-    public static final int TAPE_LEN = 256;
-    public static final int REPETITION_CAP = 1000;
+    private static final int TAPE_LEN       = 256;
+    private static final int REPETITION_CAP = 1000;
+
+    public static boolean WRITE_ALLOWED = true;
 
     private static byte[] tape    = new byte[TAPE_LEN];
     private static int    pointer = 0;
@@ -12,9 +14,22 @@ public class Interpreter {
     private static int savedVal = -1;
 
     private static Scanner         input       = new Scanner(System.in);
-    public static  ArrayList<Byte> inputBuffer = new ArrayList<>();
+    private static ArrayList<Byte> inputBuffer = new ArrayList<>();
 
-    public static void executeBF(Token[] tokens) {
+    public static void reset() {
+        tape     = new byte[TAPE_LEN];
+        pointer  = 0;
+        savedVal = -1;
+        inputBuffer.clear();
+    }
+
+    public static String executeBF(Token[] tokens) {
+        reset();
+        return privateExecuteBF(tokens);
+    }
+
+    private static String privateExecuteBF(Token[] tokens) {
+        StringBuilder output = new StringBuilder();
         for (int i = 0; i < tokens.length; i++) {
             Token tk = tokens[i];
             switch (tk.type) {
@@ -35,19 +50,26 @@ public class Interpreter {
                     }
                     Token[] innerTokens = new Token[len-1];
                     System.arraycopy(tokens, start+1, innerTokens, 0, innerTokens.length);
-                    while (tape[pointer] != 0) executeBF(innerTokens);
+                    while (tape[pointer] != 0) output.append(privateExecuteBF(innerTokens));
                 }
                 case ENDWHILE -> {
                     // TODO: report an error when there is more `ENDWHILE` than `WHILE` tokens
                 }
-                case WRITE -> System.out.print((char) tape[pointer]);
-                case READ -> processInput(1);
+                case WRITE -> {write(); output.append((char) tape[pointer]);}
+                case READ -> read(1);
                 default -> error("Unknown token type `"+tk.type+"`");
             }
         }
+        return output.toString();
     }
 
-    public static void executeBrainFunk(Token[] tokens) {
+    public static String executeBrainFunk(Token[] tokens) {
+        reset();
+        return privateExecuteBrainFunk(tokens);
+    }
+
+    private static String privateExecuteBrainFunk(Token[] tokens) {
+        StringBuilder output = new StringBuilder();
         for (int i = 0; i < tokens.length; i++) {
             Token tk = tokens[i];
             switch (tk.type) {
@@ -66,20 +88,20 @@ public class Interpreter {
                         if (tk.type == Token.Type.WHILE) depth += getVal();
                         else if (tk.type == Token.Type.ENDWHILE) depth -= getVal();
                         else if (tk.type == Token.Type.NUMBER) saveVal(tk);
-                        if (depth != 0 && i == tokens.length-1) error("Unmatched brackets at: "+tokens[i]);
+                        if (depth != 0 && i == tokens.length-1) error("Unmatched brackets at: "+tokens[start]);
                     }
                     Token[] innerTokens = new Token[len-1];
                     System.arraycopy(tokens, start+1, innerTokens, 0, innerTokens.length);
-                    while (tape[pointer] != 0) executeBrainFunk(innerTokens);
+                    while (tape[pointer] != 0) output.append(privateExecuteBrainFunk(innerTokens));
                 }
                 case ENDWHILE -> {
                     // TODO: report an error when there is more `ENDWHILE` than `WHILE` tokens
                 }
                 case WRITE -> {
                     int val = getVal();
-                    for (int j = 0; j < val; j++) System.out.print((char) tape[pointer]);
+                    for (int j = 0; j < val; j++) {write(); output.append((char) tape[pointer]);}
                 }
-                case READ -> processInput(getVal());
+                case READ -> read(getVal());
                 case NUMBER -> saveVal(tk);
                 case STRING -> {
                     for (int j = 0; j < tk.strValue.length(); j++) {
@@ -87,7 +109,6 @@ public class Interpreter {
                         ptradd(1);
                     }
                 }
-                // case ' ' -> executePattern(name.toString(), amount);
                 // case '$' -> {
                 //     int target = -1;
                 //     for (int i = op+1; i < dataLen; i++) {
@@ -108,6 +129,7 @@ public class Interpreter {
                 default -> error("Unknown token type `"+tk.type+"`");
             }
         }
+        return output.toString();
     }
 
     private static void ptradd(int n) {
@@ -126,7 +148,7 @@ public class Interpreter {
         return temp;
     }
 
-    private static void processInput(int amount) {
+    private static void read(int amount) {
         for (int repetitions = 0; inputBuffer.size() < amount && repetitions < REPETITION_CAP; repetitions++) {
             System.out.print("Awaiting input: ");
             char[] in = input.nextLine().toCharArray();
@@ -137,6 +159,10 @@ public class Interpreter {
             tape[pointer] = inputBuffer.get(0);
             inputBuffer.remove(0);
         }
+    }
+
+    private static void write() {
+        if (WRITE_ALLOWED) System.out.print((char) tape[pointer]);
     }
 
     private static void syscall() {
@@ -172,12 +198,6 @@ public class Interpreter {
             }
             default -> error("This type of syscall4 is not implemented yet");
         }
-    }
-
-    public static void reset() {
-        tape    = new byte[TAPE_LEN];
-        pointer = 0;
-        inputBuffer.clear();
     }
 
     private static void error(String message) {

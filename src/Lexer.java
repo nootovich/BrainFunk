@@ -1,10 +1,13 @@
+import java.io.File;
 import java.util.ArrayList;
 
 public class Lexer {
 
+    private static String filename;
     private static boolean showTokens = false;
 
     public static Token[] lexFile(String filepath) {
+        filename = new File(filepath).getName();
         showTokens = Main.showTokens;
         String rawData = FileSystem.loadFile(filepath);
         if (rawData == null) error("Could not get file data.");
@@ -32,7 +35,7 @@ public class Lexer {
             else if (c == '.') tokenType = Token.Type.WRITE;
             else if (c == ',') tokenType = Token.Type.READ;
             if (tokenType != null) {
-                tk = new Token(tokenType, row, col);
+                tk = new Token(tokenType, filename, row, col);
                 tokens.add(tk);
             }
 
@@ -41,7 +44,7 @@ public class Lexer {
             else if (c == '"') {
                 int start = col;
                 while (col < line.length()-1 && line.charAt(++col) != '"') {}
-                tk = new Token(Token.Type.STRING, row, start);
+                tk = new Token(Token.Type.STRING, filename, row, start);
                 if (line.charAt(col) != '"' || col-start < 1) error("Unfinished string literal at "+tk);
                 tk.strValue = line.substring(start+1, col);
                 tokens.add(tk);
@@ -49,26 +52,28 @@ public class Lexer {
                 int start = col;
                 int val   = c-'0';
                 while (col < line.length()-1 && Character.isDigit(line.charAt(col+1))) val = val*10+line.charAt(++col)-'0';
-                tk = new Token(Token.Type.NUMBER, row, start);
+                tk = new Token(Token.Type.NUMBER, filename, row, start);
                 if (val < 1) error("Invalid value for a `NUMBER` token `"+val+"` at "+tk);
                 tk.numValue = val;
                 tokens.add(tk);
             } else if (Character.isLetter(c)) {
                 int start = col;
                 for (; col < line.length(); col++) if (!Character.isLetterOrDigit(line.charAt(col))) break;
-                if (col-start < 0) error("Unfinished macro definition at "+new Token(Token.Type.ERROR, row, col));
+                if (col-start < 0) error("Unfinished macro definition at "+new Token(Token.Type.ERROR, filename, row, col));
                 if (col < line.length() && line.charAt(col) == ':') {
-                    tk          = new Token(Token.Type.MACRODEF, row, start);
+                    tk = new Token(Token.Type.MACRODEF, filename, row, start);
                     tk.strValue = line.substring(start, col);
                     start       = ++col;
                     for (; col < line.length(); col++) if (line.charAt(col) == ';') break;
                     if (col == line.length() || line.charAt(col) != ';' || col-start < 0) {tk.col = col; error("Unfinished macro body at "+tk);}
                     showTokens     = false;
                     tk.macroTokens = lexLine(line.substring(start, col+1), row).toArray(new Token[0]);
-                    showTokens     = Main.showTokens;
+                    for (Token t: tk.macroTokens) t.col += start;
+                    showTokens = Main.showTokens;
                 } else {
-                    tk          = new Token(Token.Type.MACRO, row, start);
+                    tk = new Token(Token.Type.MACRO, filename, row, start);
                     tk.strValue = line.substring(start, col);
+                    col--;
                 }
                 tokens.add(tk);
             }
