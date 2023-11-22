@@ -14,7 +14,8 @@ public class Interpreter {
     private static int savedVal = -1;
 
     private static Scanner         input       = new Scanner(System.in);
-    private static ArrayList<Byte> inputBuffer = new ArrayList<>();
+    public static  ArrayList<Byte> inputBuffer = new ArrayList<>();
+    public static  StringBuilder   inputMemory = new StringBuilder();
 
     public static void reset() {
         tape     = new byte[TAPE_LEN];
@@ -24,8 +25,10 @@ public class Interpreter {
     }
 
     public static String executeBF(Token[] tokens) {
+        inputMemory.setLength(0);
+        String result = privateExecuteBF(tokens);
         reset();
-        return privateExecuteBF(tokens);
+        return result;
     }
 
     private static String privateExecuteBF(Token[] tokens) {
@@ -64,8 +67,10 @@ public class Interpreter {
     }
 
     public static String executeBrainFunk(Token[] tokens) {
+        inputMemory.setLength(0);
+        String result = privateExecuteBrainFunk(tokens);
         reset();
-        return privateExecuteBrainFunk(tokens);
+        return result;
     }
 
     private static String privateExecuteBrainFunk(Token[] tokens) {
@@ -152,7 +157,10 @@ public class Interpreter {
         for (int repetitions = 0; inputBuffer.size() < amount && repetitions < REPETITION_CAP; repetitions++) {
             System.out.print("Awaiting input: ");
             char[] in = input.nextLine().toCharArray();
-            for (char inChar: in) inputBuffer.add((byte) inChar);
+            for (char inChar: in) {
+                inputBuffer.add((byte) inChar);
+                inputMemory.append(inChar);
+            }
         }
         if (inputBuffer.size() < amount) error("Not enough data for `READ` token. This should be unreachable unless there is a bug in processing user input.");
         for (int i = 0; i < amount; i++) {

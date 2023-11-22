@@ -67,10 +67,28 @@ public class Testing {
                 }
             }
 
-            // OUTPUT
+            // INPUT/OUTPUT
             {
+                // INPUT
+                String inExpected = "";
+                try {
+                    inExpected = FileSystem.loadFile(expectedName(file, INPUT_FILE));
+                    for (char c: inExpected.toCharArray()) Interpreter.inputBuffer.add((byte) c);
+                    info("`%s` input loaded OK.".formatted(file));
+                } catch (RuntimeException ignored) {}
+
+                // OUTPUT
                 Interpreter.WRITE_ALLOWED = false;
                 String outActual = Interpreter.executeBrainFunk(parsedTokens);
+
+                // INPUT
+                String inActual = Interpreter.inputMemory.toString();
+                if (inExpected.isEmpty() && !inActual.isEmpty()) {
+                    FileSystem.saveFile(expectedName(file, INPUT_FILE), inActual);
+                    info("`%s` input saved.".formatted(file));
+                }
+
+                // OUTPUT
                 try {
                     String outExpected = FileSystem.loadFile(expectedName(file, OUTPUT_FILE));
                     if (outActual.equals(outExpected)) {
