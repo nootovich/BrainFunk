@@ -2,105 +2,71 @@ import java.io.File;
 
 public class Testing {
 
-    static final String TESTING_DIR = "./tests/";
+    private static final int FILE_NAME_LIMIT       = 20;
+    private static final int TEST_NAME_LIMIT       = 10;
+    private static final int TEST_CLASS_NAME_LIMIT = 17;
+    private static final int LOG_NAME_LIMIT        = 9;
 
-    static final String EXPECTED_DIR    = TESTING_DIR+"expected/";
-    static final String SOURCE_FILE     = "src";
-    static final String LEXED_FILE      = "lex";
-    static final String PARSED_FILE     = "prs";
-    static final String TRANSPILED_FILE = "tsp";
-    static final String INPUT_FILE      = "in";
-    static final String OUTPUT_FILE     = "out";
+    private static final String TESTING_DIR = "./tests/";
+
+    private static final String EXPECTED_DIR    = TESTING_DIR+"expected/";
+    private static final String SOURCE_FILE     = "src";
+    private static final String LEXED_FILE      = "lex";
+    private static final String PARSED_FILE     = "prs";
+    private static final String TRANSPILED_FILE = "tsp";
+    private static final String INPUT_FILE      = "in";
+    private static final String OUTPUT_FILE     = "out";
 
     public static void main(String[] args) {
         if (args.length > 0 && args[0].equals("-update")) updateTests();
         String[] files = FileSystem.getDirectoryFiles(TESTING_DIR);
         for (String file: files) {
+            String filenameSpacing = " ".repeat(FILE_NAME_LIMIT-file.length());
 
             // SOURCE
-            {
-                String srcActual = FileSystem.loadFile(TESTING_DIR+file);
-                try {
-                    String srcExpected = FileSystem.loadFile(expectedName(file, SOURCE_FILE));
-                    if (srcActual.equals(srcExpected)) {
-                        info("`%s` source OK".formatted(file));
-                    } else {
-                        error("`%s` source files do not match!".formatted(file));
-                    }
-                } catch (RuntimeException ignored) {
-                    FileSystem.saveFile(expectedName(file, SOURCE_FILE), srcActual);
-                    info("`%s` expected source saved.".formatted(file));
-                }
-            }
+            String srcActual = FileSystem.loadFile(TESTING_DIR+file);
+            check(srcActual, expectedName(file, SOURCE_FILE), getLogTemplate("source", file, filenameSpacing));
 
             // LEXED
             Token[] lexedTokens = Lexer.lexFile(TESTING_DIR+file);
-            {
-                String lexActual = tokensToString(lexedTokens);
-                try {
-                    String lexExpected = FileSystem.loadFile(expectedName(file, LEXED_FILE));
-                    if (lexActual.equals(lexExpected)) {
-                        info("`%s` lexed tokens OK.".formatted(file));
-                    } else {
-                        error("`%s` lexed tokens do not match!".formatted(file));
-                    }
-                } catch (RuntimeException ignored) {
-                    FileSystem.saveFile(expectedName(file, LEXED_FILE), lexActual);
-                    info("`%s` expected lexed tokens saved.".formatted(file));
-                }
-            }
+            String  lexActual   = tokensToString(lexedTokens);
+            check(lexActual, expectedName(file, LEXED_FILE), getLogTemplate("lexed", file, filenameSpacing));
 
             // PARSED
             Token[] parsedTokens = Parser.parseTokens(lexedTokens);
-            if (file.endsWith(".bfn")) {
-                String prsActual = tokensToString(parsedTokens);
-                try {
-                    String prsExpected = FileSystem.loadFile(expectedName(file, PARSED_FILE));
-                    if (prsActual.equals(prsExpected)) {
-                        info("`%s` parsed tokens OK.".formatted(file));
-                    } else {
-                        error("`%s` parsed tokens do not match!".formatted(file));
-                    }
-                } catch (RuntimeException ignored) {
-                    FileSystem.saveFile(expectedName(file, PARSED_FILE), prsActual);
-                    info("`%s` expected parsed tokens saved.".formatted(file));
-                }
+            String  prsActual    = tokensToString(parsedTokens);
+            check(prsActual, expectedName(file, PARSED_FILE), getLogTemplate("parsed", file, filenameSpacing));
+
+            // INPUT
+            String inExpected = "";
+            try {
+                inExpected = FileSystem.loadFile(expectedName(file, INPUT_FILE));
+                for (char c: inExpected.toCharArray()) Interpreter.inputBuffer.add((byte) c);
+                info(getLogTemplate("input", file, filenameSpacing)+"LOADED.");
+            } catch (RuntimeException ignored) {}
+
+            // OUTPUT
+            Interpreter.WRITE_ALLOWED = false;
+            String outActual = Interpreter.executeBrainFunk(parsedTokens);
+            check(outActual, expectedName(file, OUTPUT_FILE), getLogTemplate("output", file, filenameSpacing));
+
+            // INPUT
+            String inActual = Interpreter.inputMemory.toString();
+            if (inExpected.isEmpty() && !inActual.isEmpty()) {
+                FileSystem.saveFile(expectedName(file, INPUT_FILE), inActual);
+                info(getLogTemplate("input", file, filenameSpacing)+"SAVED.");
             }
+        }
+    }
 
-            // INPUT/OUTPUT
-            {
-                // INPUT
-                String inExpected = "";
-                try {
-                    inExpected = FileSystem.loadFile(expectedName(file, INPUT_FILE));
-                    for (char c: inExpected.toCharArray()) Interpreter.inputBuffer.add((byte) c);
-                    info("`%s` input loaded OK.".formatted(file));
-                } catch (RuntimeException ignored) {}
-
-                // OUTPUT
-                Interpreter.WRITE_ALLOWED = false;
-                String outActual = Interpreter.executeBrainFunk(parsedTokens);
-
-                // INPUT
-                String inActual = Interpreter.inputMemory.toString();
-                if (inExpected.isEmpty() && !inActual.isEmpty()) {
-                    FileSystem.saveFile(expectedName(file, INPUT_FILE), inActual);
-                    info("`%s` input saved.".formatted(file));
-                }
-
-                // OUTPUT
-                try {
-                    String outExpected = FileSystem.loadFile(expectedName(file, OUTPUT_FILE));
-                    if (outActual.equals(outExpected)) {
-                        info("`%s` output OK.".formatted(file));
-                    } else {
-                        error("`%s` outputs do not match!".formatted(file));
-                    }
-                } catch (RuntimeException ignored) {
-                    FileSystem.saveFile(expectedName(file, OUTPUT_FILE), outActual);
-                    info("`%s` expected output saved.".formatted(file));
-                }
-            }
+    private static void check(String actual, String expectedName, String logTemplate) {
+        try {
+            String expected = FileSystem.loadFile(expectedName);
+            if (actual.equals(expected)) info(logTemplate+"OK.");
+            else error(logTemplate+"DIFFERS!");
+        } catch (RuntimeException ignored) {
+            FileSystem.saveFile(expectedName, actual);
+            info(logTemplate+"SAVED.");
         }
     }
 
@@ -114,20 +80,9 @@ public class Testing {
         return result.toString();
     }
 
-    // loadInputData(inPath);
-    // if (bfnx) Interpreter.executeBrainFunkExtended(parsedData);
-    // else if (bfn) Interpreter.executeBrainFunk(parsedData);
-    // else Interpreter.executeBF(parsedData);
-    // String outputData = Interpreter.output.toString();
-    // if (!updateTests) checkOutput(fileName, outPath, outputData);
-    // else FileSystem.saveFile(outPath, outputData);
-
-    // private static void loadInputData(Path inPath) throws IOException {
-    //     if (Files.exists(inPath)) {
-    //         char[] inputs = Files.readString(inPath).toCharArray();
-    //         for (char c: inputs) Interpreter.inputBuffer.add((byte) c);
-    //     }
-    // }
+    private static String getLogTemplate(String testName, String file, String filenameSpacing) {
+        return "`%s`%s%s%s".formatted(file, filenameSpacing, testName, " ".repeat(TEST_NAME_LIMIT-testName.length()));
+    }
 
     private static void updateTests() {
         if (new File(EXPECTED_DIR).exists()) {
@@ -136,13 +91,26 @@ public class Testing {
         } else info("Directory containing expected results of tests does not exist so there is nothing to clear.");
     }
 
+    // TODO: extract to other classes
     private static void info(String message) {
-        StackTraceElement src = Thread.currentThread().getStackTrace()[2];
-        System.out.printf("%s:%d [INFO]: %s%n", src.getFileName(), src.getLineNumber(), message);
+        log("[INFO]:", message);
     }
 
     private static void error(String message) {
-        StackTraceElement src = Thread.currentThread().getStackTrace()[2];
-        System.out.printf("%s:%d [ERROR]: %s%n", src.getFileName(), src.getLineNumber(), message);
+        log("[ERROR]:", message);
     }
+
+    private static void fatal(String message) {
+        log("[FATAL]:", message);
+        System.exit(1);
+    }
+
+    private static void log(String type, String message) {
+        StackTraceElement src                     = Thread.currentThread().getStackTrace()[2];
+        String            testingClassName        = "%s:%d".formatted(src.getFileName(), src.getLineNumber());
+        String            testingClassNameSpacing = " ".repeat(TEST_CLASS_NAME_LIMIT-testingClassName.length());
+        String            logSpacing              = " ".repeat(LOG_NAME_LIMIT-type.length());
+        System.out.printf("%s%s%s%s%s%n", testingClassName, testingClassNameSpacing, type, logSpacing, message);
+    }
+
 }

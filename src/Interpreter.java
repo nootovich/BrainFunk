@@ -18,9 +18,10 @@ public class Interpreter {
     public static  StringBuilder   inputMemory = new StringBuilder();
 
     public static void reset() {
-        tape     = new byte[TAPE_LEN];
-        pointer  = 0;
-        savedVal = -1;
+        WRITE_ALLOWED = true;
+        tape          = new byte[TAPE_LEN];
+        pointer       = 0;
+        savedVal      = -1;
         inputBuffer.clear();
     }
 
