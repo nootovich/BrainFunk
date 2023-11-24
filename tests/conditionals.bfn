@@ -1,0 +1,38 @@
+// conditionals
+if:[[-]>>;//[ErrorIF];
+else:<-<]>+[->;//[ErrorIF];
+endif:<<];
+endifelse:<]<;
+
+//(1|0)+ [-
+//    ... (if true)
+//>-<]>+[-
+//    ... (if false)
+//]<
+
+1+ if
+    49+.
+else
+    48+.
+endifelse
+>>>
+
+0+ if
+    49+.
+else
+    48+.
+endifelse
+>>>
+
+,48- if
+    49+.
+else
+    48+.
+endifelse
+>>>
+
+,48- if
+    49+.
+else
+    48+.
+endifelse

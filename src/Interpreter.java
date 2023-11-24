@@ -15,7 +15,7 @@ public class Interpreter {
     private static int savedVal = -1;
 
     private static Scanner         input       = new Scanner(System.in);
-    private static ArrayList<Byte> inputBuffer = new ArrayList<>();
+    public static  ArrayList<Byte> inputBuffer = new ArrayList<>();
     public static  StringBuilder   inputMemory = new StringBuilder();
     private static Stack<Integer>  ptrHistory  = new Stack<>();
 

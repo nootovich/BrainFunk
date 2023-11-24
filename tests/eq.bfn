@@ -25,8 +25,8 @@ println:print 10+.[-];
 print:<[<]>[.>]<clear;
 clear:[[-]<]>;
 
-$4  2+ >2+   eq r2 48+ println
-$6  69+>69+  eq r2 48+ println
-$8  1+ >2+   eq r2 48+ println
-$10 2+ >254- eq r2 48+ println
-$12 2+ >255- eq r2 48+ println
+$4  2 +> 2  + eq r2 48+ println
+$6  69+> 69 + eq r2 48+ println
+$8  1 +> 2  + eq r2 48+ println
+$10 2 +> 254- eq r2 48+ println
+$12 2 +> 255- eq r2 48+ println
