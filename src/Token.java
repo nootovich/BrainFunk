@@ -2,7 +2,7 @@ public class Token {
 
     public enum Type {
         ADD, SUB, PTRADD, PTRSUB, WHILE, ENDWHILE, WRITE, READ, // VANILLA
-        NUMBER, STRING, MACRODEF, MACRO,
+        NUMBER, STRING, MACRODEF, MACRO, POINTER, RETURN,
         ERROR
     }
 
@@ -21,14 +21,14 @@ public class Token {
     public String toString() {
         StringBuilder result = new StringBuilder("%s:%d:%d [%s".formatted(file, row+1, col, type));
 
-        if (type == Type.NUMBER) result.append("(").append(numValue).append(")]");
+        if (type == Type.NUMBER || type == Type.POINTER) result.append("(").append(numValue).append(")]");
         else if (type == Type.STRING || type == Type.MACRO) result.append("(").append(strValue).append(")]");
         else if (type == Type.MACRODEF) {
             result.append("(").append(strValue).append(")] {");
-            if (macroTokens != null) for (Token macroToken: macroTokens) result.append("%n%s".formatted(macroToken));
+            if (macroTokens != null) for (Token macroToken: macroTokens) result.append("%n    %s".formatted(macroToken));
             result.append("\n}");
         } else result.append("]");
-        if (origin != null) result.append("]\n    [INFO]: Expanded from: ").append(origin);
+        if (origin != null) result.append("\n    [INFO]: Expanded from: ").append(origin);
         return result.toString();
     }
 }

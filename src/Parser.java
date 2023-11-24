@@ -11,14 +11,19 @@ public class Parser {
 
     public static Token[] parseTokens(Token[] tokens) {
         macros.clear();
-        return privateParseTokens(tokens, null);
+        return privateParseTokens(tokens);
     }
 
-    private static Token[] privateParseTokens(Token[] tokens, Token origin) {
+    private static Token[] privateParseTokens(Token[] tokens) {
+        tokens = parseMacros(tokens, null);
+        tokens = parsePointers(tokens);
+        return tokens;
+    }
+
+    private static Token[] parseMacros(Token[] tokens, Token origin) {
         if (++recursionCount >= RECURSION_LIMIT) error("The recursion limit of %d was exceeded by: %s".formatted(RECURSION_LIMIT, origin));
         Stack<Token> parsed = new Stack<>();
-        for (int i = 0; i < tokens.length; i++) {
-            Token tk = tokens[i];
+        for (Token tk: tokens) {
             if (tk.origin == null) tk.origin = origin;
             if (tk.type == Token.Type.MACRODEF) {
                 if (macros.containsKey(tk.strValue)) error("Redefinition of a macro %s.".formatted(tk));
@@ -27,11 +32,25 @@ public class Parser {
                 int amount = 1;
                 if (!parsed.isEmpty() && parsed.peek().type == Token.Type.NUMBER) amount = parsed.pop().numValue;
                 if (!macros.containsKey(tk.strValue)) error("Undefined macro %s.".formatted(tk));
-                List<Token> macroTokens = List.of(privateParseTokens(macros.get(tk.strValue), tk));
+                List<Token> macroTokens = List.of(parseMacros(macros.get(tk.strValue), tk));
                 for (int j = 0; j < amount; j++) parsed.addAll(macroTokens);
             } else parsed.push(tk);
         }
         recursionCount--;
+        return parsed.toArray(new Token[0]);
+    }
+
+    private static Token[] parsePointers(Token[] tokens) {
+        Stack<Token> parsed = new Stack<>();
+        for (int i = 0; i < tokens.length; i++) {
+            Token tk = tokens[i];
+            if (tk.type == Token.Type.POINTER) {
+                if (i == tokens.length-1 || tokens[i+1].type != Token.Type.NUMBER)
+                    error("Invalid argument for a pointer! Expected a number after: "+tk);
+                tk.numValue = tokens[++i].numValue;
+            }
+            parsed.push(tk);
+        }
         return parsed.toArray(new Token[0]);
     }
 

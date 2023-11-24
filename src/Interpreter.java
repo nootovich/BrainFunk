@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.Stack;
 
 public class Interpreter {
 
@@ -15,12 +16,14 @@ public class Interpreter {
 
     private static Scanner         input       = new Scanner(System.in);
     private static ArrayList<Byte> inputBuffer = new ArrayList<>();
+    private static Stack<Integer>  ptrHistory  = new Stack<>();
 
     public static void reset() {
         tape     = new byte[TAPE_LEN];
         pointer  = 0;
         savedVal = -1;
         inputBuffer.clear();
+        ptrHistory.clear();
     }
 
     public static String executeBF(Token[] tokens) {
@@ -87,7 +90,6 @@ public class Interpreter {
                         tk = tokens[++i];
                         if (tk.type == Token.Type.WHILE) depth += getVal();
                         else if (tk.type == Token.Type.ENDWHILE) depth -= getVal();
-                        else if (tk.type == Token.Type.NUMBER) saveVal(tk);
                         if (depth != 0 && i == tokens.length-1) error("Unmatched brackets at: "+tokens[start]);
                     }
                     Token[] innerTokens = new Token[len-1];
@@ -104,27 +106,28 @@ public class Interpreter {
                 case READ -> read(getVal());
                 case NUMBER -> saveVal(tk);
                 case STRING -> {
-                    for (int j = 0; j < tk.strValue.length(); j++) {
-                        tape[pointer] = (byte) tk.strValue.charAt(j);
-                        ptradd(1);
+                    int val = getVal();
+                    for (int j = 0; j < val; j++) {
+                        for (int k = 0; k < tk.strValue.length(); k++) {
+                            tape[pointer] = (byte) tk.strValue.charAt(k);
+                            ptradd(1);
+                        }
                     }
                 }
-                // case '$' -> {
-                //     int target = -1;
-                //     for (int i = op+1; i < dataLen; i++) {
-                //         char b = data.charAt(i);
-                //         if (!Character.isDigit(b)) break;
-                //         if (target == -1) target = 0;
-                //         target = target*10+b-'0';
-                //     }
-                //     ptrHistory.push(pointer);
-                //     pointer = target;
-                // }
-                // case '#' -> {
-                //     if (ptrHistory.isEmpty())
-                //         error("There is not enough pointer history to go back to.");
-                //     pointer = ptrHistory.pop();
-                // }
+                case POINTER -> {
+                    int val = getVal();
+                    for (int j = 0; j < val; j++) {
+                        ptrHistory.push(pointer);
+                        pointer = tk.numValue;
+                    }
+                }
+                case RETURN -> {
+                    int val = getVal();
+                    for (int j = 0; j < val; j++) {
+                        if (ptrHistory.isEmpty()) error("Not enough pointer history for: "+tk);
+                        pointer = ptrHistory.pop();
+                    }
+                }
                 // case '@' -> syscall();
                 default -> error("Unknown token type `"+tk.type+"`");
             }

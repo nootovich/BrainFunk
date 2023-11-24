@@ -34,28 +34,25 @@ public class Lexer {
             else if (c == ']') tokenType = Token.Type.ENDWHILE;
             else if (c == '.') tokenType = Token.Type.WRITE;
             else if (c == ',') tokenType = Token.Type.READ;
-            if (tokenType != null) {
-                tk = new Token(tokenType, filename, row, col);
-                tokens.add(tk);
-            }
+            if (tokenType != null) {tk = new Token(tokenType, filename, row, col);}
 
             // BFN STUFF
             else if (c == '/' && col < line.length()-1 && line.charAt(col+1) == '/') break;
+            else if (c == '$') tk = new Token(Token.Type.POINTER, filename, row, col);
+            else if (c == '#') tk = new Token(Token.Type.RETURN, filename, row, col);
             else if (c == '"') {
                 int start = col;
                 while (col < line.length()-1 && line.charAt(++col) != '"') {}
                 tk = new Token(Token.Type.STRING, filename, row, start);
                 if (line.charAt(col) != '"' || col-start < 1) error("Unfinished string literal at "+tk);
                 tk.strValue = line.substring(start+1, col);
-                tokens.add(tk);
             } else if (Character.isDigit(c)) {
                 int start = col;
                 int val   = c-'0';
                 while (col < line.length()-1 && Character.isDigit(line.charAt(col+1))) val = val*10+line.charAt(++col)-'0';
                 tk = new Token(Token.Type.NUMBER, filename, row, start);
-                if (val < 1) error("Invalid value for a `NUMBER` token `"+val+"` at "+tk);
+                if (val < 0) error("Invalid value for a `NUMBER` token `"+val+"` at "+tk);
                 tk.numValue = val;
-                tokens.add(tk);
             } else if (Character.isLetter(c)) {
                 int start = col;
                 for (; col < line.length(); col++) if (!Character.isLetterOrDigit(line.charAt(col))) break;
@@ -75,8 +72,8 @@ public class Lexer {
                     tk.strValue = line.substring(start, col);
                     col--;
                 }
-                tokens.add(tk);
             }
+            if (tk != null) tokens.add(tk);
             if (showTokens && tk != null) System.out.println(tk);
         }
         return tokens;
