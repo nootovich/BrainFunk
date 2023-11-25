@@ -29,9 +29,12 @@ public class Parser {
                 if (macros.containsKey(tk.strValue)) error("Redefinition of a macro %s.".formatted(tk));
                 macros.put(tk.strValue, tk.macroTokens);
             } else if (tk.type == Token.Type.MACRO) {
-                int amount = 1;
-                if (parsed.size() > 1 && parsed.peek().type == Token.Type.NUMBER && parsed.get(parsed.size()-2).type != Token.Type.POINTER)
+                int amount     = 1;
+                int parsedSize = parsed.size();
+                if (parsedSize > 0 && parsed.peek().type == Token.Type.NUMBER
+                    && (parsedSize < 2 || parsed.get(parsedSize-2).type != Token.Type.POINTER)) {
                     amount = parsed.pop().numValue;
+                }
                 if (!macros.containsKey(tk.strValue)) error("Undefined macro %s.".formatted(tk));
                 List<Token> macroTokens = List.of(parseMacros(macros.get(tk.strValue), tk));
                 for (int j = 0; j < amount; j++) parsed.addAll(macroTokens);
