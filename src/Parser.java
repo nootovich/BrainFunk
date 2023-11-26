@@ -36,7 +36,18 @@ public class Parser {
                     amount = parsed.pop().numValue;
                 }
                 if (!macros.containsKey(tk.strValue)) error("Undefined macro %s.".formatted(tk));
-                List<Token> macroTokens = List.of(parseMacros(macros.get(tk.strValue), tk));
+
+                // manually deep copying current macro tokens to avoid making a copy of references
+                Token[] savedMacroTokens = macros.get(tk.strValue);
+                Token[] tokensToPass     = new Token[savedMacroTokens.length];
+                for (int i = 0; i < savedMacroTokens.length; i++) {
+                    Token savedToken = savedMacroTokens[i];
+                    tokensToPass[i] = new Token(savedToken.type, savedToken.file, savedToken.row, savedToken.col);
+                    tokensToPass[i].numValue = savedToken.numValue;
+                    tokensToPass[i].strValue = savedToken.strValue;
+                }
+
+                List<Token> macroTokens = List.of(parseMacros(tokensToPass, tk));
                 for (int j = 0; j < amount; j++) parsed.addAll(macroTokens);
             } else parsed.push(tk);
         }
