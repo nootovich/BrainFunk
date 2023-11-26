@@ -102,9 +102,7 @@ public class Interpreter {
                     System.arraycopy(tokens, start+1, innerTokens, 0, innerTokens.length);
                     while (tape[pointer] != 0) output.append(privateExecuteBrainFunk(innerTokens));
                 }
-                case ENDWHILE -> {
-                    // TODO: report an error when there is more `ENDWHILE` than `WHILE` tokens
-                }
+                case ENDWHILE -> error("Unmatched brackets at: "+tokens[i]);
                 case WRITE -> {
                     int val = getVal();
                     for (int j = 0; j < val; j++) {write(); output.append((char) tape[pointer]);}

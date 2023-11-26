@@ -18,10 +18,12 @@ public class Main {
 
         // TODO: should lexer be separate between different filetypes?
         Token[] lexedTokens = Lexer.lexFile(filepath);
+        info("Lexer OK.");
         if (filename.endsWith(".bf")) {
             Interpreter.executeBF(lexedTokens);
         } else if (filename.endsWith(".bfn")) {
             Token[] parsedTokens = Parser.parseTokens(lexedTokens);
+            info("Parser OK.");
             Interpreter.executeBrainFunk(parsedTokens);
         } else {
             error("Invalid file format. Please provide a .bf or .bfn file as a command line argument.");

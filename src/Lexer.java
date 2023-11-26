@@ -3,11 +3,11 @@ import java.util.ArrayList;
 
 public class Lexer {
 
-    private static String filename;
+    private static String  filename;
     private static boolean showTokens = false;
 
     public static Token[] lexFile(String filepath) {
-        filename = new File(filepath).getName();
+        filename   = new File(filepath).getName();
         showTokens = Main.showTokens;
         String rawData = FileSystem.loadFile(filepath);
         if (rawData == null) error("Could not get file data.");
@@ -17,7 +17,7 @@ public class Lexer {
         return tokens.toArray(new Token[0]);
     }
 
-    private static ArrayList<Token> lexLine(String line, int row) {
+    protected static ArrayList<Token> lexLine(String line, int row) {
         ArrayList<Token> tokens = new ArrayList<>();
         for (int col = 0; col < line.length(); col++) {
             char c = line.charAt(col);
@@ -58,7 +58,7 @@ public class Lexer {
                 for (; col < line.length(); col++) if (!Character.isLetterOrDigit(line.charAt(col))) break;
                 if (col-start < 0) error("Unfinished macro definition at "+new Token(Token.Type.ERROR, filename, row, col));
                 if (col < line.length() && line.charAt(col) == ':') {
-                    tk = new Token(Token.Type.MACRODEF, filename, row, start);
+                    tk          = new Token(Token.Type.MACRODEF, filename, row, start);
                     tk.strValue = line.substring(start, col);
                     start       = ++col;
                     for (; col < line.length(); col++) if (line.charAt(col) == ';') break;
@@ -68,7 +68,7 @@ public class Lexer {
                     for (Token t: tk.macroTokens) t.col += start;
                     showTokens = Main.showTokens;
                 } else {
-                    tk = new Token(Token.Type.MACRO, filename, row, start);
+                    tk          = new Token(Token.Type.MACRO, filename, row, start);
                     tk.strValue = line.substring(start, col);
                     col--;
                 }
