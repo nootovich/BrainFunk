@@ -102,11 +102,29 @@ public class Debugger {
                         System.exit(0);
                     } else if (key == KeyEvent.VK_SPACE && ip < tokens.length) {
                         if (tokens[ip].type == Token.Type.MACRO) {
-                            String macroName = tokens[ip].strValue;
-                            while (++ip < tokens.length && macroName.equals(extractTopLevelOrigin(tokens[ip]))) {
+                            String macroName = tokens[ip++].strValue;
+                            while (ip < tokens.length && macroName.equals(extractTopLevelOrigin(tokens[ip]))) {
                                 DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                                ip++;
                             }
-                        } else DebugInterpreter.debugExecuteBrainFunk(tokens[ip++]);
+                        } else if (tokens[ip].type == Token.Type.WHILE) {
+                            Token start      = tokens[ip];
+                            int   startDepth = DebugInterpreter.whileDepth;
+                            do {
+                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                                ip++;
+                            }
+                            while (ip < tokens.length &&
+                                   (DebugInterpreter.whileDepth !=
+                                    startDepth ||
+                                    tokens[ip].eq(start)));
+                        } else {
+                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                            ip++;
+                        }
+                    } else if (key == KeyEvent.VK_ENTER) {
+                        DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                        ip++;
                     }
                     if (ip >= tokens.length) endExecution();
                 }
@@ -141,11 +159,16 @@ public class Debugger {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (mouseToken != null) {
-                        while (ip < tokens.length && !tokens[ip].eq(mouseToken))
-                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip++]);
+                        while (ip < tokens.length && !tokens[ip].eq(mouseToken)) {
+                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                            ip++;
+                        }
                     } else {
                         int row = (e.getY()-codeY-4)/cachedFontH-1;
-                        while (ip < tokens.length && tokens[ip].row <= row) DebugInterpreter.debugExecuteBrainFunk(tokens[ip++]);
+                        while (ip < tokens.length && tokens[ip].row <= row) {
+                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                            ip++;
+                        }
                     }
                     if (ip >= tokens.length) endExecution();
                 }
@@ -360,11 +383,12 @@ public class Debugger {
                     } else whileDepth += getVal();
                 }
                 case ENDWHILE -> {
+                    // TODO: This is wrong. Mostly in the places of `getVal()`
                     int val = getVal();
                     for (int i = 0; i < val; i++) {
                         if (((int) tape[pointer]&0xFF) > 0) {
-                            int startIp    = --DebugWindow.ip;
-                            int startDepth = whileDepth++;
+                            int startIp    = DebugWindow.ip;
+                            int startDepth = whileDepth-1;
                             while (whileDepth > startDepth) {
                                 tk = DebugWindow.tokens[--DebugWindow.ip];
                                 if (tk.type == Token.Type.ENDWHILE) whileDepth += getVal();
@@ -372,7 +396,8 @@ public class Debugger {
                                 if (whileDepth != 0 && DebugWindow.ip == 0)
                                     error("Unmatched brackets at: "+DebugWindow.tokens[startIp]);
                             }
-                        }
+                            DebugWindow.ip--;
+                        } else whileDepth--;
                     }
                 }
                 case WRITE -> write(getVal());
