@@ -200,31 +200,33 @@ public class Debugger {
             if (mouseToken != null) {
                 int ipX = codeX+mouseToken.col*cachedFontW+8;
                 int ipY = codeY+mouseToken.row*cachedFontH+5;
-                int ipW = cachedFontW;
+                int ipW = tokenLen(mouseToken)*cachedFontW;
                 int ipH = cachedFontH;
-                switch (mouseToken.type) {
-                    case NUMBER -> ipW = (int) (Math.floor(Math.log10(mouseToken.numValue))*cachedFontW+cachedFontW);
-                    case STRING -> ipW = (mouseToken.strValue.length()+2)*cachedFontW;
-                    case MACRO -> ipW = mouseToken.strValue.length()*cachedFontW;
-                }
                 g2d.setColor(Color.CYAN);
                 g2d.drawRect(ipX, ipY, ipW, ipH);
             }
 
             // Current token outline
             {
-                Token tk  = tokens[ip];
-                int   ipX = codeX+tk.col*cachedFontW+8;
-                int   ipY = codeY+tk.row*cachedFontH+5;
-                int   ipW = cachedFontW;
-                int   ipH = cachedFontH;
-                switch (tk.type) {
-                    case NUMBER -> ipW = (int) (Math.floor(Math.log10(tk.numValue))*cachedFontW+cachedFontW);
-                    case STRING -> ipW = (tk.strValue.length()+2)*cachedFontW;
-                    case MACRO -> ipW = tk.strValue.length()*cachedFontW;
-                }
                 g2d.setColor(Color.ORANGE);
-                g2d.drawRect(ipX, ipY, ipW, ipH);
+                Token tk    = tokens[ip];
+                int   prevX = -1;
+                int   prevY = -1;
+                while (tk != null) {
+                    int ipX = codeX+tk.col*cachedFontW+8;
+                    int ipY = codeY+tk.row*cachedFontH+5;
+                    int ipW = tokenLen(tk)*cachedFontW;
+                    int ipH = cachedFontH;
+                    g2d.drawRect(ipX, ipY, ipW, ipH);
+                    g2d.setColor(Color.GRAY);
+
+                    // TODO: maybe a pretty drawArc()?)
+                    if (prevX > 0 && prevY > 0) g2d.drawLine(ipX+ipW/2, ipY+ipH/2, prevX, prevY);
+
+                    prevX = ipX+ipW/2;
+                    prevY = ipY+ipH/2;
+                    tk    = tk.origin;
+                }
             }
 
             Insets insets = getInsets();
