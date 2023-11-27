@@ -40,6 +40,7 @@ public class Lexer {
             else if (c == '/' && col < line.length()-1 && line.charAt(col+1) == '/') break;
             else if (c == '$') tk = new Token(Token.Type.POINTER, filename, row, col);
             else if (c == '#') tk = new Token(Token.Type.RETURN, filename, row, col);
+            else if (c == ':') error("Unfinished macro definition at "+new Token(Token.Type.ERROR, filename, row, col));
             else if (c == '"') {
                 int start = col;
                 while (col < line.length()-1 && line.charAt(++col) != '"') {}
