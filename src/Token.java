@@ -11,12 +11,21 @@ public class Token {
     public String  strValue = null;
     public Token[] macroTokens;
 
-    public Token origin;
+    public Token  origin;
     public String file;
     public int    row;
     public int    col;
 
     public Token(Type type, String file, int row, int col) {this.type = type; this.file = file; this.row = row; this.col = col;}
+
+    public boolean eq(Token t) {
+        boolean result = (row == t.row && col == t.col && type == t.type && numValue == t.numValue);
+        if (file != null && t.file != null) result &= file.equals(t.file);
+        else result &= (file == null && t.file == null);
+        if (strValue != null && t.strValue != null) result &= strValue.equals(t.strValue);
+        else result &= (strValue == null && t.strValue == null);
+        return result;
+    }
 
     public String toString() {
         StringBuilder result = new StringBuilder("%s:%d:%d [%s".formatted(file, row+1, col, type));

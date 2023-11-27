@@ -61,7 +61,7 @@ public class Debugger {
         DebugWindow(int w, int h, String filepath) {
             this.filedata = FileSystem.loadFile(filepath).split("\n");
 
-            Token[] lexedTokens = DebugLexer.lexFile(filepath);
+            Token[] lexedTokens = Lexer.lexFile(filepath);
             info("Lexer OK.");
 
             tokens = filename.endsWith(".bfn") ? DebugParser.parseTokens(lexedTokens) : lexedTokens;
@@ -141,7 +141,8 @@ public class Debugger {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (mouseToken != null) {
-                        while (ip < tokens.length && tokens[ip] != mouseToken) DebugInterpreter.debugExecuteBrainFunk(tokens[ip++]);
+                        while (ip < tokens.length && !tokens[ip].eq(mouseToken))
+                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip++]);
                     } else {
                         int row = (e.getY()-codeY-4)/cachedFontH-1;
                         while (ip < tokens.length && tokens[ip].row <= row) DebugInterpreter.debugExecuteBrainFunk(tokens[ip++]);
@@ -251,19 +252,6 @@ public class Debugger {
         private static String hex(byte n) {
             int m = (int) n&0xFF;
             return String.valueOf(hexLookup[m>>4])+hexLookup[m%16];
-        }
-    }
-
-    private static class DebugLexer extends Lexer {
-
-        public static Token[] lexFile(String filepath) {
-            ArrayList<Token> tokens = new ArrayList<>();
-            filename = new File(filepath).getName();
-            String rawData = FileSystem.loadFile(filepath);
-            if (rawData == null) error("Could not get file data.");
-            String[] lines = rawData.split("\n");
-            for (int row = 0; row < lines.length; row++) tokens.addAll(lexLine(lines[row], row));
-            return tokens.toArray(new Token[0]);
         }
     }
 
