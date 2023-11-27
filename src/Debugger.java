@@ -6,8 +6,6 @@ import java.io.File;
 import java.util.List;
 import java.util.*;
 
-import static java.lang.Math.log10;
-
 public class Debugger {
 
     public static String filename;
@@ -16,10 +14,11 @@ public class Debugger {
         if (args.length < 1) error("Please provide a .bf or .bfn file as a command line argument.");
         String filepath = args[0];
         filename = new File(filepath).getName();
-        if (!filename.endsWith(".bfn") && !filename.endsWith(".bf")) error("Invalid file format. Please provide a .bf or .bfn file.");
+        if (!filename.endsWith(".bfn") && !filename.endsWith(".bf"))
+            error("Invalid file format. Please provide a .bf or .bfn file.");
         info("Debugging %s file.".formatted(filename));
 
-        DebugWindow debugWindow = new DebugWindow(1200, 800, filepath);
+        DebugWindow debugWindow = new DebugWindow(1400, 785, filepath);
         while (true) {
             debugWindow.repaint();
             Thread.sleep(30);
@@ -46,7 +45,7 @@ public class Debugger {
 
         private final BufferedImage buffer;
         private final Graphics2D    g2d;
-        private final Font          font        = new Font(Font.MONOSPACED, Font.BOLD, 20);
+        private final Font          font        = new Font("Roboto Mono", Font.PLAIN, 16);
         private       String[]      filedata    = {""};
         private       int           cachedFontH = 0;
         private       int           cachedFontW = 0;
@@ -74,9 +73,9 @@ public class Debugger {
             this.x = (screenSize.width-w)/2;
             this.y = (screenSize.height-h)/2;
 
-            this.codeX = this.w/20;
+            this.codeX = this.w/40;
             this.codeY = codeX;
-            this.codeW = this.w-codeX*7;
+            this.codeW = this.w*75/100;
             this.codeH = this.h-codeY*2;
 
             this.tapeY = codeY;
@@ -91,25 +90,25 @@ public class Debugger {
             g2d.setBackground(COLOR_BG);
             g2d.setFont(font);
             FontMetrics metrics = g2d.getFontMetrics();
-            cachedFontH = metrics.getAscent();
+            cachedFontH = metrics.getHeight();
             cachedFontW = (int) metrics.getStringBounds("@", null).getWidth();
 
             addKeyListener(new KeyAdapter() {
                 @Override
                 public void keyPressed(KeyEvent e) {
-                    if (e.getKeyCode() == KeyEvent.VK_SPACE && ip < tokens.length) {
+                    int key = e.getKeyCode();
+                    if (key == KeyEvent.VK_ESCAPE) {
+                        info("Debugger terminated by user.");
+                        System.exit(0);
+                    } else if (key == KeyEvent.VK_SPACE && ip < tokens.length) {
                         if (tokens[ip].type == Token.Type.MACRO) {
                             String macroName = tokens[ip].strValue;
                             while (++ip < tokens.length && macroName.equals(extractTopLevelOrigin(tokens[ip]))) {
-                                if (tokens[ip].type != Token.Type.MACRO) DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
                             }
                         } else DebugInterpreter.debugExecuteBrainFunk(tokens[ip++]);
                     }
-                    if (ip >= tokens.length) {
-                        info("Execution finished!");
-                        try {Thread.sleep(1000);} catch (InterruptedException ignored) {}
-                        System.exit(0);
-                    }
+                    if (ip >= tokens.length) endExecution();
                 }
 
                 private String extractTopLevelOrigin(Token tk) {
@@ -139,16 +138,13 @@ public class Debugger {
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    int   row        = (e.getY()-codeY-4)/cachedFontH-1;
-                    int   col        = (e.getX()-codeX)/cachedFontW-1;
-                    Token foundToken = null;
-                    for (Token tk: tokens)
-                        if (tk.col == col && tk.row == row) {
-                            foundToken = tk;
-                            break;
-                        }
-                    if (foundToken == null) return;
-                    while (tokens[ip] != foundToken) DebugInterpreter.debugExecuteBrainFunk(tokens[ip++]);
+                    if (mouseToken != null) {
+                        while (ip < tokens.length && tokens[ip] != mouseToken) DebugInterpreter.debugExecuteBrainFunk(tokens[ip++]);
+                    } else {
+                        int row = (e.getY()-codeY-4)/cachedFontH-1;
+                        while (ip < tokens.length && tokens[ip].row <= row) DebugInterpreter.debugExecuteBrainFunk(tokens[ip++]);
+                    }
+                    if (ip >= tokens.length) endExecution();
                 }
             });
 
@@ -166,32 +162,54 @@ public class Debugger {
             g2d.setColor(COLOR_DATA);
             g2d.fillRect(codeX, codeY, codeW, codeH);
             g2d.fillRect(tapeX, tapeY, tapeW, tapeH);
-
-
             g2d.setColor(Color.LIGHT_GRAY);
-            int y = codeY+cachedFontH;
-            for (int i = 0; i < filedata.length; i++) {
-                g2d.drawString(filedata[i], codeX+8, y);
-                y += cachedFontH;
-            }
 
-            x = tapeX;
-            y = tapeY+cachedFontH;
-            int valW = (int) g2d.getFontMetrics().getStringBounds("---", null).getWidth();
-            for (int i = 0; i < DebugInterpreter.tape.length; i++) {
-                String val = hex(DebugInterpreter.tape[i]);
-                g2d.drawString(val, x+8, y);
-                if (i == DebugInterpreter.pointer) {
-                    g2d.setColor(Color.ORANGE);
-                    g2d.drawRect(x+8, y-cachedFontH+4, cachedFontW*2, cachedFontH);
-                    g2d.setColor(Color.LIGHT_GRAY);
-                }
-                x += valW;
-                if (x >= w-codeX-valW) {
-                    x = tapeX;
+            // Program
+            {
+                int y = codeY+cachedFontH;
+                for (int i = 0; i < filedata.length; i++) {
+                    g2d.drawString(filedata[i], codeX+8, y);
                     y += cachedFontH;
                 }
             }
+
+            // Memory values
+            {
+                int x    = tapeX;
+                int y    = tapeY+cachedFontH;
+                int valW = cachedFontW*3;
+                for (int i = 0; i < DebugInterpreter.tape.length; i++) {
+                    String val = hex(DebugInterpreter.tape[i]);
+                    g2d.drawString(val, x+8, y);
+                    if (i == DebugInterpreter.pointer) {
+                        g2d.setColor(Color.ORANGE);
+                        g2d.drawRect(x+8, y-cachedFontH+4, cachedFontW*2, cachedFontH);
+                        g2d.setColor(Color.LIGHT_GRAY);
+                    }
+                    x += valW;
+                    if (x >= w-codeX-valW) {
+                        x = tapeX;
+                        y += cachedFontH;
+                    }
+                }
+            }
+
+            // Token under mouse outline
+            if (mouseToken != null) {
+                int ipX = codeX+mouseToken.col*cachedFontW+8;
+                int ipY = codeY+mouseToken.row*cachedFontH+5;
+                int ipW = cachedFontW;
+                int ipH = cachedFontH;
+                switch (mouseToken.type) {
+                    case NUMBER -> ipW = (int) (Math.floor(Math.log10(mouseToken.numValue))*cachedFontW+cachedFontW);
+                    case STRING -> ipW = (mouseToken.strValue.length()+2)*cachedFontW;
+                    case MACRO -> ipW = mouseToken.strValue.length()*cachedFontW;
+                }
+                g2d.setColor(Color.CYAN);
+                g2d.drawRect(ipX, ipY, ipW, ipH);
+            }
+
+            // Current token outline
             {
                 Token tk  = tokens[ip];
                 int   ipX = codeX+tk.col*cachedFontW+8;
@@ -199,26 +217,22 @@ public class Debugger {
                 int   ipW = cachedFontW;
                 int   ipH = cachedFontH;
                 switch (tk.type) {
-                    case NUMBER -> ipW = (int) (Math.floor(log10(tk.numValue))*cachedFontW+cachedFontW);
+                    case NUMBER -> ipW = (int) (Math.floor(Math.log10(tk.numValue))*cachedFontW+cachedFontW);
+                    case STRING -> ipW = (tk.strValue.length()+2)*cachedFontW;
                     case MACRO -> ipW = tk.strValue.length()*cachedFontW;
                 }
                 g2d.setColor(Color.ORANGE);
                 g2d.drawRect(ipX, ipY, ipW, ipH);
             }
-            if (mouseToken != null) {
-                int ipX = codeX+mouseToken.col*cachedFontW+8;
-                int ipY = codeY+mouseToken.row*cachedFontH+5;
-                int ipW = cachedFontW;
-                int ipH = cachedFontH;
-                switch (mouseToken.type) {
-                    case NUMBER -> ipW = (int) (Math.floor(log10(mouseToken.numValue))*cachedFontW+cachedFontW);
-                    case MACRO -> ipW = mouseToken.strValue.length()*cachedFontW;
-                }
-                g2d.setColor(Color.CYAN);
-                g2d.drawRect(ipX, ipY, ipW, ipH);
-            }
+
             Insets insets = getInsets();
             g.drawImage(buffer, insets.left, insets.top, this);
+        }
+
+        private static void endExecution() {
+            info("Execution finished!");
+            try {Thread.sleep(500);} catch (InterruptedException ignored) {}
+            System.exit(0);
         }
 
         private static String hex(byte n) {
@@ -235,10 +249,7 @@ public class Debugger {
             String rawData = FileSystem.loadFile(filepath);
             if (rawData == null) error("Could not get file data.");
             String[] lines = rawData.split("\n");
-            for (int row = 0; row < lines.length; row++) {
-                tokens.addAll(lexLine(lines[row], row));
-                // tokens.add(new Token(Token.Type.DEBUG_NEWLINE, filename, row, lines.length));
-            }
+            for (int row = 0; row < lines.length; row++) tokens.addAll(lexLine(lines[row], row));
             return tokens.toArray(new Token[0]);
         }
     }
@@ -257,7 +268,8 @@ public class Debugger {
         }
 
         private static Token[] parseMacros(Token[] tokens, Token origin) {
-            if (++recursionCount >= RECURSION_LIMIT) error("The recursion limit of %d was exceeded by: %s".formatted(RECURSION_LIMIT, origin));
+            if (++recursionCount >= RECURSION_LIMIT)
+                error("The recursion limit of %d was exceeded by: %s".formatted(RECURSION_LIMIT, origin));
             Stack<Token> parsed = new Stack<>();
             for (Token tk: tokens) {
                 if (tk.origin == null) tk.origin = origin;
@@ -388,6 +400,7 @@ public class Debugger {
                         pointer = ptrHistory.pop();
                     }
                 }
+                case MACRO -> {}
                 default -> error("Unknown token type `"+tk.type+"`");
             }
         }
@@ -414,7 +427,8 @@ public class Debugger {
                 char[] in = input.nextLine().toCharArray();
                 for (char inChar: in) inputBuffer.add((byte) inChar);
             }
-            if (inputBuffer.size() < amount) error("Not enough data for `READ` token. This should be unreachable unless there is a bug in processing user input.");
+            if (inputBuffer.size() < amount)
+                error("Not enough data for `READ` token. This should be unreachable unless there is a bug in processing user input.");
             for (int i = 0; i < amount; i++) {
                 tape[pointer] = inputBuffer.get(0);
                 inputBuffer.remove(0);
