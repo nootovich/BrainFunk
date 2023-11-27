@@ -127,9 +127,11 @@ public class Debugger {
                     int row = (e.getY()-codeY-4)/cachedFontH-1;
                     int col = (e.getX()-codeX)/cachedFontW-1;
                     for (Token tk: tokens)
-                        if (tk.col == col && tk.row == row) {
-                            mouseToken = tk;
-                            return;
+                        if (tk.row == row) {
+                            if (tk.col <= col && col < tk.col+tokenLen(tk)) {
+                                mouseToken = tk;
+                                return;
+                            }
                         }
                     mouseToken = null;
                 }
@@ -233,6 +235,15 @@ public class Debugger {
             info("Execution finished!");
             try {Thread.sleep(500);} catch (InterruptedException ignored) {}
             System.exit(0);
+        }
+
+        private static int tokenLen(Token tk) {
+            return switch (tk.type) {
+                case NUMBER -> (int) Math.floor(Math.log10(tk.numValue))+1;
+                case STRING -> (tk.strValue.length()+2);
+                case MACRO -> tk.strValue.length();
+                default -> 1;
+            };
         }
 
         private static String hex(byte n) {
