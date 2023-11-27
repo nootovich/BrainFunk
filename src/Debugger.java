@@ -102,8 +102,10 @@ public class Debugger {
                         System.exit(0);
                     } else if (key == KeyEvent.VK_SPACE && ip < tokens.length) {
                         if (tokens[ip].type == Token.Type.MACRO) {
-                            String macroName = tokens[ip++].strValue;
-                            while (ip < tokens.length && macroName.equals(extractTopLevelOrigin(tokens[ip]))) {
+                            String macroName = tokens[ip].strValue;
+                            int    macroLvl  = getLevel(tokens[ip]);
+                            ip++;
+                            while (ip < tokens.length && getOriginOfLevel(tokens[ip], macroLvl).equals(macroName)) {
                                 DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
                                 ip++;
                             }
@@ -129,13 +131,23 @@ public class Debugger {
                     if (ip >= tokens.length) endExecution();
                 }
 
-                private String extractTopLevelOrigin(Token tk) {
-                    String result = null;
+                private int getLevel(Token tk) {
+                    int result = 0;
                     while (tk.origin != null) {
-                        result = tk.origin.strValue;
-                        tk     = tk.origin;
+                        tk = tk.origin;
+                        result++;
                     }
                     return result;
+                }
+
+                private String getOriginOfLevel(Token tk, int lvl) {
+                    int tkLvl = getLevel(tk);
+                    while (tk.origin != null && tkLvl > lvl) {
+                        tk = tk.origin;
+                        tkLvl--;
+                    }
+                    if (tkLvl == lvl && tk.type == Token.Type.MACRO) return tk.strValue;
+                    return "";
                 }
             });
 
