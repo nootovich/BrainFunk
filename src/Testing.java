@@ -73,7 +73,7 @@ public class Testing {
             if (actual.equals(expected)) info(logTemplate + "OK.");
             else {
                 error(logTemplate + "DIFFERS!\n-------------------------------");
-                Levenstein.printDiff(actual, expected);
+                Levenstein.printDiff(expected, actual);
                 System.out.println("-------------------------------");
             }
         } catch (RuntimeException ignored) {

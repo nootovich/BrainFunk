@@ -70,18 +70,18 @@ public class Debugger {
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
             this.w = w;
             this.h = h;
-            this.x = (screenSize.width-w)/2;
-            this.y = (screenSize.height-h)/2;
+            this.x = (screenSize.width - w) / 2;
+            this.y = (screenSize.height - h) / 2;
 
-            this.codeX = this.w/40;
+            this.codeX = this.w / 40;
             this.codeY = codeX;
-            this.codeW = this.w*75/100;
-            this.codeH = this.h-codeY*2;
+            this.codeW = this.w * 75 / 100;
+            this.codeH = this.h - codeY * 2;
 
             this.tapeY = codeY;
             this.tapeH = codeH;
-            this.tapeW = this.w-codeX*3-codeW;
-            this.tapeX = this.w-codeX-tapeW;
+            this.tapeW = this.w - codeX * 3 - codeW;
+            this.tapeX = this.w - codeX - tapeW;
 
             buffer = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
             g2d    = (Graphics2D) buffer.getGraphics();
@@ -157,11 +157,9 @@ public class Debugger {
                     int row = (e.getY()-codeY-4)/cachedFontH-1;
                     int col = (e.getX()-codeX)/cachedFontW-1;
                     for (Token tk: tokens)
-                        if (tk.row == row) {
-                            if (tk.col <= col && col < tk.col+tokenLen(tk)) {
-                                mouseToken = tk;
-                                return;
-                            }
+                        if (tk.row == row && tk.col <= col && col < tk.col + tokenLen(tk)) {
+                            mouseToken = tk;
+                            return;
                         }
                     mouseToken = null;
                 }
@@ -176,7 +174,7 @@ public class Debugger {
                             ip++;
                         }
                     } else {
-                        int row = (e.getY()-codeY-4)/cachedFontH-1;
+                        int row = (e.getY() - codeY - 4) / cachedFontH - 1;
                         while (ip < tokens.length && tokens[ip].row <= row) {
                             DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
                             ip++;
@@ -188,7 +186,7 @@ public class Debugger {
 
             pack();
             Insets insets = getInsets();
-            setSize(w+insets.left+insets.right, h+insets.top+insets.bottom);
+            setSize(w + insets.left + insets.right, h + insets.top + insets.bottom);
             setLocation(x, y);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             setVisible(true);
@@ -204,9 +202,9 @@ public class Debugger {
 
             // Program
             {
-                int y = codeY+cachedFontH;
+                int y = codeY + cachedFontH;
                 for (int i = 0; i < filedata.length; i++) {
-                    g2d.drawString(filedata[i], codeX+8, y);
+                    g2d.drawString(filedata[i], codeX + 8, y);
                     y += cachedFontH;
                 }
             }
@@ -214,18 +212,18 @@ public class Debugger {
             // Memory values
             {
                 int x    = tapeX;
-                int y    = tapeY+cachedFontH;
-                int valW = cachedFontW*3;
+                int y    = tapeY + cachedFontH;
+                int valW = cachedFontW * 3;
                 for (int i = 0; i < DebugInterpreter.tape.length; i++) {
                     String val = hex(DebugInterpreter.tape[i]);
-                    g2d.drawString(val, x+8, y);
+                    g2d.drawString(val, x + 8, y);
                     if (i == DebugInterpreter.pointer) {
                         g2d.setColor(Color.ORANGE);
-                        g2d.drawRect(x+8, y-cachedFontH+4, cachedFontW*2, cachedFontH);
+                        g2d.drawRect(x + 8, y - cachedFontH + 4, cachedFontW * 2, cachedFontH);
                         g2d.setColor(Color.LIGHT_GRAY);
                     }
                     x += valW;
-                    if (x >= w-codeX-valW) {
+                    if (x >= w - codeX - valW) {
                         x = tapeX;
                         y += cachedFontH;
                     }
@@ -234,9 +232,9 @@ public class Debugger {
 
             // Token under mouse outline
             if (mouseToken != null) {
-                int ipX = codeX+mouseToken.col*cachedFontW+8;
-                int ipY = codeY+mouseToken.row*cachedFontH+5;
-                int ipW = tokenLen(mouseToken)*cachedFontW;
+                int ipX = codeX + mouseToken.col * cachedFontW + 8;
+                int ipY = codeY + mouseToken.row * cachedFontH + 5;
+                int ipW = tokenLen(mouseToken) * cachedFontW;
                 int ipH = cachedFontH;
                 g2d.setColor(Color.CYAN);
                 g2d.drawRect(ipX, ipY, ipW, ipH);
@@ -249,18 +247,18 @@ public class Debugger {
                 int   prevX = -1;
                 int   prevY = -1;
                 while (tk != null) {
-                    int ipX = codeX+tk.col*cachedFontW+8;
-                    int ipY = codeY+tk.row*cachedFontH+5;
-                    int ipW = tokenLen(tk)*cachedFontW;
+                    int ipX = codeX + tk.col * cachedFontW + 8;
+                    int ipY = codeY + tk.row * cachedFontH + 5;
+                    int ipW = tokenLen(tk) * cachedFontW;
                     int ipH = cachedFontH;
                     g2d.drawRect(ipX, ipY, ipW, ipH);
                     g2d.setColor(Color.GRAY);
 
                     // TODO: maybe a pretty drawArc()?)
-                    if (prevX > 0 && prevY > 0) g2d.drawLine(ipX+ipW/2, ipY+ipH/2, prevX, prevY);
+                    if (prevX > 0 && prevY > 0) g2d.drawLine(ipX + ipW / 2, ipY + ipH / 2, prevX, prevY);
 
-                    prevX = ipX+ipW/2;
-                    prevY = ipY+ipH/2;
+                    prevX = ipX + ipW / 2;
+                    prevY = ipY + ipH / 2;
                     tk    = tk.origin;
                 }
             }
@@ -277,16 +275,16 @@ public class Debugger {
 
         private static int tokenLen(Token tk) {
             return switch (tk.type) {
-                case NUMBER -> (int) Math.floor(Math.log10(tk.numValue))+1;
-                case STRING -> (tk.strValue.length()+2);
+                case NUMBER -> (int) Math.floor(Math.log10(tk.numValue)) + 1;
+                case STRING -> (tk.strValue.length() + 2);
                 case MACRO -> tk.strValue.length();
                 default -> 1;
             };
         }
 
         private static String hex(byte n) {
-            int m = (int) n&0xFF;
-            return String.valueOf(hexLookup[m>>4])+hexLookup[m%16];
+            int m = (int) n & 0xFF;
+            return String.valueOf(hexLookup[m >> 4]) + hexLookup[m % 16];
         }
     }
 
@@ -316,7 +314,7 @@ public class Debugger {
                     int amount     = 1;
                     int parsedSize = parsed.size();
                     if (parsedSize > 0 && parsed.peek().type == Token.Type.NUMBER
-                        && (parsedSize < 2 || parsed.get(parsedSize-2).type != Token.Type.POINTER)) {
+                        && (parsedSize < 2 || parsed.get(parsedSize - 2).type != Token.Type.POINTER)) {
                         amount = parsed.pop().numValue;
                     }
                     if (!macros.containsKey(tk.strValue)) error("Undefined macro %s.".formatted(tk));
@@ -347,8 +345,8 @@ public class Debugger {
             for (int i = 0; i < tokens.length; i++) {
                 Token tk = tokens[i];
                 if (tk.type == Token.Type.POINTER) {
-                    if (i == tokens.length-1 || tokens[i+1].type != Token.Type.NUMBER)
-                        error("Invalid argument for a pointer! Expected a number after: "+tk);
+                    if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.NUMBER)
+                        error("Invalid argument for a pointer! Expected a number after: " + tk);
                     tk.numValue = tokens[++i].numValue;
                 }
                 parsed.push(tk);
@@ -379,8 +377,8 @@ public class Debugger {
                 case PTRADD -> ptradd(getVal());
                 case PTRSUB -> ptradd(-getVal());
                 case WHILE -> {
-                    if (DebugWindow.ip == DebugWindow.tokens.length-1)
-                        error("Unmatched brackets at: "+DebugWindow.tokens[DebugWindow.ip]);
+                    if (DebugWindow.ip == DebugWindow.tokens.length - 1)
+                        error("Unmatched brackets at: " + DebugWindow.tokens[DebugWindow.ip]);
                     if (tape[pointer] == 0) {
                         int startIp    = DebugWindow.ip;
                         int startDepth = whileDepth;
@@ -389,8 +387,8 @@ public class Debugger {
                             tk = DebugWindow.tokens[++DebugWindow.ip];
                             if (tk.type == Token.Type.WHILE) whileDepth += getVal();
                             else if (tk.type == Token.Type.ENDWHILE) whileDepth -= getVal();
-                            if (whileDepth != 0 && DebugWindow.ip == DebugWindow.tokens.length-1)
-                                error("Unmatched brackets at: "+DebugWindow.tokens[startIp]);
+                            if (whileDepth != 0 && DebugWindow.ip == DebugWindow.tokens.length - 1)
+                                error("Unmatched brackets at: " + DebugWindow.tokens[startIp]);
                         }
                     } else whileDepth += getVal();
                 }
@@ -398,15 +396,15 @@ public class Debugger {
                     // TODO: This is wrong. Mostly in the places of `getVal()`
                     int val = getVal();
                     for (int i = 0; i < val; i++) {
-                        if (((int) tape[pointer]&0xFF) > 0) {
+                        if (((int) tape[pointer] & 0xFF) > 0) {
                             int startIp    = DebugWindow.ip;
-                            int startDepth = whileDepth-1;
+                            int startDepth = whileDepth - 1;
                             while (whileDepth > startDepth) {
                                 tk = DebugWindow.tokens[--DebugWindow.ip];
                                 if (tk.type == Token.Type.ENDWHILE) whileDepth += getVal();
                                 else if (tk.type == Token.Type.WHILE) whileDepth -= getVal();
                                 if (whileDepth != 0 && DebugWindow.ip == 0)
-                                    error("Unmatched brackets at: "+DebugWindow.tokens[startIp]);
+                                    error("Unmatched brackets at: " + DebugWindow.tokens[startIp]);
                             }
                             DebugWindow.ip--;
                         } else whileDepth--;
@@ -434,21 +432,21 @@ public class Debugger {
                 case RETURN -> {
                     int val = getVal();
                     for (int j = 0; j < val; j++) {
-                        if (ptrHistory.isEmpty()) error("Not enough pointer history for: "+tk);
+                        if (ptrHistory.isEmpty()) error("Not enough pointer history for: " + tk);
                         pointer = ptrHistory.pop();
                     }
                 }
                 case MACRO -> {}
-                default -> error("Unknown token type `"+tk.type+"`");
+                default -> error("Unknown token type `" + tk.type + "`");
             }
         }
 
         private static void ptradd(int n) {
-            pointer = ((pointer+n)%TAPE_LEN+TAPE_LEN)%TAPE_LEN;
+            pointer = ((pointer + n) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
         }
 
         private static void saveVal(Token tk) {
-            if (savedVal >= 0) error("Two consecutive numbers after one another are not supported: "+tk);
+            if (savedVal >= 0) error("Two consecutive numbers after one another are not supported: " + tk);
             savedVal = tk.numValue;
         }
 
