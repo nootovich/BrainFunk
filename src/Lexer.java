@@ -63,23 +63,23 @@ public class Lexer {
                         tk          = new Token(Token.Type.MACRODEF, filename, row, startCol);
                         tk.strValue = line.substring(startCol, col);
                         startCol    = ++col;
-                        StringBuilder dataInsideMacro = new StringBuilder();
-                        for (; dataRow < lines.length; dataRow++) {
+                        showTokens     = false;
+                        ArrayList<Token> macroTokens     = new ArrayList<>();
+                        for (int col2 = startCol; dataRow < lines.length; dataRow++) {
                             line = lines[dataRow];
                             for (; col < line.length(); col++) {
-                                char h = line.charAt(col);
-                                if (h == ';') break;
-                                dataInsideMacro.append(h);
+                                if (line.charAt(col) == ';') break;
                             }
-                            if (line.charAt(col) == ';') break;
+                            macroTokens.addAll(lexData(line.substring(col2, col), row));
+                            if (col < line.length() && line.charAt(col) == ';') break;
                             col = 0;
+                            col2 = 0;
                         }
                         if (col == line.length() || line.charAt(col) != ';') {
                             tk.col = col;
                             error("Unfinished macro body at " + tk);
                         }
-                        showTokens     = false;
-                        tk.macroTokens = lexData(dataInsideMacro.toString(), row).toArray(new Token[0]);
+                        tk.macroTokens = macroTokens.toArray(new Token[0]);
                         for (Token t: tk.macroTokens) t.col += startCol;
                         showTokens = Main.showTokens;
                     } else {
