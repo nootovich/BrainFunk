@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Stack;
@@ -10,7 +11,7 @@ public class FileSystem {
         try {
             return Files.readString(Path.of(filepath));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

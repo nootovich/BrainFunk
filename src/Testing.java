@@ -1,4 +1,6 @@
 import java.io.File;
+import java.io.UncheckedIOException;
+import java.util.Stack;
 
 public class Testing {
 
@@ -73,12 +75,15 @@ public class Testing {
             if (actual.equals(expected)) info(logTemplate + "OK.");
             else {
                 error(logTemplate + "DIFFERS!\n-------------------------------");
-                Levenstein.printDiff(expected, actual);
+                Levenstein.printDiff(actual, expected);
                 System.out.println("-------------------------------");
             }
-        } catch (RuntimeException ignored) {
+        } catch (UncheckedIOException ignored) {
             FileSystem.saveFile(expectedName, actual);
             info(logTemplate + "SAVED.");
+        } catch (RuntimeException e) {
+            System.out.println(e);
+            System.exit(1);
         }
     }
 
@@ -127,28 +132,87 @@ public class Testing {
 
     private static class Levenstein {
 
-        public static void printDiff(String a, String b) {
-            String diff = Levenstein.getDiff(a, b);
+        private record Patch(char action, int line, String data) {}
 
-            int j = 0, k = 0;
-            for (int i = 0; i < diff.length(); i++) {
-                char c = diff.charAt(i);
+        public static void printDiff(String cur, String prev) {
+            String[] linesA = prev.split("\n", -1);
+            String[] linesB = cur.split("\n", -1);
+            Patch[]  diff   = Levenstein.getDiff(linesA, linesB);
 
-                if (c == ' ') System.out.print("\u001B[0m" + a.charAt(i + k));
-                if (c == 'I') {
-                    System.out.print("\u001B[42m\u001B[30m" + b.charAt(i + j));
-                    k--;
+            for (int i = 0; i < diff.length; i++) {
+                Patch patch  = diff[i];
+                char  action = patch.action;
+                switch (action) {
+                    case 'I' -> System.out.print("\u001B[0m" + patch.data + "\n");
+                    case 'A' -> System.out.print("\u001B[42m\u001B[30m" + patch.data + "\n");
+                    case 'R' -> System.out.print("\u001B[41m\u001B[30m" + patch.data + "\n");
+                    default -> throw new RuntimeException("Diff messed up somehow");
                 }
-                if (c == 'D') {
-                    System.out.print("\u001B[41m\u001B[30m" + a.charAt(i));
-                    j--;
-                }
-                if (c == 'S') System.out.print("\u001B[44m\u001B[30m" + b.charAt(i + j));
             }
         }
 
-        public static String getDiff(String a, String b) {
-            int aidx = a.length();
+        public static Patch[] getDiff(String[] linesA, String[] linesB) {
+            int      lenA        = linesA.length;
+            int      lenB        = linesB.length;
+            int[][]  lineDist    = new int[lenA + 1][lenB + 1];
+            char[][] lineActions = new char[lenA + 1][lenB + 1];
+
+            lineActions[0][0] = 'I';
+            for (int i = 1; i <= lenA; i++) {
+                lineDist[i][0]    = i;
+                lineActions[i][0] = 'R';
+            }
+            for (int i = 1; i <= lenB; i++) {
+                lineDist[0][i]    = i;
+                lineActions[0][i] = 'A';
+            }
+
+            for (int i = 1; i <= lenA; i++) {
+                for (int j = 1; j <= lenB; j++) {
+                    if (linesA[i - 1].equals(linesB[j - 1])) {
+                        lineDist[i][j]    = lineDist[i - 1][j - 1];
+                        lineActions[i][j] = 'I';
+                        continue;
+                    }
+
+                    int rem = lineDist[i - 1][j];
+                    int add = lineDist[i][j - 1];
+                    lineDist[i][j]    = rem;
+                    lineActions[i][j] = 'R';
+                    if (lineDist[i][j] > add) {
+                        lineDist[i][j]    = add;
+                        lineActions[i][j] = 'A';
+                    }
+                    lineDist[i][j] += 1;
+                }
+            }
+
+            Stack<Patch> result = new Stack<>();
+            int          i      = lenA;
+            int          j      = lenB;
+            while (i > 0 || j > 0) {
+                char action = lineActions[i][j];
+                if (action == 'A') {
+                    j--;
+                    result.push(new Patch('A', j, linesB[j]));
+                } else if (action == 'R') {
+                    i--;
+                    result.push(new Patch('R', i, linesA[i]));
+                } else if (action == 'I') {
+                    i--;
+                    j--;
+                    result.push(new Patch('I', i, linesA[i]));
+                }
+            }
+
+            Patch[] diff = new Patch[result.size()];
+            for (int k = 0; k < diff.length; k++) diff[k] = result.pop();
+            return diff;
+
+
+            // TODO: maybe reimplement character-level diff
+            //  leaving this here just in case
+            /*int aidx = a.length();
             int bidx = b.length();
 
             int[][] distances = getDistanceMatrix(a, b);
@@ -191,10 +255,12 @@ public class Testing {
                 }
             }
 
-            return diff.reverse().toString();
+            return diff.reverse().toString();*/
         }
 
-        public static int[][] getDistanceMatrix(String a, String b) {
+        // TODO: maybe reimplement character-level diff
+        //  leaving this here just in case
+        /*public static int[][] getDistanceMatrix(String a, String b) {
             int     n = a.length();
             int     m = b.length();
             int[][] d = new int[n + 1][m + 1];
@@ -210,7 +276,6 @@ public class Testing {
             }
 
             return d;
-        }
+        }*/
     }
-
 }
