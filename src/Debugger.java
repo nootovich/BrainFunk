@@ -41,7 +41,8 @@ public class Debugger {
         public int x, y, w, h;
         public int codeX, codeY, codeW, codeH;
         public int tapeX, tapeY, tapeW, tapeH;
-        private static Token mouseToken = null;
+        public         int   codeOffsetY = 0;
+        private static Token mouseToken  = null;
 
         private final BufferedImage buffer;
         private final Graphics2D    g2d;
@@ -59,7 +60,7 @@ public class Debugger {
         private static Token[] tokens = new Token[0];
 
         DebugWindow(int w, int h, String filepath) {
-            this.filedata = FileSystem.loadFile(filepath).split("\n");
+            this.filedata = FileSystem.loadFile(filepath).split("\n", -1);
 
             Token[] lexedTokens = Lexer.lexFile(filepath);
             info("Lexer OK.");
@@ -101,6 +102,7 @@ public class Debugger {
                         info("Debugger terminated by user.");
                         System.exit(0);
                     } else if (key == KeyEvent.VK_SPACE && ip < tokens.length) {
+                        int prevRow = tokens[ip].row;
                         if (tokens[ip].type == Token.Type.MACRO) {
                             String macroName = tokens[ip].strValue;
                             int    macroLvl  = getLevel(tokens[ip]);
@@ -124,9 +126,12 @@ public class Debugger {
                             DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
                             ip++;
                         }
+                        codeOffsetY -= prevRow - tokens[ip].row;
                     } else if (key == KeyEvent.VK_ENTER) {
+                        int prevRow = tokens[ip].row;
                         DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
                         ip++;
+                        codeOffsetY -= prevRow - tokens[ip].row;
                     }
                     if (ip >= tokens.length) endExecution();
                 }
@@ -154,13 +159,14 @@ public class Debugger {
             addMouseMotionListener(new MouseMotionAdapter() {
                 @Override
                 public void mouseMoved(MouseEvent e) {
-                    int row = (e.getY()-codeY-4)/cachedFontH-1;
-                    int col = (e.getX()-codeX)/cachedFontW-1;
-                    for (Token tk: tokens)
-                        if (tk.row == row && tk.col <= col && col < tk.col + tokenLen(tk)) {
+                    float row = (float) (e.getY() - codeY + codeOffsetY * cachedFontH) / cachedFontH - 1.5f;
+                    float col = (float) (e.getX() - codeX) / cachedFontW - 1.5f;
+                    for (Token tk: tokens) {
+                        if (tk.row < row && tk.row + 1 > row && tk.col <= col && col < tk.col + tokenLen(tk)) {
                             mouseToken = tk;
                             return;
                         }
+                    }
                     mouseToken = null;
                 }
             });
@@ -184,6 +190,15 @@ public class Debugger {
                 }
             });
 
+            addMouseWheelListener(new MouseAdapter() {
+                @Override
+                public void mouseWheelMoved(MouseWheelEvent e) {
+                    codeOffsetY += e.getWheelRotation();
+                    if (codeOffsetY < 0) codeOffsetY = 0;
+                    else if (codeOffsetY >= filedata.length) codeOffsetY = filedata.length - 1;
+                }
+            });
+
             pack();
             Insets insets = getInsets();
             setSize(w + insets.left + insets.right, h + insets.top + insets.bottom);
@@ -199,15 +214,6 @@ public class Debugger {
             g2d.fillRect(codeX, codeY, codeW, codeH);
             g2d.fillRect(tapeX, tapeY, tapeW, tapeH);
             g2d.setColor(Color.LIGHT_GRAY);
-
-            // Program
-            {
-                int y = codeY + cachedFontH;
-                for (int i = 0; i < filedata.length; i++) {
-                    g2d.drawString(filedata[i], codeX + 8, y);
-                    y += cachedFontH;
-                }
-            }
 
             // Memory values
             {
@@ -230,10 +236,21 @@ public class Debugger {
                 }
             }
 
+            g2d.setClip(codeX, codeY, codeW, codeH);
+
+            // Program
+            {
+                int y = codeY + cachedFontH - codeOffsetY * cachedFontH;
+                for (int i = 0; i < filedata.length; i++) {
+                    g2d.drawString(filedata[i], codeX + 8, y);
+                    y += cachedFontH;
+                }
+            }
+
             // Token under mouse outline
             if (mouseToken != null) {
                 int ipX = codeX + mouseToken.col * cachedFontW + 8;
-                int ipY = codeY + mouseToken.row * cachedFontH + 5;
+                int ipY = codeY + (-codeOffsetY + mouseToken.row) * cachedFontH + 5;
                 int ipW = tokenLen(mouseToken) * cachedFontW;
                 int ipH = cachedFontH;
                 g2d.setColor(Color.CYAN);
@@ -244,18 +261,19 @@ public class Debugger {
             {
                 g2d.setColor(Color.ORANGE);
                 Token tk    = tokens[ip];
-                int   prevX = -1;
-                int   prevY = -1;
+                int   prevX = Integer.MIN_VALUE;
+                int   prevY = Integer.MIN_VALUE;
                 while (tk != null) {
                     int ipX = codeX + tk.col * cachedFontW + 8;
-                    int ipY = codeY + tk.row * cachedFontH + 5;
+                    int ipY = codeY + (-codeOffsetY + tk.row) * cachedFontH + 5;
                     int ipW = tokenLen(tk) * cachedFontW;
                     int ipH = cachedFontH;
                     g2d.drawRect(ipX, ipY, ipW, ipH);
                     g2d.setColor(Color.GRAY);
 
                     // TODO: maybe a pretty drawArc()?)
-                    if (prevX > 0 && prevY > 0) g2d.drawLine(ipX + ipW / 2, ipY + ipH / 2, prevX, prevY);
+
+                    if (prevX != Integer.MIN_VALUE && prevY != Integer.MIN_VALUE) g2d.drawLine(ipX + ipW / 2, ipY + ipH / 2, prevX, prevY);
 
                     prevX = ipX + ipW / 2;
                     prevY = ipY + ipH / 2;
@@ -263,6 +281,7 @@ public class Debugger {
                 }
             }
 
+            g2d.setClip(null);
             Insets insets = getInsets();
             g.drawImage(buffer, insets.left, insets.top, this);
         }
