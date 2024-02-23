@@ -149,6 +149,7 @@ public class Testing {
                     default -> throw new RuntimeException("Diff messed up somehow");
                 }
             }
+            System.out.print("\u001B[0m");
         }
 
         public static Patch[] getDiff(String[] linesA, String[] linesB) {

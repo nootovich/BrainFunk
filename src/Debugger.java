@@ -126,12 +126,12 @@ public class Debugger {
                             DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
                             ip++;
                         }
-                        codeOffsetY -= prevRow - tokens[ip].row;
+                        if (ip < tokens.length) codeOffsetY -= prevRow - tokens[ip].row;
                     } else if (key == KeyEvent.VK_ENTER) {
                         int prevRow = tokens[ip].row;
                         DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
                         ip++;
-                        codeOffsetY -= prevRow - tokens[ip].row;
+                        if (ip < tokens.length) codeOffsetY -= prevRow - tokens[ip].row;
                     }
                     if (ip >= tokens.length) endExecution();
                 }
