@@ -38,18 +38,21 @@ public class Debugger {
 
     private static class DebugWindow extends JFrame {
 
+        public boolean finished = false;
+
         public int x, y, w, h;
         public int codeX, codeY, codeW, codeH;
         public int tapeX, tapeY, tapeW, tapeH;
-        public         int   codeOffsetY = 0;
-        private static Token mouseToken  = null;
+        public int codeOffsetY;
 
-        private final BufferedImage buffer;
-        private final Graphics2D    g2d;
-        private final Font          font        = new Font("Roboto Mono", Font.PLAIN, 16);
-        private       String[]      filedata    = {""};
-        private       int           cachedFontH = 0;
-        private       int           cachedFontW = 0;
+        private static Token         mouseToken;
+        private final  BufferedImage buffer;
+        private final  Graphics2D    g2d;
+        private final  Font          font             = new Font("Roboto Mono", Font.PLAIN, 16);
+        private        String[]      filedata         = {""};
+        private        int           cachedFontH      = 0;
+        private        int           cachedFontW      = 0;
+        private        int           cachedLineAmount = 0;
 
         private final Color COLOR_BG   = new Color(0x3D4154);
         private final Color COLOR_DATA = new Color(0x4C5470);
@@ -91,8 +94,12 @@ public class Debugger {
             g2d.setBackground(COLOR_BG);
             g2d.setFont(font);
             FontMetrics metrics = g2d.getFontMetrics();
-            cachedFontH = metrics.getHeight();
-            cachedFontW = (int) metrics.getStringBounds("@", null).getWidth();
+            cachedFontH      = metrics.getHeight();
+            cachedFontW      = (int) metrics.getStringBounds("@", null).getWidth();
+            cachedLineAmount = codeH / cachedFontH;
+            this.codeOffsetY = tokens[0].row - cachedLineAmount / 2;
+            if (codeOffsetY < 0) codeOffsetY = 0;
+            else if (codeOffsetY >= filedata.length - cachedLineAmount) codeOffsetY = filedata.length - cachedLineAmount - 1;
 
             addKeyListener(new KeyAdapter() {
                 @Override
@@ -101,39 +108,54 @@ public class Debugger {
                     if (key == KeyEvent.VK_ESCAPE) {
                         info("Debugger terminated by user.");
                         System.exit(0);
-                    } else if (key == KeyEvent.VK_SPACE && ip < tokens.length) {
-                        int prevRow = tokens[ip].row;
-                        if (tokens[ip].type == Token.Type.MACRO) {
-                            String macroName = tokens[ip].strValue;
-                            int    macroLvl  = getLevel(tokens[ip]);
-                            ip++;
-                            while (ip < tokens.length && getOriginOfLevel(tokens[ip], macroLvl).equals(macroName)) {
-                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                                ip++;
-                            }
-                        } else if (tokens[ip].type == Token.Type.WHILE) {
-                            Token start      = tokens[ip];
-                            int   startDepth = DebugInterpreter.whileDepth;
-                            do {
-                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                                ip++;
-                            }
-                            while (ip < tokens.length &&
-                                   (DebugInterpreter.whileDepth !=
-                                    startDepth ||
-                                    tokens[ip].eq(start)));
+                    } else if (key == KeyEvent.VK_SPACE) {
+                        if (finished) {
+                            finished = false;
+                            DebugInterpreter.reset();
+                            ip = 0;
                         } else {
-                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                            ip++;
+                            int prevRow = tokens[ip].row;
+                            if (tokens[ip].type == Token.Type.MACRO) {
+                                String macroName = tokens[ip].strValue;
+                                int    macroLvl  = getLevel(tokens[ip]);
+                                ip++;
+                                while (ip < tokens.length && getOriginOfLevel(tokens[ip], macroLvl).equals(macroName)) {
+                                    DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                                    ip++;
+                                }
+                            } else if (tokens[ip].type == Token.Type.WHILE) {
+                                Token start      = tokens[ip];
+                                int   startDepth = DebugInterpreter.whileDepth;
+                                do {
+                                    DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                                    ip++;
+                                }
+                                while (ip < tokens.length &&
+                                       (DebugInterpreter.whileDepth !=
+                                        startDepth ||
+                                        tokens[ip].eq(start)));
+                            } else {
+                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                                ip++;
+                            }
+                            if (ip < tokens.length) {
+                                codeOffsetY -= prevRow - tokens[ip].row;
+                                if (codeOffsetY < 0) codeOffsetY = 0;
+                                else if (codeOffsetY >= filedata.length - cachedLineAmount) codeOffsetY = filedata.length - cachedLineAmount - 1;
+                            }
                         }
-                        if (ip < tokens.length) codeOffsetY -= prevRow - tokens[ip].row;
-                    } else if (key == KeyEvent.VK_ENTER) {
+                    } else if (!finished && key == KeyEvent.VK_ENTER) {
                         int prevRow = tokens[ip].row;
                         DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
                         ip++;
-                        if (ip < tokens.length) codeOffsetY -= prevRow - tokens[ip].row;
+                        if (ip < tokens.length) {
+                            codeOffsetY -= prevRow - tokens[ip].row;
+                            if (codeOffsetY < 0) codeOffsetY = 0;
+                            else if (codeOffsetY >= filedata.length - cachedLineAmount) codeOffsetY = filedata.length - cachedLineAmount - 1;
+
+                        }
                     }
-                    if (ip >= tokens.length) endExecution();
+                    if (ip >= tokens.length) finished = true;
                 }
 
                 private int getLevel(Token tk) {
@@ -174,6 +196,7 @@ public class Debugger {
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
+                    if (finished) return;
                     if (mouseToken != null) {
                         while (ip < tokens.length && !tokens[ip].eq(mouseToken)) {
                             DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
@@ -186,7 +209,7 @@ public class Debugger {
                             ip++;
                         }
                     }
-                    if (ip >= tokens.length) endExecution();
+                    if (ip >= tokens.length) finished = true;
                 }
             });
 
@@ -195,7 +218,7 @@ public class Debugger {
                 public void mouseWheelMoved(MouseWheelEvent e) {
                     codeOffsetY += e.getWheelRotation();
                     if (codeOffsetY < 0) codeOffsetY = 0;
-                    else if (codeOffsetY >= filedata.length) codeOffsetY = filedata.length - 1;
+                    else if (codeOffsetY >= filedata.length - cachedLineAmount) codeOffsetY = filedata.length - cachedLineAmount - 1;
                 }
             });
 
@@ -213,6 +236,13 @@ public class Debugger {
             g2d.setColor(COLOR_DATA);
             g2d.fillRect(codeX, codeY, codeW, codeH);
             g2d.fillRect(tapeX, tapeY, tapeW, tapeH);
+
+            if (finished) {
+                g2d.setColor(Color.ORANGE);
+                String execFinished = "Execution finished, press \"SPACE\" to restart";
+                g2d.drawString(execFinished, codeX + codeW / 2 - (cachedFontW * execFinished.length() / 2), codeY + codeH + cachedFontH);
+            }
+
             g2d.setColor(Color.LIGHT_GRAY);
 
             // Memory values
@@ -258,7 +288,7 @@ public class Debugger {
             }
 
             // Current token outline
-            {
+            if (!finished) {
                 g2d.setColor(Color.ORANGE);
                 Token tk    = tokens[ip];
                 int   prevX = Integer.MIN_VALUE;
@@ -284,12 +314,6 @@ public class Debugger {
             g2d.setClip(null);
             Insets insets = getInsets();
             g.drawImage(buffer, insets.left, insets.top, this);
-        }
-
-        private static void endExecution() {
-            info("Execution finished!");
-            try {Thread.sleep(500);} catch (InterruptedException ignored) {}
-            System.exit(0);
         }
 
         private static int tokenLen(Token tk) {
@@ -388,6 +412,15 @@ public class Debugger {
         private static final Scanner         input       = new Scanner(System.in);
         private static final ArrayList<Byte> inputBuffer = new ArrayList<>();
         private static final Stack<Integer>  ptrHistory  = new Stack<>();
+
+        private static void reset() {
+            for (byte b: tape) b = 0;
+            pointer    = 0;
+            whileDepth = 0;
+            getVal();
+            inputBuffer.clear();
+            ptrHistory.clear();
+        }
 
         private static void debugExecuteBrainFunk(Token tk) {
             switch (tk.type) {
