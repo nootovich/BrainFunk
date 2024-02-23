@@ -1,0 +1,90 @@
+ptrdbg.bfn:3:0 [MACRODEF(cr0)] {
+    ptrdbg.bfn:3:4 [MACRO(r0)]
+    ptrdbg.bfn:3:6 [WHILE]
+    ptrdbg.bfn:3:7 [SUB]
+    ptrdbg.bfn:3:8 [ENDWHILE]
+    ptrdbg.bfn:3:9 [RETURN]
+}
+ptrdbg.bfn:4:0 [MACRODEF(r3)] {
+    ptrdbg.bfn:4:3 [POINTER(-1)]
+    ptrdbg.bfn:4:4 [NUMBER(3)]
+}
+ptrdbg.bfn:5:0 [MACRODEF(print)] {
+    ptrdbg.bfn:5:6 [PTRSUB]
+    ptrdbg.bfn:5:7 [WHILE]
+    ptrdbg.bfn:5:8 [PTRSUB]
+    ptrdbg.bfn:5:9 [ENDWHILE]
+    ptrdbg.bfn:5:10 [PTRADD]
+    ptrdbg.bfn:5:11 [WHILE]
+    ptrdbg.bfn:5:12 [WRITE]
+    ptrdbg.bfn:5:13 [PTRADD]
+    ptrdbg.bfn:5:14 [ENDWHILE]
+    ptrdbg.bfn:5:15 [PTRSUB]
+}
+ptrdbg.bfn:7:0 [MACRODEF(clnregs)] {
+    ptrdbg.bfn:7:8 [MACRO(cr0)]
+    ptrdbg.bfn:7:12 [MACRO(r1)]
+    ptrdbg.bfn:7:14 [WHILE]
+    ptrdbg.bfn:7:15 [SUB]
+    ptrdbg.bfn:7:16 [ENDWHILE]
+    ptrdbg.bfn:7:17 [MACRO(r2)]
+    ptrdbg.bfn:7:19 [WHILE]
+    ptrdbg.bfn:7:20 [SUB]
+    ptrdbg.bfn:7:21 [ENDWHILE]
+    ptrdbg.bfn:7:22 [MACRO(r3)]
+    ptrdbg.bfn:7:24 [WHILE]
+    ptrdbg.bfn:7:25 [SUB]
+    ptrdbg.bfn:7:26 [ENDWHILE]
+    ptrdbg.bfn:7:27 [NUMBER(3)]
+    ptrdbg.bfn:7:28 [RETURN]
+}
+ptrdbg.bfn:9:0 [MACRODEF(r1)] {
+    ptrdbg.bfn:9:3 [POINTER(-1)]
+    ptrdbg.bfn:9:4 [NUMBER(1)]
+}
+ptrdbg.bfn:11:0 [MACRODEF(println)] {
+    ptrdbg.bfn:11:8 [MACRO(print)]
+    ptrdbg.bfn:11:14 [PTRADD]
+    ptrdbg.bfn:11:15 [NUMBER(10)]
+    ptrdbg.bfn:11:17 [ADD]
+    ptrdbg.bfn:11:18 [WRITE]
+    ptrdbg.bfn:11:19 [WHILE]
+    ptrdbg.bfn:11:20 [SUB]
+    ptrdbg.bfn:11:21 [ENDWHILE]
+    ptrdbg.bfn:11:22 [PTRSUB]
+}
+ptrdbg.bfn:12:0 [MACRODEF(dup)] {
+    ptrdbg.bfn:12:4 [MACRO(clnregs)]
+    ptrdbg.bfn:12:11 [WHILE]
+    ptrdbg.bfn:12:12 [SUB]
+    ptrdbg.bfn:12:13 [MACRO(r0)]
+    ptrdbg.bfn:12:15 [ADD]
+    ptrdbg.bfn:12:16 [MACRO(r1)]
+    ptrdbg.bfn:12:18 [ADD]
+    ptrdbg.bfn:12:19 [RETURN]
+    ptrdbg.bfn:12:20 [RETURN]
+    ptrdbg.bfn:12:21 [ENDWHILE]
+    ptrdbg.bfn:12:22 [MACRO(r1)]
+    ptrdbg.bfn:12:24 [WHILE]
+    ptrdbg.bfn:12:25 [SUB]
+    ptrdbg.bfn:12:26 [RETURN]
+    ptrdbg.bfn:12:27 [ADD]
+    ptrdbg.bfn:12:28 [MACRO(r1)]
+    ptrdbg.bfn:12:30 [ENDWHILE]
+    ptrdbg.bfn:12:31 [RETURN]
+}
+ptrdbg.bfn:13:0 [MACRODEF(r2)] {
+    ptrdbg.bfn:13:3 [POINTER(-1)]
+    ptrdbg.bfn:13:4 [NUMBER(2)]
+}
+ptrdbg.bfn:15:0 [MACRODEF(r0)] {
+    ptrdbg.bfn:15:3 [POINTER(-1)]
+    ptrdbg.bfn:15:4 [NUMBER(0)]
+}
+ptrdbg.bfn:16:0 [POINTER(-1)]
+ptrdbg.bfn:16:1 [NUMBER(4)]
+ptrdbg.bfn:16:3 [STRING(Hello, world!)]
+ptrdbg.bfn:16:19 [PTRSUB]
+ptrdbg.bfn:16:21 [MACRO(println)]
+ptrdbg.bfn:16:29 [MACRO(dup)]
+ptrdbg.bfn:16:33 [MACRO(println)]

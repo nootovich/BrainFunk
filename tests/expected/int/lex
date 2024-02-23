@@ -1,0 +1,271 @@
+int.bfn:1:0 [MACRODEF(x)] {
+    int.bfn:1:2 [POINTER(-1)]
+    int.bfn:1:3 [NUMBER(0)]
+}
+int.bfn:2:0 [MACRODEF(gt0Flag)] {
+    int.bfn:2:8 [POINTER(-1)]
+    int.bfn:2:9 [NUMBER(1)]
+}
+int.bfn:3:0 [MACRODEF(eq0Flag)] {
+    int.bfn:3:8 [POINTER(-1)]
+    int.bfn:3:9 [NUMBER(2)]
+}
+int.bfn:4:0 [MACRODEF(start)] {
+    int.bfn:4:6 [POINTER(-1)]
+    int.bfn:4:7 [NUMBER(3)]
+    int.bfn:4:9 [STRING(ruv{ABCD)]
+    int.bfn:4:19 [PTRSUB]
+}
+int.bfn:5:0 [MACRODEF(end)] {
+    int.bfn:5:4 [POINTER(-1)]
+    int.bfn:5:5 [NUMBER(3)]
+    int.bfn:5:7 [NUMBER(4)]
+    int.bfn:5:8 [MACRO(print)]
+    int.bfn:5:14 [NUMBER(10)]
+    int.bfn:5:16 [ADD]
+    int.bfn:5:17 [WRITE]
+}
+int.bfn:6:0 [MACRODEF(print)] {
+    int.bfn:6:6 [WRITE]
+    int.bfn:6:7 [PTRADD]
+}
+int.bfn:8:0 [MACRODEF(cmp0)] {
+    int.bfn:8:6 [MACRO(gt0Flag)]
+    int.bfn:8:14 [MACRO(set0)]
+    int.bfn:8:19 [MACRO(eq0Flag)]
+    int.bfn:8:27 [MACRO(set1)]
+    int.bfn:9:0 [RETURN]
+    int.bfn:9:1 [RETURN]
+    int.bfn:9:2 [WHILE]
+    int.bfn:10:4 [MACRO(gt0Flag)]
+    int.bfn:10:12 [MACRO(set1)]
+    int.bfn:11:4 [MACRO(eq0Flag)]
+    int.bfn:11:12 [MACRO(set0)]
+    int.bfn:12:4 [RETURN]
+    int.bfn:12:5 [RETURN]
+    int.bfn:12:7 [MACRO(setX)]
+    int.bfn:13:0 [ENDWHILE]
+    int.bfn:14:0 [MACRO(getX)]
+}
+int.bfn:15:0 [MACRODEF(setX)] {
+    int.bfn:15:5 [MACRO(x)]
+    int.bfn:15:7 [MACRO(set0)]
+    int.bfn:15:12 [RETURN]
+    int.bfn:15:13 [WHILE]
+    int.bfn:15:14 [SUB]
+    int.bfn:15:15 [MACRO(x)]
+    int.bfn:15:16 [ADD]
+    int.bfn:15:17 [RETURN]
+    int.bfn:15:18 [ENDWHILE]
+}
+int.bfn:16:0 [MACRODEF(getX)] {
+    int.bfn:16:7 [MACRO(set0)]
+    int.bfn:16:12 [MACRO(x)]
+    int.bfn:16:13 [WHILE]
+    int.bfn:16:14 [SUB]
+    int.bfn:16:15 [RETURN]
+    int.bfn:16:16 [ADD]
+    int.bfn:16:17 [MACRO(x)]
+    int.bfn:16:18 [ENDWHILE]
+    int.bfn:16:19 [RETURN]
+}
+int.bfn:17:0 [MACRODEF(set0)] {
+    int.bfn:17:5 [WHILE]
+    int.bfn:17:6 [SUB]
+    int.bfn:17:7 [ENDWHILE]
+}
+int.bfn:18:0 [MACRODEF(set1)] {
+    int.bfn:18:5 [WHILE]
+    int.bfn:18:6 [SUB]
+    int.bfn:18:7 [ENDWHILE]
+    int.bfn:18:8 [ADD]
+}
+int.bfn:20:0 [MACRODEF(add32)] {
+    int.bfn:20:7 [MACRO(addHighestByte32)]
+    int.bfn:20:24 [PTRADD]
+    int.bfn:20:26 [MACRO(addSecondByte32)]
+    int.bfn:20:42 [PTRADD]
+    int.bfn:20:44 [MACRO(addThirdByte32)]
+    int.bfn:20:59 [PTRADD]
+    int.bfn:20:61 [MACRO(addForthByte32)]
+}
+int.bfn:21:0 [MACRODEF(sub32)] {
+    int.bfn:21:7 [MACRO(subHighestByte32)]
+    int.bfn:21:24 [PTRADD]
+    int.bfn:21:26 [MACRO(subSecondByte32)]
+    int.bfn:21:42 [PTRADD]
+    int.bfn:21:44 [MACRO(subThirdByte32)]
+    int.bfn:21:59 [PTRADD]
+    int.bfn:21:61 [MACRO(subForthByte32)]
+}
+int.bfn:23:0 [MACRODEF(addHighestByte32)] {
+    int.bfn:23:17 [NUMBER(3)]
+    int.bfn:23:18 [PTRSUB]
+    int.bfn:23:19 [WHILE]
+    int.bfn:23:20 [SUB]
+    int.bfn:23:21 [NUMBER(4)]
+    int.bfn:23:22 [PTRSUB]
+    int.bfn:23:23 [ADD]
+    int.bfn:23:24 [NUMBER(4)]
+    int.bfn:23:25 [PTRADD]
+    int.bfn:23:26 [ENDWHILE]
+}
+int.bfn:25:0 [MACRODEF(addSecondByte32)] {
+    int.bfn:25:16 [WHILE]
+    int.bfn:25:17 [SUB]
+    int.bfn:25:19 [NUMBER(4)]
+    int.bfn:25:20 [PTRSUB]
+    int.bfn:25:22 [MACRO(incrSecondByte32)]
+    int.bfn:25:39 [NUMBER(4)]
+    int.bfn:25:40 [PTRADD]
+    int.bfn:25:41 [ENDWHILE]
+}
+int.bfn:26:0 [MACRODEF(incrSecondByte32)] {
+    int.bfn:26:18 [ADD]
+    int.bfn:27:0 [MACRO(cmp0)]
+    int.bfn:27:5 [MACRO(eq0Flag)]
+    int.bfn:27:13 [WHILE]
+    int.bfn:28:4 [MACRO(set0)]
+    int.bfn:29:4 [RETURN]
+    int.bfn:29:5 [PTRSUB]
+    int.bfn:29:6 [ADD]
+    int.bfn:30:4 [PTRADD]
+    int.bfn:30:6 [MACRO(eq0Flag)]
+    int.bfn:31:0 [ENDWHILE]
+    int.bfn:32:0 [RETURN]
+}
+int.bfn:34:0 [MACRODEF(addThirdByte32)] {
+    int.bfn:34:15 [WHILE]
+    int.bfn:34:16 [SUB]
+    int.bfn:34:18 [NUMBER(4)]
+    int.bfn:34:19 [PTRSUB]
+    int.bfn:34:21 [MACRO(incrThirdByte32)]
+    int.bfn:34:37 [NUMBER(4)]
+    int.bfn:34:38 [PTRADD]
+    int.bfn:34:39 [ENDWHILE]
+}
+int.bfn:35:0 [MACRODEF(incrThirdByte32)] {
+    int.bfn:35:17 [ADD]
+    int.bfn:36:0 [MACRO(cmp0)]
+    int.bfn:36:5 [MACRO(eq0Flag)]
+    int.bfn:36:13 [WHILE]
+    int.bfn:37:4 [MACRO(set0)]
+    int.bfn:38:4 [RETURN]
+    int.bfn:38:5 [PTRSUB]
+    int.bfn:38:7 [MACRO(incrSecondByte32)]
+    int.bfn:39:4 [PTRADD]
+    int.bfn:39:6 [MACRO(eq0Flag)]
+    int.bfn:40:0 [ENDWHILE]
+    int.bfn:41:0 [RETURN]
+}
+int.bfn:43:0 [MACRODEF(addForthByte32)] {
+    int.bfn:43:15 [WHILE]
+    int.bfn:43:16 [SUB]
+    int.bfn:43:18 [NUMBER(4)]
+    int.bfn:43:19 [PTRSUB]
+    int.bfn:43:21 [MACRO(incrForthByte32)]
+    int.bfn:43:37 [NUMBER(4)]
+    int.bfn:43:38 [PTRADD]
+    int.bfn:43:39 [ENDWHILE]
+}
+int.bfn:44:0 [MACRODEF(incrForthByte32)] {
+    int.bfn:44:17 [ADD]
+    int.bfn:45:0 [MACRO(cmp0)]
+    int.bfn:45:5 [MACRO(eq0Flag)]
+    int.bfn:45:13 [WHILE]
+    int.bfn:46:4 [MACRO(set0)]
+    int.bfn:47:4 [RETURN]
+    int.bfn:47:5 [PTRSUB]
+    int.bfn:47:7 [MACRO(incrThirdByte32)]
+    int.bfn:48:4 [PTRADD]
+    int.bfn:48:6 [MACRO(eq0Flag)]
+    int.bfn:49:0 [ENDWHILE]
+    int.bfn:50:0 [RETURN]
+}
+int.bfn:52:0 [MACRODEF(subHighestByte32)] {
+    int.bfn:52:17 [NUMBER(3)]
+    int.bfn:52:18 [PTRSUB]
+    int.bfn:52:19 [WHILE]
+    int.bfn:52:20 [SUB]
+    int.bfn:52:21 [NUMBER(4)]
+    int.bfn:52:22 [PTRSUB]
+    int.bfn:52:23 [SUB]
+    int.bfn:52:24 [NUMBER(4)]
+    int.bfn:52:25 [PTRADD]
+    int.bfn:52:26 [ENDWHILE]
+}
+int.bfn:54:0 [MACRODEF(subSecondByte32)] {
+    int.bfn:54:16 [WHILE]
+    int.bfn:54:17 [SUB]
+    int.bfn:54:19 [NUMBER(4)]
+    int.bfn:54:20 [PTRSUB]
+    int.bfn:54:22 [MACRO(decrSecondByte32)]
+    int.bfn:54:39 [NUMBER(4)]
+    int.bfn:54:40 [PTRADD]
+    int.bfn:54:41 [ENDWHILE]
+}
+int.bfn:55:0 [MACRODEF(decrSecondByte32)] {
+    int.bfn:55:18 [SUB]
+    int.bfn:56:0 [MACRO(cmp0)]
+    int.bfn:56:5 [MACRO(eq0Flag)]
+    int.bfn:56:13 [WHILE]
+    int.bfn:57:4 [MACRO(set0)]
+    int.bfn:58:4 [RETURN]
+    int.bfn:58:5 [PTRSUB]
+    int.bfn:58:6 [SUB]
+    int.bfn:59:4 [PTRADD]
+    int.bfn:59:6 [MACRO(eq0Flag)]
+    int.bfn:60:0 [ENDWHILE]
+    int.bfn:61:0 [RETURN]
+}
+int.bfn:63:0 [MACRODEF(subThirdByte32)] {
+    int.bfn:63:15 [WHILE]
+    int.bfn:63:16 [SUB]
+    int.bfn:63:18 [NUMBER(4)]
+    int.bfn:63:19 [PTRSUB]
+    int.bfn:63:21 [MACRO(decrThirdByte32)]
+    int.bfn:63:37 [NUMBER(4)]
+    int.bfn:63:38 [PTRADD]
+    int.bfn:63:39 [ENDWHILE]
+}
+int.bfn:64:0 [MACRODEF(decrThirdByte32)] {
+    int.bfn:64:17 [SUB]
+    int.bfn:65:0 [MACRO(cmp0)]
+    int.bfn:65:5 [MACRO(eq0Flag)]
+    int.bfn:65:13 [WHILE]
+    int.bfn:66:4 [MACRO(set0)]
+    int.bfn:67:4 [RETURN]
+    int.bfn:67:5 [PTRSUB]
+    int.bfn:67:7 [MACRO(decrSecondByte32)]
+    int.bfn:68:4 [PTRADD]
+    int.bfn:68:6 [MACRO(eq0Flag)]
+    int.bfn:69:0 [ENDWHILE]
+    int.bfn:70:0 [RETURN]
+}
+int.bfn:72:0 [MACRODEF(subForthByte32)] {
+    int.bfn:72:15 [WHILE]
+    int.bfn:72:16 [SUB]
+    int.bfn:72:18 [NUMBER(4)]
+    int.bfn:72:19 [PTRSUB]
+    int.bfn:72:21 [MACRO(decrForthByte32)]
+    int.bfn:72:37 [NUMBER(4)]
+    int.bfn:72:38 [PTRADD]
+    int.bfn:72:39 [ENDWHILE]
+}
+int.bfn:73:0 [MACRODEF(decrForthByte32)] {
+    int.bfn:73:17 [SUB]
+    int.bfn:74:0 [MACRO(cmp0)]
+    int.bfn:74:5 [MACRO(eq0Flag)]
+    int.bfn:74:13 [WHILE]
+    int.bfn:75:4 [MACRO(set0)]
+    int.bfn:76:4 [RETURN]
+    int.bfn:76:5 [PTRSUB]
+    int.bfn:76:7 [MACRO(decrThirdByte32)]
+    int.bfn:77:4 [PTRADD]
+    int.bfn:77:6 [MACRO(eq0Flag)]
+    int.bfn:78:0 [ENDWHILE]
+    int.bfn:79:0 [RETURN]
+}
+int.bfn:81:0 [MACRO(start)]
+int.bfn:81:6 [MACRO(sub32)]
+int.bfn:81:12 [MACRO(end)]
