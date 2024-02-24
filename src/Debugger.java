@@ -414,7 +414,7 @@ public class Debugger {
         private static final Stack<Integer>  ptrHistory  = new Stack<>();
 
         private static void reset() {
-            for (byte b: tape) b = 0;
+            for (int i = 0; i < tape.length; i++) tape[i] = 0;
             pointer    = 0;
             whileDepth = 0;
             getVal();
