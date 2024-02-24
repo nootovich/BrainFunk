@@ -57,9 +57,12 @@ public class Lexer {
                     tk = new Token(Token.Type.NUMBER, filename, row, start + colOffset);
                     if (val < 0) error("Invalid value for a `NUMBER` token `" + val + "` at " + tk);
                     tk.numValue = val;
-                } else if (Character.isLetter(c)) {
+                } else if (Character.isLetter(c) || c == '_') {
                     int startCol = dataCol;
-                    for (; dataCol < line.length(); dataCol++) if (!Character.isLetterOrDigit(line.charAt(dataCol))) break;
+                    for (; dataCol < line.length(); dataCol++) {
+                        char cc = line.charAt(dataCol);
+                        if (!Character.isLetterOrDigit(cc) && cc != '_') break;
+                    }
                     if (dataCol - startCol < 0) error("Unfinished macro definition at " + new Token(Token.Type.ERROR, filename, row, col));
                     if (dataCol < line.length() && line.charAt(dataCol) == ':') {
                         tk          = new Token(Token.Type.MACRODEF, filename, row, startCol + colOffset);
