@@ -38,7 +38,8 @@ public class Debugger {
 
     private static class DebugWindow extends JFrame {
 
-        public boolean finished = false;
+        private boolean finished  = false;
+        private boolean unfolding = false;
 
         public int x, y, w, h;
         public int codeX, codeY, codeW, codeH;
@@ -50,6 +51,7 @@ public class Debugger {
         private final  Graphics2D    g2d;
         private final  Font          font             = new Font("Roboto Mono", Font.PLAIN, 16);
         private        String[]      filedata         = {""};
+        private        String        unfoldedData     = "";
         private        int           cachedFontH      = 0;
         private        int           cachedFontW      = 0;
         private        int           cachedLineAmount = 0;
@@ -59,13 +61,17 @@ public class Debugger {
 
         private static final char[] hexLookup = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
-        private static int     ip     = 0;
-        private static Token[] tokens = new Token[0];
+        private static int ip = 0;
+
+        private static Token[] tokens         = new Token[0];
+        private static Token[] lexedTokens    = new Token[0];
+        private static Token[] unfoldedTokens = new Token[0];
+
 
         DebugWindow(int w, int h, String filepath) {
             this.filedata = FileSystem.loadFile(filepath).split("\n", -1);
 
-            Token[] lexedTokens = Lexer.lexFile(filepath);
+            lexedTokens = Lexer.lexFile(filepath);
             info("Lexer OK.");
 
             tokens = filename.endsWith(".bfn") ? DebugParser.parseTokens(lexedTokens) : lexedTokens;
@@ -181,12 +187,34 @@ public class Debugger {
             addMouseMotionListener(new MouseMotionAdapter() {
                 @Override
                 public void mouseMoved(MouseEvent e) {
-                    float row = (float) (e.getY() - codeY + codeOffsetY * cachedFontH) / cachedFontH - 1.5f;
-                    float col = (float) (e.getX() - codeX) / cachedFontW - 1.5f;
-                    for (Token tk: tokens) {
-                        if (tk.row < row && tk.row + 1 > row && tk.col <= col && col < tk.col + tokenLen(tk)) {
-                            mouseToken = tk;
-                            return;
+                    if (unfolding) {
+                        String[] uData = unfoldedData.split("\n", -1);
+                        int      ufw   = 0;
+                        int      ufh   = uData.length * cachedFontH;
+                        for (String s: uData) {
+                            int len = s.length() * cachedFontW;
+                            if (len > ufw) ufw = len;
+                        }
+                        int   ufx = codeX / 2 + codeW / 2 - ufw / 2;
+                        int   ufy = codeY / 2 + codeH / 2 - ufh / 2;
+                        float row = (float) (e.getY() - ufy) / cachedFontH - 2.5f;
+                        float col = (float) (e.getX() - ufx) / cachedFontW - 2.5f;
+                        row += unfoldedTokens[0].row;
+                        col += unfoldedTokens[0].col;
+                        for (Token tk: unfoldedTokens) {
+                            if (tk.row < row && tk.row + 1 > row && tk.col <= col && col < tk.col + tokenLen(tk)) {
+                                mouseToken = tk;
+                                return;
+                            }
+                        }
+                    } else {
+                        float row = (float) (e.getY() - codeY + codeOffsetY * cachedFontH) / cachedFontH - 1.5f;
+                        float col = (float) (e.getX() - codeX) / cachedFontW - 1.5f;
+                        for (Token tk: tokens) {
+                            if (tk.row < row && tk.row + 1 > row && tk.col <= col && col < tk.col + tokenLen(tk)) {
+                                mouseToken = tk;
+                                return;
+                            }
                         }
                     }
                     mouseToken = null;
@@ -197,19 +225,53 @@ public class Debugger {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (finished) return;
-                    if (mouseToken != null) {
-                        while (ip < tokens.length && !tokens[ip].eq(mouseToken)) {
-                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                            ip++;
+                    int b = e.getButton();
+                    if (b == MouseEvent.BUTTON1 && !unfolding) {
+                        if (mouseToken != null) {
+                            while (ip < tokens.length && !tokens[ip].eq(mouseToken)) {
+                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                                ip++;
+                            }
+                        } else {
+                            int row = (e.getY() - codeY - 4) / cachedFontH - 1;
+                            while (ip < tokens.length && tokens[ip].row <= row) {
+                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                                ip++;
+                            }
                         }
-                    } else {
-                        int row = (e.getY() - codeY - 4) / cachedFontH - 1;
-                        while (ip < tokens.length && tokens[ip].row <= row) {
-                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                            ip++;
+                        if (ip >= tokens.length) finished = true;
+                    } else if (b == MouseEvent.BUTTON3) {
+                        if (unfolding) {
+                            unfolding = false;
+                        } else if (mouseToken != null) {
+                            Token lexed = findLexedMacroDef(mouseToken.strValue);
+                            if (lexed == null || lexed.type != Token.Type.MACRODEF) return;
+                            unfoldedTokens = lexed.macroTokens;
+
+                            StringBuilder sb = new StringBuilder(unfoldedTokens[0].repr());
+                            for (int i = 1; i < unfoldedTokens.length; i++) {
+                                Token cuft = unfoldedTokens[i];
+                                Token puft = unfoldedTokens[i - 1];
+                                if (cuft.row > puft.row) {
+                                    sb.append("\n");
+                                } else {
+                                    int colDiff = cuft.col - puft.col - puft.repr().length();
+                                    sb.append(" ".repeat(colDiff));
+                                }
+                                sb.append(cuft.repr());
+                            }
+                            unfoldedData = sb.toString();
+                            unfolding    = true;
+                            mouseToken   = null;
                         }
                     }
-                    if (ip >= tokens.length) finished = true;
+                }
+
+                private Token findLexedMacroDef(String strValue) {
+                    for (Token t: lexedTokens) {
+                        if (t.type == Token.Type.MACRODEF && t.strValue.equals(strValue)) return t;
+                    }
+                    return null;
                 }
             });
 
@@ -243,7 +305,7 @@ public class Debugger {
                 g2d.drawString(execFinished, codeX + codeW / 2 - (cachedFontW * execFinished.length() / 2), codeY + codeH + cachedFontH);
             }
 
-            g2d.setColor(Color.LIGHT_GRAY);
+            g2d.setColor(Color.WHITE);
 
             // Memory values
             {
@@ -256,7 +318,7 @@ public class Debugger {
                     if (i == DebugInterpreter.pointer) {
                         g2d.setColor(Color.ORANGE);
                         g2d.drawRect(x + 8, y - cachedFontH + 4, cachedFontW * 2, cachedFontH);
-                        g2d.setColor(Color.LIGHT_GRAY);
+                        g2d.setColor(Color.WHITE);
                     }
                     x += valW;
                     if (x >= w - codeX - valW) {
@@ -270,21 +332,12 @@ public class Debugger {
 
             // Program
             {
+                if (unfolding) g2d.setColor(Color.LIGHT_GRAY);
                 int y = codeY + cachedFontH - codeOffsetY * cachedFontH;
                 for (int i = 0; i < filedata.length; i++) {
                     g2d.drawString(filedata[i], codeX + 8, y);
                     y += cachedFontH;
                 }
-            }
-
-            // Token under mouse outline
-            if (mouseToken != null) {
-                int ipX = codeX + mouseToken.col * cachedFontW + 8;
-                int ipY = codeY + (-codeOffsetY + mouseToken.row) * cachedFontH + 5;
-                int ipW = tokenLen(mouseToken) * cachedFontW;
-                int ipH = cachedFontH;
-                g2d.setColor(Color.CYAN);
-                g2d.drawRect(ipX, ipY, ipW, ipH);
             }
 
             // Current token outline
@@ -309,6 +362,57 @@ public class Debugger {
                     prevY = ipY + ipH / 2;
                     tk    = tk.origin;
                 }
+            }
+
+            // Unfolding window
+            if (unfolding) {
+                g2d.setColor(COLOR_DATA);
+                String[] uData = unfoldedData.split("\n", -1);
+                int      w     = 0;
+                int      h     = uData.length * cachedFontH;
+                for (String s: uData) {
+                    int len = s.length() * cachedFontW;
+                    if (len > w) w = len;
+                }
+                int x = codeX / 2 + codeW / 2 - w / 2;
+                int y = codeY / 2 + codeH / 2 - h / 2;
+                g2d.fillRoundRect(x, y, w + codeX, h + codeY, 5, 5);
+                g2d.setColor(Color.WHITE);
+                g2d.drawRoundRect(x, y, w + codeX, h + codeY, 5, 5);
+                for (int i = 0; i < uData.length; i++) {
+                    g2d.drawString(uData[i], x + codeX / 2, y + codeY);
+                    y += cachedFontH;
+                }
+            }
+
+            // Token under mouse outline
+            if (mouseToken != null) {
+                int ipX, ipY, ipW, ipH;
+                if (unfolding) {
+                    int      ufw   = 0;
+                    String[] uData = unfoldedData.split("\n", -1);
+                    for (String s: uData) {
+                        int len = s.length() * cachedFontW;
+                        if (len > ufw) ufw = len;
+                    }
+                    int bcol = 0;
+                    for (Token uftk: unfoldedTokens) {
+                        if (uftk.row == mouseToken.row) {
+                            bcol = uftk.col;
+                            break;
+                        }
+                    }
+                    int brow = unfoldedTokens[0].row;
+                    ipX = (int) (codeX + codeW / 2.f - ufw / 2.f + (mouseToken.col - bcol) * cachedFontW) - 2;
+                    ipY = (int) (codeX + codeH / 2.f + (-uData.length / 2.f + mouseToken.row - brow) * cachedFontH);
+                } else {
+                    ipX = codeX + mouseToken.col * cachedFontW + 8;
+                    ipY = codeY + (-codeOffsetY + mouseToken.row) * cachedFontH + 5;
+                }
+                ipW = tokenLen(mouseToken) * cachedFontW;
+                ipH = cachedFontH;
+                g2d.setColor(Color.CYAN);
+                g2d.drawRect(ipX, ipY, ipW, ipH);
             }
 
             g2d.setClip(null);

@@ -27,8 +27,28 @@ public class Token {
         return result;
     }
 
+    public String repr() {
+        return switch (type) {
+            case ADD -> "+";
+            case SUB -> "-";
+            case PTRADD -> ">";
+            case PTRSUB -> "<";
+            case WHILE -> "[";
+            case ENDWHILE -> "]";
+            case WRITE -> ".";
+            case READ -> ",";
+            case NUMBER -> String.valueOf(numValue);
+            case STRING -> '\"' + strValue + '\"';
+            case MACRODEF -> strValue + ':';
+            case MACRO -> strValue;
+            case POINTER -> "$";
+            case RETURN -> "#";
+            case ERROR -> throw new RuntimeException("Attempted to get a representation of an `ERROR` token... HOW!?");
+        };
+    }
+
     public String toString() {
-        StringBuilder result = new StringBuilder("%s:%d:%d [%s".formatted(file, row+1, col, type));
+        StringBuilder result = new StringBuilder("%s:%d:%d [%s".formatted(file, row + 1, col, type));
 
         if (type == Type.NUMBER || type == Type.POINTER) result.append("(").append(numValue).append(")]");
         else if (type == Type.STRING || type == Type.MACRO) result.append("(").append(strValue).append(")]");
