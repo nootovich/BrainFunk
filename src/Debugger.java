@@ -240,13 +240,84 @@ public class Debugger {
                             }
                         }
                         if (ip >= tokens.length) finished = true;
-                    } else if (b == MouseEvent.BUTTON3) {
+                    } else if (b == MouseEvent.BUTTON3 && mouseToken != null && mouseToken.type == Token.Type.MACRO) {
                         if (unfolding) {
-                            unfolding = false;
+                            Token[] mtks = findLexedMacroDef(mouseToken.strValue).macroTokens;
+                            int     brow = mtks[0].row;
+                            int     bcol = mtks[0].col;
+                            for (int i = 0; i < mtks.length; i++) {
+                                mtks[i].row -= brow;
+                                mtks[i].row += mouseToken.row;
+                            }
+                            brow = mtks[0].row;
+                            int lrow = mtks[mtks.length - 1].row;
+
+                            int i = 0;
+                            for (; i < unfoldedTokens.length; i++) {
+                                if (unfoldedTokens[i].eq(mouseToken)) break;
+                            }
+                            for (int j = 0; j < mtks.length; j++) {
+                                if (mtks[j].row != brow) break;
+                                mtks[j].col -= bcol;
+                                mtks[j].col += mouseToken.col;
+                            }
+                            int lcol = mtks[mtks.length - 1].col;
+                            if (mtks[mtks.length - 1].type == Token.Type.MACRO) {
+                                lcol += mtks[mtks.length - 1].strValue.length() - 1;
+                            }
+                            int mtkColDiff = lcol - unfoldedTokens[i].col + 1 - mouseToken.strValue.length();
+                            int mtkRowDiff = lrow - unfoldedTokens[i].row;
+                            for (int j = i; j < unfoldedTokens.length; j++) {
+                                unfoldedTokens[j].row += mtkRowDiff;
+                                if (unfoldedTokens[j].row == mouseToken.row) {
+                                    unfoldedTokens[j].col += mtkColDiff;
+                                }
+                            }
+
+
+                            Token[] temp = unfoldedTokens.clone();
+                            unfoldedTokens = new Token[unfoldedTokens.length + mtks.length - 1];
+
+                            Token[] mtksCopy = new Token[mtks.length];
+                            for (int j = 0; j < mtks.length; j++) {
+                                Token savedToken = mtks[j];
+                                mtksCopy[j]          = new Token(savedToken.type, savedToken.file, savedToken.row, savedToken.col);
+                                mtksCopy[j].numValue = savedToken.numValue;
+                                mtksCopy[j].strValue = savedToken.strValue;
+                            }
+
+                            System.arraycopy(temp, 0, unfoldedTokens, 0, i);
+                            System.arraycopy(mtksCopy, 0, unfoldedTokens, i, mtks.length);
+                            System.arraycopy(temp, i + 1, unfoldedTokens, i + mtks.length, temp.length - i - 1);
+
+                            StringBuilder sb = new StringBuilder(unfoldedTokens[0].repr());
+                            for (i = 1; i < unfoldedTokens.length; i++) {
+                                Token cuft = unfoldedTokens[i];
+                                Token puft = unfoldedTokens[i - 1];
+                                if (cuft.row > puft.row) {
+                                    sb.append("\n");
+                                    sb.append(" ".repeat(cuft.col));
+                                } else {
+                                    int colDiff = cuft.col - puft.col - puft.repr().length();
+                                    sb.append(" ".repeat(colDiff));
+                                }
+                                sb.append(cuft.repr());
+                            }
+                            unfoldedData = sb.toString();
+                            mouseToken   = null;
                         } else if (mouseToken != null) {
                             Token lexed = findLexedMacroDef(mouseToken.strValue);
                             if (lexed == null || lexed.type != Token.Type.MACRODEF) return;
                             unfoldedTokens = lexed.macroTokens;
+                            int brow = unfoldedTokens[0].row;
+                            int bcol = unfoldedTokens[0].col;
+                            for (int i = 0; i < unfoldedTokens.length; i++) {
+                                if (unfoldedTokens[i].row != brow) break;
+                                unfoldedTokens[i].col -= bcol;
+                            }
+                            for (int i = 0; i < unfoldedTokens.length; i++) {
+                                unfoldedTokens[i].row -= brow;
+                            }
 
                             StringBuilder sb = new StringBuilder(unfoldedTokens[0].repr());
                             for (int i = 1; i < unfoldedTokens.length; i++) {
@@ -395,16 +466,8 @@ public class Debugger {
                         int len = s.length() * cachedFontW;
                         if (len > ufw) ufw = len;
                     }
-                    int bcol = 0;
-                    for (Token uftk: unfoldedTokens) {
-                        if (uftk.row == mouseToken.row) {
-                            bcol = uftk.col;
-                            break;
-                        }
-                    }
-                    int brow = unfoldedTokens[0].row;
-                    ipX = (int) (codeX + codeW / 2.f - ufw / 2.f + (mouseToken.col - bcol) * cachedFontW) - 2;
-                    ipY = (int) (codeX + codeH / 2.f + (-uData.length / 2.f + mouseToken.row - brow) * cachedFontH);
+                    ipX = (int) (codeX + codeW / 2.f - ufw / 2.f + mouseToken.col * cachedFontW) - 2;
+                    ipY = (int) (codeX + codeH / 2.f + (-uData.length / 2.f + mouseToken.row) * cachedFontH);
                 } else {
                     ipX = codeX + mouseToken.col * cachedFontW + 8;
                     ipY = codeY + (-codeOffsetY + mouseToken.row) * cachedFontH + 5;
