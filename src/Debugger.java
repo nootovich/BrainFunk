@@ -75,19 +75,13 @@ public class Debugger {
 
         DebugWindow(int width, int height) {
 
+            buffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
             w = width;
             h = height;
             int x = (screenSize.width - w) / 2;
             int y = (screenSize.height - h) / 2;
-
-            ///////////////////////////////////////////////////
-            // ### ### ### ### ### ### ##    # # ### ##  ### //
-            // #    #  # # # # # # #   # #   # # #   # # #   //
-            // ###  #  # # ### ### ### # #   ### ### ##  ### //
-            //   #  #  # # #   #   #   # #   # # #   # # #   //
-            // ###  #  ### #   #   ### ##    # # ### # # ### //
-            ///////////////////////////////////////////////////
 
             codeX = w / 40;
             codeY = codeX;
@@ -99,13 +93,15 @@ public class Debugger {
             tapeW = w - codeX * 3 - codeW;
             tapeX = w - codeX - tapeW;
 
-            buffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-            g2d    = (Graphics2D) buffer.getGraphics();
+
+            g2d = (Graphics2D) buffer.getGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setBackground(COLOR_BG);
             g2d.setFont(font);
+
             FontMetrics metrics = g2d.getFontMetrics();
+
             cachedFontH         = metrics.getHeight();
             cachedFontW         = (int) metrics.getStringBounds("@", null).getWidth();
             cachedLinesToBottom = filedata.length - codeH / cachedFontH;
@@ -119,8 +115,10 @@ public class Debugger {
                     int key      = e.getKeyCode();
 
                     if (key == KeyEvent.VK_ESCAPE) {
+
                         info("Debugger terminated by user.");
                         System.exit(0);
+
                     } else if (key == KeyEvent.VK_SPACE) {
 
                         if (finished) {
@@ -176,7 +174,7 @@ public class Debugger {
                     }
 
                     if (ip < tokens.length) {
-                        int newOffsetY = (codeOffsetY - savedRow + tokens[ip].row) * cachedFontH;
+                        int newOffsetY = codeOffsetY - (savedRow - tokens[ip].row) * cachedFontH;
                         codeOffsetY = Utils.clampi(newOffsetY, 0, cachedLinesToBottom * cachedFontH);
                     }
 
@@ -213,118 +211,94 @@ public class Debugger {
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
+
                     if (finished) return;
                     int b = e.getButton();
+
                     if (b == MouseEvent.BUTTON1 && !unfolding) {
-                        if (mouseToken != null) {
-                            while (ip < tokens.length && !tokens[ip].eq(mouseToken)) {
-                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                                ip++;
-                            }
-                        } else {
-                            int row = (e.getY() - codeY - 4) / cachedFontH - 1;
-                            while (ip < tokens.length && tokens[ip].row <= row) {
-                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                                ip++;
-                            }
+
+                        while (mouseToken != null && ip < tokens.length && !tokens[ip].eq(mouseToken)) {
+                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                            ip++;
                         }
+
                         if (ip >= tokens.length) finished = true;
+
                     } else if (b == MouseEvent.BUTTON3 && mouseToken != null && mouseToken.type == Token.Type.MACRO) {
+
                         if (unfolding) {
-                            Token[] mtks = findLexedMacroDef(mouseToken.strValue).macroTokens;
-                            int     brow = mtks[0].row;
-                            int     bcol = mtks[0].col;
-                            for (int i = 0; i < mtks.length; i++) {
-                                mtks[i].row -= brow;
-                                mtks[i].row += mouseToken.row;
-                            }
-                            brow = mtks[0].row;
-                            int lrow = mtks[mtks.length - 1].row;
 
-                            int i = 0;
-                            for (; i < unfoldedTokens.length; i++) {
-                                if (unfoldedTokens[i].eq(mouseToken)) break;
+                            int mouseTokenLoc = 0;
+                            for (; mouseTokenLoc < unfoldedTokens.length; mouseTokenLoc++) {
+                                if (unfoldedTokens[mouseTokenLoc].eq(mouseToken)) break;
                             }
-                            for (int j = 0; j < mtks.length; j++) {
-                                if (mtks[j].row != brow) break;
-                                mtks[j].col -= bcol;
-                                mtks[j].col += mouseToken.col;
+
+                            Token[] macroTokens = findLexedMacroDef(mouseToken.strValue).macroTokens;
+
+                            int startRow = macroTokens[0].row;
+                            int startCol = macroTokens[0].col;
+
+                            for (int i = 0; i < macroTokens.length; i++) {
+                                macroTokens[i].row -= startRow;
+                                macroTokens[i].row += mouseToken.row;
                             }
-                            int lcol = mtks[mtks.length - 1].col;
-                            if (mtks[mtks.length - 1].type == Token.Type.MACRO) {
-                                lcol += mtks[mtks.length - 1].strValue.length() - 1;
+
+                            startRow = macroTokens[0].row;
+                            int endRow = macroTokens[macroTokens.length - 1].row;
+
+                            for (int i = 0; i < macroTokens.length; i++) {
+                                if (macroTokens[i].row != startRow) break;
+                                macroTokens[i].col -= startCol;
+                                macroTokens[i].col += mouseToken.col;
                             }
-                            int mtkColDiff = lcol - unfoldedTokens[i].col + 1 - mouseToken.strValue.length();
-                            int mtkRowDiff = lrow - unfoldedTokens[i].row;
-                            for (int j = i; j < unfoldedTokens.length; j++) {
-                                unfoldedTokens[j].row += mtkRowDiff;
-                                if (unfoldedTokens[j].row == mouseToken.row) {
-                                    unfoldedTokens[j].col += mtkColDiff;
+
+                            int endCol = macroTokens[macroTokens.length - 1].col;
+
+                            if (macroTokens[macroTokens.length - 1].type == Token.Type.MACRO) {
+                                endCol += macroTokens[macroTokens.length - 1].strValue.length() - 1;
+                            }
+
+                            int mtkColDiff = endCol - unfoldedTokens[mouseTokenLoc].col + 1 - mouseToken.strValue.length();
+                            int mtkRowDiff = endRow - unfoldedTokens[mouseTokenLoc].row;
+
+                            for (int i = mouseTokenLoc; i < unfoldedTokens.length; i++) {
+                                unfoldedTokens[i].row += mtkRowDiff;
+                                if (unfoldedTokens[i].row == mouseToken.row) {
+                                    unfoldedTokens[i].col += mtkColDiff;
                                 }
                             }
 
+                            Token[] temp = unfoldedTokens;
+                            unfoldedTokens = new Token[unfoldedTokens.length + macroTokens.length - 1];
 
-                            Token[] temp = unfoldedTokens.clone();
-                            unfoldedTokens = new Token[unfoldedTokens.length + mtks.length - 1];
+                            Token[] macroTokensCopy = Token.deepCopy(macroTokens);
+                            System.arraycopy(temp, 0, unfoldedTokens, 0, mouseTokenLoc);
+                            System.arraycopy(macroTokensCopy, 0, unfoldedTokens, mouseTokenLoc, macroTokens.length);
+                            System.arraycopy(temp, mouseTokenLoc + 1, unfoldedTokens, mouseTokenLoc + macroTokens.length, temp.length - mouseTokenLoc - 1);
 
-                            Token[] mtksCopy = new Token[mtks.length];
-                            for (int j = 0; j < mtks.length; j++) {
-                                Token savedToken = mtks[j];
-                                mtksCopy[j]          = new Token(savedToken.type, savedToken.file, savedToken.row, savedToken.col);
-                                mtksCopy[j].numValue = savedToken.numValue;
-                                mtksCopy[j].strValue = savedToken.strValue;
-                            }
-
-                            System.arraycopy(temp, 0, unfoldedTokens, 0, i);
-                            System.arraycopy(mtksCopy, 0, unfoldedTokens, i, mtks.length);
-                            System.arraycopy(temp, i + 1, unfoldedTokens, i + mtks.length, temp.length - i - 1);
-
-                            StringBuilder sb = new StringBuilder(unfoldedTokens[0].repr());
-                            for (i = 1; i < unfoldedTokens.length; i++) {
-                                Token cuft = unfoldedTokens[i];
-                                Token puft = unfoldedTokens[i - 1];
-                                if (cuft.row > puft.row) {
-                                    sb.append("\n");
-                                    sb.append(" ".repeat(cuft.col));
-                                } else {
-                                    int colDiff = cuft.col - puft.col - puft.len();
-                                    sb.append(" ".repeat(colDiff));
-                                }
-                                sb.append(cuft.repr());
-                            }
-                            setUnfoldedData(sb.toString());
+                            updateUnfoldedData();
 
                             mouseToken = null;
 
-                        } else if (mouseToken != null) {
-                            Token lexed = findLexedMacroDef(mouseToken.strValue);
-                            if (lexed == null || lexed.type != Token.Type.MACRODEF) return;
-                            unfoldedTokens = lexed.macroTokens;
-                            int brow = unfoldedTokens[0].row;
-                            int bcol = unfoldedTokens[0].col;
+                        } else {
+
+                            unfoldedTokens = findLexedMacroDef(mouseToken.strValue).macroTokens;
+
+                            int startRow = unfoldedTokens[0].row;
+                            int startCol = unfoldedTokens[0].col;
+
                             for (int i = 0; i < unfoldedTokens.length; i++) {
-                                if (unfoldedTokens[i].row != brow) break;
-                                unfoldedTokens[i].col -= bcol;
-                            }
-                            for (int i = 0; i < unfoldedTokens.length; i++) {
-                                unfoldedTokens[i].row -= brow;
+                                unfoldedTokens[i].row -= startRow;
                             }
 
-                            StringBuilder sb = new StringBuilder(unfoldedTokens[0].repr());
-                            for (int i = 1; i < unfoldedTokens.length; i++) {
-                                Token cuft = unfoldedTokens[i];
-                                Token puft = unfoldedTokens[i - 1];
-                                if (cuft.row > puft.row) {
-                                    sb.append("\n");
-                                } else {
-                                    int colDiff = cuft.col - puft.col - puft.len();
-                                    sb.append(" ".repeat(colDiff));
-                                }
-                                sb.append(cuft.repr());
+                            for (int i = 0; i < unfoldedTokens.length; i++) {
+                                if (unfoldedTokens[i].row != startRow) break;
+                                unfoldedTokens[i].col -= startCol;
                             }
-                            unfoldedData = sb.toString();
-                            unfolding    = true;
-                            mouseToken   = null;
+
+                            updateUnfoldedData();
+                            unfolding  = true;
+                            mouseToken = null;
                         }
                     }
                 }
@@ -417,7 +391,9 @@ public class Debugger {
 
                     // TODO: maybe a pretty drawArc()?)
 
-                    if (prevX != Integer.MIN_VALUE && prevY != Integer.MIN_VALUE) g2d.drawLine(ipX + ipW / 2, ipY + ipH / 2, prevX, prevY);
+                    if (prevX != Integer.MIN_VALUE && prevY != Integer.MIN_VALUE){
+                        g2d.drawLine(ipX + ipW / 2, ipY + ipH / 2, prevX, prevY);
+                    }
 
                     prevX = ipX + ipW / 2;
                     prevY = ipY + ipH / 2;
@@ -497,13 +473,25 @@ public class Debugger {
             return null;
         }
 
-        private void setUnfoldedData(String data) {
-            unfoldedData = data;
+        private void updateUnfoldedData() {
 
-            String[] splitUnfoldedData = unfoldedData.split("\n", -1);
-            cachedUnfoldedDataHeight = splitUnfoldedData.length * cachedFontH;
+            int unfoldedDataLines = 1;
+
+            StringBuilder sb = new StringBuilder(unfoldedTokens[0].repr());
+            for (int i = 1; i < unfoldedTokens.length; i++) {
+                if (unfoldedTokens[i].row > unfoldedTokens[i - 1].row) {
+                    sb.append("\n").append(" ".repeat(unfoldedTokens[i].col));
+                    unfoldedDataLines++;
+                } else {
+                    sb.append(" ".repeat(unfoldedTokens[i].col - unfoldedTokens[i - 1].col - unfoldedTokens[i - 1].len()));
+                }
+                sb.append(unfoldedTokens[i].repr());
+            }
+            unfoldedData = sb.toString();
+
+            cachedUnfoldedDataHeight = unfoldedDataLines * cachedFontH;
             cachedUnfoldedDataWidth  = 0;
-            for (String s: splitUnfoldedData) {
+            for (String s: unfoldedData.split("\n", -1)) {
                 int currentWidth = s.length() * cachedFontW;
                 if (currentWidth > cachedUnfoldedDataWidth) cachedUnfoldedDataWidth = currentWidth;
             }

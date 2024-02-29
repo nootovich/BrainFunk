@@ -32,22 +32,14 @@ public class Parser {
                 int amount     = 1;
                 int parsedSize = parsed.size();
                 if (parsedSize > 0 && parsed.peek().type == Token.Type.NUMBER
-                    && (parsedSize < 2 || parsed.get(parsedSize-2).type != Token.Type.POINTER)) {
+                    && (parsedSize < 2 || parsed.get(parsedSize - 2).type != Token.Type.POINTER)) {
                     amount = parsed.pop().numValue;
                 }
                 if (!macros.containsKey(tk.strValue)) error("Undefined macro %s.".formatted(tk));
 
                 // manually deep copying current macro tokens to avoid making a copy of references
-                Token[] savedMacroTokens = macros.get(tk.strValue);
-                Token[] tokensToPass     = new Token[savedMacroTokens.length];
-                for (int i = 0; i < savedMacroTokens.length; i++) {
-                    Token savedToken = savedMacroTokens[i];
-                    tokensToPass[i] = new Token(savedToken.type, savedToken.file, savedToken.row, savedToken.col);
-                    tokensToPass[i].numValue = savedToken.numValue;
-                    tokensToPass[i].strValue = savedToken.strValue;
-                }
-
-                List<Token> macroTokens = List.of(parseMacros(tokensToPass, tk));
+                Token[]     tokensToPass = Token.deepCopy(macros.get(tk.strValue));
+                List<Token> macroTokens  = List.of(parseMacros(tokensToPass, tk));
                 for (int j = 0; j < amount; j++) parsed.addAll(macroTokens);
             } else parsed.push(tk);
         }
@@ -60,8 +52,8 @@ public class Parser {
         for (int i = 0; i < tokens.length; i++) {
             Token tk = tokens[i];
             if (tk.type == Token.Type.POINTER) {
-                if (i == tokens.length-1 || tokens[i+1].type != Token.Type.NUMBER)
-                    error("Invalid argument for a pointer! Expected a number after: "+tk);
+                if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.NUMBER)
+                    error("Invalid argument for a pointer! Expected a number after: " + tk);
                 tk.numValue = tokens[++i].numValue;
             }
             parsed.push(tk);

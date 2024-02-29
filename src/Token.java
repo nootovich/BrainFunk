@@ -51,6 +51,20 @@ public class Token {
         return repr().length();
     }
 
+    public static Token[] deepCopy(Token[] source) {
+        Token[] result = new Token[source.length];
+        for (int i = 0; i < result.length; i++) {
+            result[i]          = new Token(source[i].type, source[i].file, source[i].row, source[i].col);
+            result[i].numValue = source[i].numValue;
+            result[i].strValue = source[i].strValue;
+            result[i].origin   = source[i].origin;
+            if (source[i].macroTokens != null) {
+                result[i].macroTokens = deepCopy(source[i].macroTokens);
+            }
+        }
+        return result;
+    }
+
     public String toString() {
         StringBuilder result = new StringBuilder("%s:%d:%d [%s".formatted(file, row + 1, col, type));
 
