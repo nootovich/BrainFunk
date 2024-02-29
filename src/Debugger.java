@@ -8,17 +8,32 @@ import java.util.*;
 
 public class Debugger {
 
-    public static String filename;
+    private static boolean finished  = false;
+    private static boolean unfolding = false;
+
+    private static String   filename;
+    private static String[] filedata = {""};
+
+    private static Token   mouseToken;
+    private static Token[] tokens         = new Token[0];
+    private static Token[] lexedTokens    = new Token[0];
+    private static Token[] unfoldedTokens = new Token[0];
+
+    private static int ip = 0;
 
     public static void main(String[] args) throws InterruptedException {
+
         if (args.length < 1) error("Please provide a .bf or .bfn file as a command line argument.");
         String filepath = args[0];
-        filename = new File(filepath).getName();
-        if (!filename.endsWith(".bfn") && !filename.endsWith(".bf"))
-            error("Invalid file format. Please provide a .bf or .bfn file.");
-        info("Debugging %s file.".formatted(filename));
 
-        DebugWindow debugWindow = new DebugWindow(1400, 785, filepath);
+        filename = new File(filepath).getName();
+        if (!filename.endsWith(".bfn") && !filename.endsWith(".bf")) error("Invalid file format. Please provide a .bf or .bfn file.");
+
+        filedata    = FileSystem.loadFile(filepath).split("\n", -1);
+        lexedTokens = Lexer.lexFile(filepath);
+        tokens      = filename.endsWith(".bfn") ? DebugParser.parseTokens(lexedTokens) : lexedTokens;
+
+        DebugWindow debugWindow = new DebugWindow(1400, 785);
         while (true) {
             debugWindow.repaint();
             Thread.sleep(30);
@@ -38,130 +53,134 @@ public class Debugger {
 
     private static class DebugWindow extends JFrame {
 
-        private boolean finished  = false;
-        private boolean unfolding = false;
+        private final int w, h;
+        private final int tapeX, tapeY, tapeW, tapeH;
+        private final int codeX, codeY, codeW, codeH;
+        private int codeOffsetY;
 
-        public int x, y, w, h;
-        public int codeX, codeY, codeW, codeH;
-        public int tapeX, tapeY, tapeW, tapeH;
-        public int codeOffsetY;
-
-        private static Token         mouseToken;
-        private final  BufferedImage buffer;
-        private final  Graphics2D    g2d;
-        private final  Font          font             = new Font("Roboto Mono", Font.PLAIN, 16);
-        private        String[]      filedata         = {""};
-        private        String        unfoldedData     = "";
-        private        int           cachedFontH      = 0;
-        private        int           cachedFontW      = 0;
-        private        int           cachedLineAmount = 0;
+        private final Graphics2D    g2d;
+        private final BufferedImage buffer;
+        private final Font          font = new Font("Roboto Mono", Font.PLAIN, 16);
 
         private final Color COLOR_BG   = new Color(0x3D4154);
         private final Color COLOR_DATA = new Color(0x4C5470);
 
+        private final int cachedFontW, cachedFontH;
+        private final int cachedLinesToBottom;
+        private       int cachedUnfoldedDataWidth, cachedUnfoldedDataHeight;
+
+        private String unfoldedData = "";
+
         private static final char[] hexLookup = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
-        private static int ip = 0;
-
-        private static Token[] tokens         = new Token[0];
-        private static Token[] lexedTokens    = new Token[0];
-        private static Token[] unfoldedTokens = new Token[0];
-
-
-        DebugWindow(int w, int h, String filepath) {
-            this.filedata = FileSystem.loadFile(filepath).split("\n", -1);
-
-            lexedTokens = Lexer.lexFile(filepath);
-            info("Lexer OK.");
-
-            tokens = filename.endsWith(".bfn") ? DebugParser.parseTokens(lexedTokens) : lexedTokens;
-            info("Parser OK.");
+        DebugWindow(int width, int height) {
 
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-            this.w = w;
-            this.h = h;
-            this.x = (screenSize.width - w) / 2;
-            this.y = (screenSize.height - h) / 2;
+            w = width;
+            h = height;
+            int x = (screenSize.width - w) / 2;
+            int y = (screenSize.height - h) / 2;
 
-            this.codeX = this.w / 40;
-            this.codeY = codeX;
-            this.codeW = this.w * 75 / 100;
-            this.codeH = this.h - codeY * 2;
+            ///////////////////////////////////////////////////
+            // ### ### ### ### ### ### ##    # # ### ##  ### //
+            // #    #  # # # # # # #   # #   # # #   # # #   //
+            // ###  #  # # ### ### ### # #   ### ### ##  ### //
+            //   #  #  # # #   #   #   # #   # # #   # # #   //
+            // ###  #  ### #   #   ### ##    # # ### # # ### //
+            ///////////////////////////////////////////////////
 
-            this.tapeY = codeY;
-            this.tapeH = codeH;
-            this.tapeW = this.w - codeX * 3 - codeW;
-            this.tapeX = this.w - codeX - tapeW;
+            codeX = w / 40;
+            codeY = codeX;
+            codeW = w * 75 / 100;
+            codeH = h - codeY * 2;
 
-            buffer = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+            tapeY = codeY;
+            tapeH = codeH;
+            tapeW = w - codeX * 3 - codeW;
+            tapeX = w - codeX - tapeW;
+
+            buffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             g2d    = (Graphics2D) buffer.getGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setBackground(COLOR_BG);
             g2d.setFont(font);
             FontMetrics metrics = g2d.getFontMetrics();
-            cachedFontH      = metrics.getHeight();
-            cachedFontW      = (int) metrics.getStringBounds("@", null).getWidth();
-            cachedLineAmount = codeH / cachedFontH;
-            this.codeOffsetY = tokens[0].row - cachedLineAmount / 2;
-            if (codeOffsetY < 0) codeOffsetY = 0;
-            else if (codeOffsetY >= filedata.length - cachedLineAmount) codeOffsetY = filedata.length - cachedLineAmount - 1;
+            cachedFontH         = metrics.getHeight();
+            cachedFontW         = (int) metrics.getStringBounds("@", null).getWidth();
+            cachedLinesToBottom = filedata.length - codeH / cachedFontH;
+            codeOffsetY         = Utils.clampi(tokens[0].row * cachedFontH - codeH / 2, 0, cachedLinesToBottom * cachedFontH);
 
             addKeyListener(new KeyAdapter() {
                 @Override
                 public void keyPressed(KeyEvent e) {
-                    int key = e.getKeyCode();
+
+                    int savedRow = ip < tokens.length ? tokens[ip].row : 0;
+                    int key      = e.getKeyCode();
+
                     if (key == KeyEvent.VK_ESCAPE) {
                         info("Debugger terminated by user.");
                         System.exit(0);
                     } else if (key == KeyEvent.VK_SPACE) {
+
                         if (finished) {
-                            finished = false;
                             DebugInterpreter.reset();
-                            ip = 0;
-                        } else {
-                            int prevRow = tokens[ip].row;
-                            if (tokens[ip].type == Token.Type.MACRO) {
-                                String macroName = tokens[ip].strValue;
-                                int    macroLvl  = getLevel(tokens[ip]);
-                                ip++;
-                                while (ip < tokens.length && getOriginOfLevel(tokens[ip], macroLvl).equals(macroName)) {
-                                    DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                                    ip++;
-                                }
-                            } else if (tokens[ip].type == Token.Type.WHILE) {
-                                Token start      = tokens[ip];
-                                int   startDepth = DebugInterpreter.whileDepth;
-                                do {
-                                    DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                                    ip++;
-                                }
-                                while (ip < tokens.length &&
-                                       (DebugInterpreter.whileDepth !=
-                                        startDepth ||
-                                        tokens[ip].eq(start)));
-                            } else {
+                            return;
+                        }
+
+                        if (tokens[ip].type == Token.Type.MACRO) {
+
+                            // If spacebar was pressed on a macro token, this executes everything it can find that
+                            // has said macro token as its origin until it can't.
+                            // This is bad
+                            // TODO: Store tokens that belong to a given macro inside of said macro token
+                            //  and execute those instead of just searching by name (which is bad).
+                            String macroName = tokens[ip].strValue;
+                            int    macroLvl  = getLevel(tokens[ip]);
+                            ip++;
+                            while (ip < tokens.length && getOriginOfLevel(tokens[ip], macroLvl).equals(macroName)) {
                                 DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
                                 ip++;
                             }
-                            if (ip < tokens.length) {
-                                codeOffsetY -= prevRow - tokens[ip].row;
-                                if (codeOffsetY < 0) codeOffsetY = 0;
-                                else if (codeOffsetY >= filedata.length - cachedLineAmount) codeOffsetY = filedata.length - cachedLineAmount - 1;
+
+                        } else if (tokens[ip].type == Token.Type.WHILE) {
+
+                            // TODO: store pointer to the end of given `WHILE` token
+                            //  and execute the chunk between them surrounded by
+                            //  both `WHILE` and `ENDWHILE` tokens
+                            Token start      = tokens[ip];
+                            int   startDepth = DebugInterpreter.whileDepth;
+                            do {
+                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                                ip++;
                             }
-                        }
-                    } else if (!finished && key == KeyEvent.VK_ENTER) {
-                        int prevRow = tokens[ip].row;
-                        DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                        ip++;
-                        if (ip < tokens.length) {
-                            codeOffsetY -= prevRow - tokens[ip].row;
-                            if (codeOffsetY < 0) codeOffsetY = 0;
-                            else if (codeOffsetY >= filedata.length - cachedLineAmount) codeOffsetY = filedata.length - cachedLineAmount - 1;
+                            while (ip < tokens.length &&
+                                   (DebugInterpreter.whileDepth !=
+                                    startDepth ||
+                                    tokens[ip].eq(start)));
+
+                        } else {
+
+                            // TODO: merge DebugInterpreter into Interpreter
+                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                            ip++;
 
                         }
+
+
+                    } else if (!finished && key == KeyEvent.VK_ENTER) {
+
+                        DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
+                        ip++;
+
                     }
-                    if (ip >= tokens.length) finished = true;
+
+                    if (ip < tokens.length) {
+                        int newOffsetY = (codeOffsetY - savedRow + tokens[ip].row) * cachedFontH;
+                        codeOffsetY = Utils.clampi(newOffsetY, 0, cachedLinesToBottom * cachedFontH);
+                    }
+
+                    finished |= ip >= tokens.length;
                 }
 
                 private int getLevel(Token tk) {
@@ -187,37 +206,7 @@ public class Debugger {
             addMouseMotionListener(new MouseMotionAdapter() {
                 @Override
                 public void mouseMoved(MouseEvent e) {
-                    if (unfolding) {
-                        String[] uData = unfoldedData.split("\n", -1);
-                        int      ufw   = 0;
-                        int      ufh   = uData.length * cachedFontH;
-                        for (String s: uData) {
-                            int len = s.length() * cachedFontW;
-                            if (len > ufw) ufw = len;
-                        }
-                        int   ufx = codeX / 2 + codeW / 2 - ufw / 2;
-                        int   ufy = codeY / 2 + codeH / 2 - ufh / 2;
-                        float row = (float) (e.getY() - ufy) / cachedFontH - 2.5f;
-                        float col = (float) (e.getX() - ufx) / cachedFontW - 2.5f;
-                        row += unfoldedTokens[0].row;
-                        col += unfoldedTokens[0].col;
-                        for (Token tk: unfoldedTokens) {
-                            if (tk.row < row && tk.row + 1 > row && tk.col <= col && col < tk.col + tokenLen(tk)) {
-                                mouseToken = tk;
-                                return;
-                            }
-                        }
-                    } else {
-                        float row = (float) (e.getY() - codeY + codeOffsetY * cachedFontH) / cachedFontH - 1.5f;
-                        float col = (float) (e.getX() - codeX) / cachedFontW - 1.5f;
-                        for (Token tk: tokens) {
-                            if (tk.row < row && tk.row + 1 > row && tk.col <= col && col < tk.col + tokenLen(tk)) {
-                                mouseToken = tk;
-                                return;
-                            }
-                        }
-                    }
-                    mouseToken = null;
+                    findMouseToken(e.getX(), e.getY());
                 }
             });
 
@@ -298,13 +287,15 @@ public class Debugger {
                                     sb.append("\n");
                                     sb.append(" ".repeat(cuft.col));
                                 } else {
-                                    int colDiff = cuft.col - puft.col - puft.repr().length();
+                                    int colDiff = cuft.col - puft.col - puft.len();
                                     sb.append(" ".repeat(colDiff));
                                 }
                                 sb.append(cuft.repr());
                             }
-                            unfoldedData = sb.toString();
-                            mouseToken   = null;
+                            setUnfoldedData(sb.toString());
+
+                            mouseToken = null;
+
                         } else if (mouseToken != null) {
                             Token lexed = findLexedMacroDef(mouseToken.strValue);
                             if (lexed == null || lexed.type != Token.Type.MACRODEF) return;
@@ -326,7 +317,7 @@ public class Debugger {
                                 if (cuft.row > puft.row) {
                                     sb.append("\n");
                                 } else {
-                                    int colDiff = cuft.col - puft.col - puft.repr().length();
+                                    int colDiff = cuft.col - puft.col - puft.len();
                                     sb.append(" ".repeat(colDiff));
                                 }
                                 sb.append(cuft.repr());
@@ -349,15 +340,14 @@ public class Debugger {
             addMouseWheelListener(new MouseAdapter() {
                 @Override
                 public void mouseWheelMoved(MouseWheelEvent e) {
-                    codeOffsetY += e.getWheelRotation();
-                    if (codeOffsetY < 0) codeOffsetY = 0;
-                    else if (codeOffsetY >= filedata.length - cachedLineAmount) codeOffsetY = filedata.length - cachedLineAmount - 1;
+                    codeOffsetY = Utils.clampi(codeOffsetY + e.getWheelRotation() * cachedFontH, 0, cachedLinesToBottom * cachedFontH);
+                    findMouseToken(e.getX(), e.getY());
                 }
             });
 
             pack();
             Insets insets = getInsets();
-            setSize(w + insets.left + insets.right, h + insets.top + insets.bottom);
+            setSize(width + insets.left + insets.right, height + insets.top + insets.bottom);
             setLocation(x, y);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             setVisible(true);
@@ -404,7 +394,7 @@ public class Debugger {
             // Program
             {
                 if (unfolding) g2d.setColor(Color.LIGHT_GRAY);
-                int y = codeY + cachedFontH - codeOffsetY * cachedFontH;
+                int y = codeY + cachedFontH - codeOffsetY;
                 for (int i = 0; i < filedata.length; i++) {
                     g2d.drawString(filedata[i], codeX + 8, y);
                     y += cachedFontH;
@@ -419,8 +409,8 @@ public class Debugger {
                 int   prevY = Integer.MIN_VALUE;
                 while (tk != null) {
                     int ipX = codeX + tk.col * cachedFontW + 8;
-                    int ipY = codeY + (-codeOffsetY + tk.row) * cachedFontH + 5;
-                    int ipW = tokenLen(tk) * cachedFontW;
+                    int ipY = codeY + tk.row * cachedFontH + 5 - codeOffsetY;
+                    int ipW = tk.len() * cachedFontW;
                     int ipH = cachedFontH;
                     g2d.drawRect(ipX, ipY, ipW, ipH);
                     g2d.setColor(Color.GRAY);
@@ -470,9 +460,9 @@ public class Debugger {
                     ipY = (int) (codeX + codeH / 2.f + (-uData.length / 2.f + mouseToken.row) * cachedFontH);
                 } else {
                     ipX = codeX + mouseToken.col * cachedFontW + 8;
-                    ipY = codeY + (-codeOffsetY + mouseToken.row) * cachedFontH + 5;
+                    ipY = codeY + mouseToken.row * cachedFontH + 5 - codeOffsetY;
                 }
-                ipW = tokenLen(mouseToken) * cachedFontW;
+                ipW = mouseToken.len() * cachedFontW;
                 ipH = cachedFontH;
                 g2d.setColor(Color.CYAN);
                 g2d.drawRect(ipX, ipY, ipW, ipH);
@@ -483,13 +473,40 @@ public class Debugger {
             g.drawImage(buffer, insets.left, insets.top, this);
         }
 
-        private static int tokenLen(Token tk) {
-            return switch (tk.type) {
-                case NUMBER -> (int) Math.floor(Math.log10(tk.numValue)) + 1;
-                case STRING -> (tk.strValue.length() + 2);
-                case MACRO -> tk.strValue.length();
-                default -> 1;
-            };
+        private void findMouseToken(int mouseX, int mouseY) {
+            if (unfolding) {
+
+                float unfoldingWindowX = codeX / 2.f + codeW / 2.f - cachedUnfoldedDataWidth / 2.f;
+                float unfoldingWindowY = codeY / 2.f + codeH / 2.f - cachedUnfoldedDataHeight / 2.f;
+
+                int row = (int) (((float) mouseY - unfoldingWindowY) / cachedFontH - 2.5f) + unfoldedTokens[0].row;
+                int col = (int) (((float) mouseX - unfoldingWindowX) / cachedFontW - 2.5f) + unfoldedTokens[0].col;
+                mouseToken = getTokenByRowCol(unfoldedTokens, row, col);
+
+            } else {
+
+                int row = (int) (((float) mouseY - codeY + codeOffsetY) / cachedFontH - 1.5f);
+                int col = (int) (((float) mouseX - codeX) / cachedFontW - 1.5f);
+                mouseToken = getTokenByRowCol(tokens, row, col);
+
+            }
+        }
+
+        private static Token getTokenByRowCol(Token[] array, int row, int col) {
+            for (Token t: array) if (t.row == row && t.col <= col && t.col + t.len() >= col) return t;
+            return null;
+        }
+
+        private void setUnfoldedData(String data) {
+            unfoldedData = data;
+
+            String[] splitUnfoldedData = unfoldedData.split("\n", -1);
+            cachedUnfoldedDataHeight = splitUnfoldedData.length * cachedFontH;
+            cachedUnfoldedDataWidth  = 0;
+            for (String s: splitUnfoldedData) {
+                int currentWidth = s.length() * cachedFontW;
+                if (currentWidth > cachedUnfoldedDataWidth) cachedUnfoldedDataWidth = currentWidth;
+            }
         }
 
         private static String hex(byte n) {
@@ -582,6 +599,8 @@ public class Debugger {
 
         private static void reset() {
             for (int i = 0; i < tape.length; i++) tape[i] = 0;
+            finished   = false;
+            ip         = 0;
             pointer    = 0;
             whileDepth = 0;
             getVal();
@@ -596,18 +615,18 @@ public class Debugger {
                 case PTRADD -> ptradd(getVal());
                 case PTRSUB -> ptradd(-getVal());
                 case WHILE -> {
-                    if (DebugWindow.ip == DebugWindow.tokens.length - 1)
-                        error("Unmatched brackets at: " + DebugWindow.tokens[DebugWindow.ip]);
+                    if (ip == tokens.length - 1)
+                        error("Unmatched brackets at: " + tokens[ip]);
                     if (tape[pointer] == 0) {
-                        int startIp    = DebugWindow.ip;
+                        int startIp    = ip;
                         int startDepth = whileDepth;
                         whileDepth += getVal();
                         while (whileDepth > startDepth) {
-                            tk = DebugWindow.tokens[++DebugWindow.ip];
+                            tk = tokens[++ip];
                             if (tk.type == Token.Type.WHILE) whileDepth += getVal();
                             else if (tk.type == Token.Type.ENDWHILE) whileDepth -= getVal();
-                            if (whileDepth != 0 && DebugWindow.ip == DebugWindow.tokens.length - 1)
-                                error("Unmatched brackets at: " + DebugWindow.tokens[startIp]);
+                            if (whileDepth != 0 && ip == tokens.length - 1)
+                                error("Unmatched brackets at: " + tokens[startIp]);
                         }
                     } else whileDepth += getVal();
                 }
@@ -616,16 +635,16 @@ public class Debugger {
                     int val = getVal();
                     for (int i = 0; i < val; i++) {
                         if (((int) tape[pointer] & 0xFF) > 0) {
-                            int startIp    = DebugWindow.ip;
+                            int startIp    = ip;
                             int startDepth = whileDepth - 1;
                             while (whileDepth > startDepth) {
-                                tk = DebugWindow.tokens[--DebugWindow.ip];
+                                tk = tokens[--ip];
                                 if (tk.type == Token.Type.ENDWHILE) whileDepth += getVal();
                                 else if (tk.type == Token.Type.WHILE) whileDepth -= getVal();
-                                if (whileDepth != 0 && DebugWindow.ip == 0)
-                                    error("Unmatched brackets at: " + DebugWindow.tokens[startIp]);
+                                if (whileDepth != 0 && ip == 0)
+                                    error("Unmatched brackets at: " + tokens[startIp]);
                             }
-                            DebugWindow.ip--;
+                            ip--;
                         } else whileDepth--;
                     }
                 }

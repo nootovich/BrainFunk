@@ -47,6 +47,10 @@ public class Token {
         };
     }
 
+    public int len() {
+        return repr().length();
+    }
+
     public String toString() {
         StringBuilder result = new StringBuilder("%s:%d:%d [%s".formatted(file, row + 1, col, type));
 
