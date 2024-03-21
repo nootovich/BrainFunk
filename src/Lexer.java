@@ -22,8 +22,8 @@ public class Lexer {
             String line = lines[dataRow];
 
             for (int dataCol = 0; dataCol < line.length(); dataCol++) {
-                int col = dataCol + colOffset;
-                char c = line.charAt(dataCol);
+                int  col = dataCol + colOffset;
+                char c   = line.charAt(dataCol);
 
                 Token.Type tokenType = null;
                 Token      tk        = null;
@@ -42,8 +42,10 @@ public class Lexer {
                 // BFN STUFF
                 else if (c == '/' && dataCol < line.length() - 1 && line.charAt(dataCol + 1) == '/') break;
                 else if (c == '$') tk = new Token(Token.Type.POINTER, filename, row, col);
-                else if (c == '#') tk = new Token(Token.Type.RETURN, filename, row,  col);
-                else if (c == ':') error("Unfinished macro definition at " + new Token(Token.Type.ERROR, filename, row, col));
+                else if (c == '#') tk = new Token(Token.Type.RETURN, filename, row, col);
+                else if (c == '{') tk = new Token(Token.Type.UNSAFEWHILE, filename, row, col);
+                else if (c == '}') tk = new Token(Token.Type.UNSAFEENDWHILE, filename, row, col);
+                else if (c == ':') tk = new Token(Token.Type.COLON, filename, row, col);
                 else if (c == '"') {
                     int start = dataCol;
                     while (dataCol < line.length() - 1 && line.charAt(++dataCol) != '"') {}
@@ -68,8 +70,8 @@ public class Lexer {
                         tk          = new Token(Token.Type.MACRODEF, filename, row, startCol + colOffset);
                         tk.strValue = line.substring(startCol, dataCol);
                         startCol    = ++dataCol;
-                        showTokens     = false;
-                        ArrayList<Token> macroTokens     = new ArrayList<>();
+                        showTokens  = false;
+                        ArrayList<Token> macroTokens = new ArrayList<>();
                         for (int col2 = startCol; dataRow < lines.length; dataRow++) {
                             line = lines[dataRow];
                             for (; dataCol < line.length(); dataCol++) {
@@ -81,7 +83,7 @@ public class Lexer {
                             col2    = 0;
                         }
                         tk.macroTokens = macroTokens.toArray(new Token[0]);
-                        showTokens = Main.showTokens;
+                        showTokens     = Main.showTokens;
                     } else {
                         tk          = new Token(Token.Type.MACRO, filename, row, startCol + colOffset);
                         tk.strValue = line.substring(startCol, dataCol);

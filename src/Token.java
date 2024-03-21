@@ -3,6 +3,7 @@ public class Token {
     public enum Type {
         ADD, SUB, PTRADD, PTRSUB, WHILE, ENDWHILE, WRITE, READ, // VANILLA
         NUMBER, STRING, MACRODEF, MACRO, POINTER, RETURN,
+        COLON, UNSAFEWHILE, UNSAFEENDWHILE,
         ERROR
     }
 
@@ -43,6 +44,9 @@ public class Token {
             case MACRO -> strValue;
             case POINTER -> "$";
             case RETURN -> "#";
+            case COLON -> ":";
+            case UNSAFEWHILE -> "{";
+            case UNSAFEENDWHILE -> "}";
             case ERROR -> throw new RuntimeException("Attempted to get a representation of an `ERROR` token... HOW!?");
         };
     }
