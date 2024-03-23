@@ -5,160 +5,50 @@ import java.util.Stack;
 public class Interpreter {
 
     private static final int TAPE_LEN       = 256;
-    private static final int REPETITION_CAP = 1000;
-
-    public static boolean WRITE_ALLOWED = true;
+    private static final int REPETITION_CAP = 10;
 
     private static byte[] tape    = new byte[TAPE_LEN];
     private static int    pointer = 0;
 
-    private static int savedVal = -1;
-
     private static Scanner         input       = new Scanner(System.in);
     public static  ArrayList<Byte> inputBuffer = new ArrayList<>();
-    public static  StringBuilder   inputMemory = new StringBuilder();
-    private static Stack<Integer>  ptrHistory  = new Stack<>();
+    // public static  StringBuilder   inputMemory = new StringBuilder();
+    private static Stack<Integer>  returnStack = new Stack<>();
 
-    public static void reset() {
-        WRITE_ALLOWED = true;
-        tape          = new byte[TAPE_LEN];
-        pointer       = 0;
-        savedVal      = -1;
-        inputBuffer.clear();
-        ptrHistory.clear();
-    }
-
-    public static String executeBF(Token[] tokens) {
-        inputMemory.setLength(0);
-        String result = privateExecuteBF(tokens);
-        reset();
-        return result;
-    }
-
-    private static String privateExecuteBF(Token[] tokens) {
-        StringBuilder output = new StringBuilder();
+    public static void execute(Token[] tokens) {
         for (int i = 0; i < tokens.length; i++) {
-            Token tk = tokens[i];
-            switch (tk.type) {
-                case ADD -> tape[pointer]++;
-                case SUB -> tape[pointer]--;
-                case PTRADD -> ptradd(1);
-                case PTRSUB -> ptradd(-1);
-                case WHILE -> {
-                    int start = i;
-                    int depth = 1;
-                    int len   = 0;
-                    while (depth > 0) {
-                        len++;
-                        tk = tokens[++i];
-                        if (tk.type == Token.Type.WHILE) depth++;
-                        else if (tk.type == Token.Type.ENDWHILE) depth--;
-                        if (depth > 0 && i == tokens.length - 1)
-                            error("Unmatched brackets at: " + tokens[start]);
+            switch (tokens[i].type) {
+                case INC -> tape[pointer] += (byte) tokens[i].num;
+                case DEC -> tape[pointer] -= (byte) tokens[i].num;
+                case RGT -> pointer = ((pointer + tokens[i].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+                case LFT -> pointer = ((pointer - tokens[i].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+                case JEZ, UNSAFEJEZ -> {
+                    if (tape[pointer] == 0) i = tokens[i].num;
+                }
+                case JNZ, UNSAFEJNZ -> {
+                    if (tape[pointer] != 0) i = tokens[i].num;
+                }
+                case OUT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(tokens[i].num));
+                case INP -> read(tokens[i].num);
+                case STR -> {
+                    for (char c: tokens[i].str.toCharArray()) {
+                        tape[pointer] = (byte) c;
+                        pointer       = (++pointer % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
                     }
-                    Token[] innerTokens = new Token[len - 1];
-                    System.arraycopy(tokens, start + 1, innerTokens, 0, innerTokens.length);
-                    while (tape[pointer] != 0) output.append(privateExecuteBF(innerTokens));
                 }
-                case ENDWHILE -> {
-                    // TODO: report an error when there is more `ENDWHILE` than `WHILE` tokens
+                case PTR -> {
+                    returnStack.push(pointer);
+                    pointer = tokens[i].num;
                 }
-                case WRITE -> {write(); output.append((char) tape[pointer]);}
-                case READ -> read(1);
-                default -> error("Unknown token type `" + tk.type + "`");
+                case RET -> {
+                    if (returnStack.isEmpty()) Utils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[i]);
+                    pointer = returnStack.pop();
+                }
+                case COL -> {} // TODO: this is temporary
+                case SYS -> syscall();
+                default -> Utils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[i]);
             }
         }
-        return output.toString();
-    }
-
-    public static String executeBrainFunk(Token[] tokens) {
-        inputMemory.setLength(0);
-        String result = privateExecuteBrainFunk(tokens);
-        reset();
-        return result;
-    }
-
-    private static String privateExecuteBrainFunk(Token[] tokens) {
-        StringBuilder output = new StringBuilder();
-        for (int i = 0; i < tokens.length; i++) {
-            Token tk = tokens[i];
-            switch (tk.type) {
-                case ADD -> tape[pointer] += (byte) getVal();
-                case SUB -> tape[pointer] -= (byte) getVal();
-                case PTRADD -> ptradd(getVal());
-                case PTRSUB -> ptradd(-getVal());
-                case WHILE, UNSAFEWHILE -> {
-                    if (i == tokens.length - 1) error("Unmatched brackets at: " + tokens[i]);
-                    int start = i;
-                    int depth = getVal();
-                    int len   = 0;
-                    while (depth > 0) {
-                        len++;
-                        tk = tokens[++i];
-                        if (tk.type == Token.Type.WHILE || tk.type == Token.Type.UNSAFEWHILE) depth += getVal();
-                        else if (tk.type == Token.Type.ENDWHILE || tk.type == Token.Type.UNSAFEENDWHILE) depth -= getVal();
-                        if (depth != 0 && i == tokens.length - 1) error("Unmatched brackets at: " + tokens[start]);
-                    }
-                    Token[] innerTokens = new Token[len - 1];
-                    System.arraycopy(tokens, start + 1, innerTokens, 0, innerTokens.length);
-                    while (tape[pointer] != 0) output.append(privateExecuteBrainFunk(innerTokens));
-                }
-                case ENDWHILE, UNSAFEENDWHILE -> error("Unmatched brackets at: " + tokens[i]);
-                case WRITE -> {
-                    int val = getVal();
-                    for (int j = 0; j < val; j++) {write(); output.append((char) tape[pointer]);}
-                }
-                case READ -> read(getVal());
-                case NUMBER -> saveVal(tk);
-                case STRING -> {
-                    int val = getVal();
-                    for (int j = 0; j < val; j++) {
-                        for (int k = 0; k < tk.strValue.length(); k++) {
-                            tape[pointer] = (byte) tk.strValue.charAt(k);
-                            ptradd(1);
-                        }
-                    }
-                }
-                case POINTER -> {
-                    int val = getVal();
-                    for (int j = 0; j < val; j++) {
-                        ptrHistory.push(pointer);
-                        pointer = tk.numValue;
-                    }
-                }
-                case RETURN -> {
-                    int val = getVal();
-                    for (int j = 0; j < val; j++) {
-                        if (ptrHistory.isEmpty()) error("Not enough pointer history for: " + tk);
-                        pointer = ptrHistory.pop();
-                    }
-                }
-                case COLON -> {
-                    if (i > 0 && i + 1 < tokens.length
-                        && tokens[i - 1].type == Token.Type.UNSAFEENDWHILE
-                        && tokens[i + 1].type == Token.Type.NUMBER
-                    ) i++;
-                }
-                default -> error("Unhandled token type `" + tk.type + "`");
-            }
-        }
-        return output.toString();
-    }
-
-    private static void ptradd(int n) {
-        pointer = ((pointer + n) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-    }
-
-    private static void saveVal(Token tk) {
-        if (savedVal >= 0) error("Two consecutive numbers after one another are not supported: " + tk);
-        savedVal = tk.numValue;
-    }
-
-    private static int getVal() {
-        if (savedVal < 0) return 1;
-        int temp = savedVal;
-        savedVal = -1;
-        return temp;
     }
 
     private static void read(int amount) {
@@ -167,42 +57,32 @@ public class Interpreter {
             char[] in = input.nextLine().toCharArray();
             for (char inChar: in) {
                 inputBuffer.add((byte) inChar);
-                inputMemory.append(inChar);
+                // inputMemory.append(inChar);
             }
         }
-        if (inputBuffer.size() < amount) error("Not enough data for `READ` token. This should be unreachable unless there is a bug in processing user input.");
+        if (inputBuffer.size() < amount) Utils.error("Not enough data for `READ` token. This should be unreachable unless there is a bug in processing user input.");
         for (int i = 0; i < amount; i++) {
             tape[pointer] = inputBuffer.get(0);
             inputBuffer.remove(0);
         }
     }
 
-    private static void write() {
-        if (WRITE_ALLOWED) System.out.print((char) tape[pointer]);
-    }
-
     private static void syscall() {
-        try {
-            switch (tape[pointer]) {
-                case 60 -> syscall1();
-                case 35 -> syscall4();
-                default -> error("This syscall is not implemented yet");
-            }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        switch (tape[pointer]) {
+            case 60 -> syscall1();
+            case 35 -> syscall4();
+            default -> Utils.error("This syscall is not implemented yet");
         }
     }
 
     private static void syscall1() {
         switch (tape[pointer]) {
-            case 60 -> {
-                System.exit(tape[pointer - 1]);
-            }
-            default -> error("This type of syscall1 is not implemented yet");
+            case 60 -> System.exit(tape[pointer - 1]);
+            default -> Utils.error("This type of syscall1 is not implemented yet");
         }
     }
 
-    private static void syscall4() throws InterruptedException {
+    private static void syscall4() {
         switch (tape[pointer]) {
             case 35 -> {
                 // TODO: a getValueAtPosition function or something
@@ -210,16 +90,13 @@ public class Interpreter {
                 int pos1 = (pointer - 3 % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
                 int pos2 = (pointer - 2 % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
                 int pos3 = (pointer - 1 % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-                Thread.sleep(Math.min(tape[pos0] << 24 | tape[pos1] << 16 | tape[pos2] << 8 | (int) tape[pos3] & 0xff, 99999999));
+                try {
+                    Thread.sleep(Math.min(tape[pos0] << 24 | tape[pos1] << 16 | tape[pos2] << 8 | (int) tape[pos3] & 0xff, 99999999));
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
             }
-            default -> error("This type of syscall4 is not implemented yet");
+            default -> Utils.error("This type of syscall4 is not implemented yet");
         }
     }
-
-    private static void error(String message) {
-        StackTraceElement errSrc = Thread.currentThread().getStackTrace()[2];
-        System.out.printf("%s:%d [ERROR]: %s%n", errSrc.getFileName(), errSrc.getLineNumber(), message);
-        System.exit(1);
-    }
-
 }
