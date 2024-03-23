@@ -3,8 +3,9 @@ public class Token {
     public enum Type {
         INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, // VANILLA
         NUM, STR, PTR, RET, WRD,
-        COL, SCL, UNSAFEJEZ, UNSAFEJNZ,
-        ERR
+        COL, SCL,
+        UNSAFEJEZ, UNSAFEJNZ,
+        SYS, ERR
     }
 
     public Type   type;
@@ -55,6 +56,7 @@ public class Token {
             case SCL -> ";";
             case UNSAFEJEZ -> "{";
             case UNSAFEJNZ -> "}";
+            case SYS -> "@";
             case ERR -> throw new RuntimeException("Attempted to get a representation of an `ERROR` token... HOW!?");
         };
     }
