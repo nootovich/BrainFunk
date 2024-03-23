@@ -1,12 +1,10 @@
-import java.io.File;
-import java.util.ArrayList;
 import java.util.Stack;
 
 public class Lexer {
 
-    public static Token[] lex(String data, String filename) {
-        Stack<Token> tokens = new Stack<>();
-        String[]     lines  = data.split("\n", -1);
+    public static Token[] lex(String data, String filepath) {
+        Stack<Token> lexed = new Stack<>();
+        String[]     lines = data.split("\n", -1);
         for (int row = 0; row < lines.length; row++) {
             String line = lines[row];
             for (int col = 0; col < line.length(); col++) {
@@ -14,20 +12,20 @@ public class Lexer {
                 if (c == ' ' || c == '\n' || c == '\r' || c == '\t') continue;
 
                 else if (c == '/' && col < line.length() - 1 && line.charAt(col + 1) == '/') break;
-                else if (c == '+') tokens.push(new Token(Token.Type.INC, filename, row, col));
-                else if (c == '-') tokens.push(new Token(Token.Type.DEC, filename, row, col));
-                else if (c == '>') tokens.push(new Token(Token.Type.RGT, filename, row, col));
-                else if (c == '<') tokens.push(new Token(Token.Type.LFT, filename, row, col));
-                else if (c == ',') tokens.push(new Token(Token.Type.INP, filename, row, col));
-                else if (c == '.') tokens.push(new Token(Token.Type.OUT, filename, row, col));
-                else if (c == '[') tokens.push(new Token(Token.Type.JEZ, filename, row, col));
-                else if (c == ']') tokens.push(new Token(Token.Type.JNZ, filename, row, col));
-                else if (c == '$') tokens.push(new Token(Token.Type.PTR, filename, row, col));
-                else if (c == '#') tokens.push(new Token(Token.Type.RET, filename, row, col));
-                else if (c == ':') tokens.push(new Token(Token.Type.COL, filename, row, col));
-                else if (c == ';') tokens.push(new Token(Token.Type.SCL, filename, row, col));
-                else if (c == '{') tokens.push(new Token(Token.Type.UNSAFEJEZ, filename, row, col));
-                else if (c == '}') tokens.push(new Token(Token.Type.UNSAFEJNZ, filename, row, col));
+                else if (c == '+') lexed.push(new Token(Token.Type.INC, filepath, row, col));
+                else if (c == '-') lexed.push(new Token(Token.Type.DEC, filepath, row, col));
+                else if (c == '>') lexed.push(new Token(Token.Type.RGT, filepath, row, col));
+                else if (c == '<') lexed.push(new Token(Token.Type.LFT, filepath, row, col));
+                else if (c == ',') lexed.push(new Token(Token.Type.INP, filepath, row, col));
+                else if (c == '.') lexed.push(new Token(Token.Type.OUT, filepath, row, col));
+                else if (c == '[') lexed.push(new Token(Token.Type.JEZ, filepath, row, col));
+                else if (c == ']') lexed.push(new Token(Token.Type.JNZ, filepath, row, col));
+                else if (c == '$') lexed.push(new Token(Token.Type.PTR, filepath, row, col));
+                else if (c == '#') lexed.push(new Token(Token.Type.RET, filepath, row, col));
+                else if (c == ':') lexed.push(new Token(Token.Type.COL, filepath, row, col));
+                else if (c == ';') lexed.push(new Token(Token.Type.SCL, filepath, row, col));
+                else if (c == '{') lexed.push(new Token(Token.Type.UNSAFEJEZ, filepath, row, col));
+                else if (c == '}') lexed.push(new Token(Token.Type.UNSAFEJNZ, filepath, row, col));
 
                 else if (c == '"') {
                     int           scol = col;
@@ -36,14 +34,12 @@ public class Lexer {
                         c = line.charAt(col);
                         if (c == '"') break;
                         if (col == line.length() - 1) {
-                            Token tk = new Token(Token.Type.ERR, filename, row, scol);
+                            Token tk = new Token(Token.Type.ERR, filepath, row, scol);
                             Utils.error("Unfinished string literal at: " + tk);
                         }
                         sb.append(c);
                     }
-                    Token tk = new Token(Token.Type.STR, filename, row, scol);
-                    tk.strValue = sb.toString();
-                    tokens.push(tk);
+                    lexed.push(new Token(Token.Type.STR, sb.toString(), filepath, row, scol));
                 }
 
                 else if (Character.isDigit(c)) {
@@ -57,9 +53,7 @@ public class Lexer {
                         }
                         num = num*10 + c-'0';
                     }
-                    Token tk = new Token(Token.Type.NUM, filename, row, scol);
-                    tk.numValue = num;
-                    tokens.push(tk);
+                    lexed.push(new Token(Token.Type.NUM, num, filepath, row, scol));
                 }
 
                 else if (Character.isLetter(c)) {
@@ -73,20 +67,18 @@ public class Lexer {
                         }
                         sb.append(c);
                     }
-                    Token tk = new Token(Token.Type.WRD, filename, row, scol);
-                    tk.strValue = sb.toString();
-                    tokens.push(tk);
+                    lexed.push(new Token(Token.Type.WRD, sb.toString(), filepath, row, scol));
                 }
 
                 else {
-                   Utils.error("Should be unreachable: "+new Token(Token.Type.ERR, filename, row, col));
+                   Utils.error("Should be unreachable: "+new Token(Token.Type.ERR, filepath, row, col));
                 }
 
             }
         }
 
-        Token[] result = new Token[tokens.size()];
-        for (int i = result.length - 1; i >= 0; i--) result[i] = tokens.pop();
+        Token[] result = new Token[lexed.size()];
+        for (int i = result.length - 1; i >= 0; i--) result[i] = lexed.pop();
 
         return result;
     }

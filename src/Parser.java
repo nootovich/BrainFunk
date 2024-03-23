@@ -1,5 +1,4 @@
 import java.util.HashMap;
-import java.util.List;
 import java.util.Stack;
 
 public class Parser {
@@ -7,65 +6,136 @@ public class Parser {
     private static final int RECURSION_LIMIT = 1000;
     private static       int recursionCount  = 0;
 
-    private static HashMap<String, Token[]> macros = new HashMap<>();
+    private static HashMap<String, Token[]> macros   = new HashMap<>();
+    private static int                      savedNum = 1;
 
-    public static Token[] parseTokens(Token[] tokens) {
-        macros.clear();
-        return privateParseTokens(tokens);
-    }
-
-    private static Token[] privateParseTokens(Token[] tokens) {
-        tokens = parseMacros(tokens, null);
-        tokens = parsePointers(tokens);
+    public static Token[] parse(Token[] tokens) {
+        tokens = parseNums(tokens);
+        tokens = parseMacroDef(tokens);
+        macros.forEach((name, tks) -> macros.replace(name, parseMacroCall(tks)));
+        tokens = parseMacroCall(tokens);
+        tokens = parseJumps(tokens);
         return tokens;
     }
 
-    private static Token[] parseMacros(Token[] tokens, Token origin) {
-        if (++recursionCount >= RECURSION_LIMIT) error("The recursion limit of %d was exceeded by: %s".formatted(RECURSION_LIMIT, origin));
-        Stack<Token> parsed = new Stack<>();
-        for (Token tk: tokens) {
-            if (tk.origin == null) tk.origin = origin;
-            if (tk.type == Token.Type.MACRODEF) {
-                if (macros.containsKey(tk.strValue)) error("Redefinition of a macro %s.".formatted(tk));
-                macros.put(tk.strValue, tk.macroTokens);
-            } else if (tk.type == Token.Type.MACRO) {
-                int amount     = 1;
-                int parsedSize = parsed.size();
-                if (parsedSize > 0 && parsed.peek().type == Token.Type.NUMBER
-                    && (parsedSize < 2 || parsed.get(parsedSize - 2).type != Token.Type.POINTER)) {
-                    amount = parsed.pop().numValue;
-                }
-                if (!macros.containsKey(tk.strValue)) error("Undefined macro %s.".formatted(tk));
-
-                // manually deep copying current macro tokens to avoid making a copy of references
-                Token[]     tokensToPass = Token.deepCopy(macros.get(tk.strValue));
-                List<Token> macroTokens  = List.of(parseMacros(tokensToPass, tk));
-                for (int j = 0; j < amount; j++) parsed.addAll(macroTokens);
-            } else parsed.push(tk);
-        }
-        recursionCount--;
-        return parsed.toArray(new Token[0]);
-    }
-
-    private static Token[] parsePointers(Token[] tokens) {
+    private static Token[] parseNums(Token[] tokens) {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
-            Token tk = tokens[i];
-            if (tk.type == Token.Type.POINTER) {
-                if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.NUMBER)
-                    error("Invalid argument for a pointer! Expected a number after: " + tk);
-                tk.numValue = tokens[++i].numValue;
+            switch (tokens[i].type) {
+                case INC, DEC, RGT, LFT, INP, OUT, STR, RET, WRD -> {
+                    tokens[i].num = popNum();
+                    parsed.push(tokens[i]);
+                }
+                case JEZ, JNZ, SCL, UNSAFEJEZ, UNSAFEJNZ -> {
+                    if (popNum() > 1) Utils.error("Unexpected `NUM` token.\n" + tokens[i - 1]);
+                    parsed.push(tokens[i]);
+                }
+                case COL -> {
+                    if (i > 0 && tokens[i - 1].type == Token.Type.UNSAFEJNZ) {
+                        tokens[i].num = tokens[i + 1].num;
+                        parsed.push(tokens[i++]);
+                    } else {
+                        parsed.push(tokens[i]);
+                    }
+                }
+                case NUM -> pushNum(tokens[i]);
+                case PTR -> {
+                    if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.NUM) Utils.error("No jump location for pointer.\n" + tokens[i]);
+                    tokens[i].num = tokens[i + 1].num;
+                    parsed.push(tokens[i++]);
+                }
+                default -> Utils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
             }
-            parsed.push(tk);
         }
-        return parsed.toArray(new Token[0]);
+        tokens = new Token[parsed.size()];
+        for (int i = tokens.length - 1; i >= 0; i--) tokens[i] = parsed.pop();
+        return tokens;
     }
 
-    private static void error(String message) {
-        StackTraceElement errSrc = Thread.currentThread().getStackTrace()[2];
-        System.out.printf("%s:%d [ERROR]: %s%n", errSrc.getFileName(), errSrc.getLineNumber(), message);
-        System.exit(1);
+    private static Token[] parseMacroDef(Token[] tokens) {
+        Stack<Token> parsed = new Stack<>();
+        for (int i = 0; i < tokens.length; i++) {
+            switch (tokens[i].type) {
+                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, UNSAFEJEZ, UNSAFEJNZ -> parsed.push(tokens[i]);
+                case WRD -> {
+                    if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.COL) {
+                        parsed.push(tokens[i]);
+                        continue;
+                    }
+                    int          si         = i;
+                    String       macroName  = tokens[i].str;
+                    Stack<Token> macroStack = new Stack<>();
+                    for (i += 2; i < tokens.length; i++) {
+                        if (tokens[i].type == Token.Type.SCL) break;
+                        if (i == tokens.length - 1 && tokens[i].type != Token.Type.SCL) Utils.error("Unfinished macro definition.\n" + tokens[si]);
+                        macroStack.push(tokens[i]);
+                    }
+                    Token[] macroTokens = new Token[macroStack.size()];
+                    for (int j = macroTokens.length - 1; j >= 0; j--) macroTokens[j] = macroStack.pop();
+                    macros.put(macroName, macroTokens);
+                }
+                default -> Utils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
+            }
+        }
+        Token[] result = new Token[parsed.size()];
+        for (int i = result.length - 1; i >= 0; i--) result[i] = parsed.pop();
+        return result;
     }
 
+    private static Token[] parseMacroCall(Token[] tokens) {
+        recursionCount++;
+        if (recursionCount >= RECURSION_LIMIT) Utils.error("Macro expansion limit exceeded.\n" + tokens[0]);
+        Stack<Token> parsed = new Stack<>();
+        for (int i = 0; i < tokens.length; i++) {
+            switch (tokens[i].type) {
+                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, UNSAFEJEZ, UNSAFEJNZ -> parsed.push(tokens[i]);
+                case WRD -> {
+                    if (!macros.containsKey(tokens[i].str)) Utils.error("Undefined macro.\n" + tokens[i]);
+                    Token[] macroTokens = parseMacroCall(macros.get(tokens[i].str));
+                    for (int j = 0; j < tokens[i].num; j++) {
+                        macroTokens = Token.deepCopy(macroTokens);
+                        for (int k = 0; k < macroTokens.length; k++) {
+                            parsed.push(macroTokens[k]);
+                        }
+                    }
+                }
+                default -> Utils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
+            }
+        }
+        recursionCount--;
+        Token[] result = new Token[parsed.size()];
+        for (int i = result.length - 1; i >= 0; i--) result[i] = parsed.pop();
+        return result;
+    }
+
+    private static Token[] parseJumps(Token[] tokens) {
+        Stack<Integer> jumps = new Stack<>();
+        for (int i = 0; i < tokens.length; i++) {
+            switch (tokens[i].type) {
+                case INC, DEC, RGT, LFT, INP, OUT, NUM, STR, PTR, RET, WRD, COL, SCL -> {}
+                case JEZ, UNSAFEJEZ -> jumps.push(i);
+                case JNZ, UNSAFEJNZ -> {
+                    if (jumps.isEmpty()) Utils.error("Unmatched brackets.\n" + tokens[i]);
+                    int jmp = jumps.pop();
+                    tokens[jmp].num = i;
+                    tokens[i].num   = jmp;
+                }
+                default -> Utils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
+            }
+        }
+        if (!jumps.isEmpty()) Utils.error("Unmatched brackets.\n" + tokens[jumps.pop()]);
+        return tokens;
+    }
+
+    private static int popNum() {
+        int num = savedNum;
+        savedNum = 1;
+        return num;
+    }
+
+    private static void pushNum(Token numTk) {
+        if (savedNum > 1) Utils.error("Two consecutive `NUM` tokens are unsupported.\n" + numTk);
+        savedNum = numTk.num;
+    }
 }
 
