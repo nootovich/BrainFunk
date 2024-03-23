@@ -22,7 +22,7 @@ public class Parser {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, STR, RET, WRD -> {
+                case INC, DEC, RGT, LFT, INP, OUT, STR, RET, WRD, SYS -> {
                     tokens[i].num = popNum();
                     parsed.push(tokens[i]);
                 }
@@ -56,7 +56,7 @@ public class Parser {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, UNSAFEJEZ, UNSAFEJNZ -> parsed.push(tokens[i]);
+                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, UNSAFEJEZ, UNSAFEJNZ, SYS -> parsed.push(tokens[i]);
                 case WRD -> {
                     if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.COL) {
                         parsed.push(tokens[i]);
@@ -88,7 +88,7 @@ public class Parser {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, UNSAFEJEZ, UNSAFEJNZ -> parsed.push(tokens[i]);
+                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, UNSAFEJEZ, UNSAFEJNZ, SYS -> parsed.push(tokens[i]);
                 case WRD -> {
                     if (!macros.containsKey(tokens[i].str)) Utils.error("Undefined macro.\n" + tokens[i]);
                     Token[] macroTokens = parseMacroCall(macros.get(tokens[i].str));
@@ -112,7 +112,7 @@ public class Parser {
         Stack<Integer> jumps = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, NUM, STR, PTR, RET, WRD, COL, SCL -> {}
+                case INC, DEC, RGT, LFT, INP, OUT, NUM, STR, PTR, RET, WRD, COL, SCL, SYS -> {}
                 case JEZ, UNSAFEJEZ -> jumps.push(i);
                 case JNZ, UNSAFEJNZ -> {
                     if (jumps.isEmpty()) Utils.error("Unmatched brackets.\n" + tokens[i]);

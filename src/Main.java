@@ -2,8 +2,7 @@ import java.io.File;
 
 public class Main {
 
-    public static String  filename;
-    public static boolean showTokens;
+    public static String filename;
 
     public static void main(String[] args) {
         if (args.length < 1) error("Please provide a .bf or .bfn file as a command line argument.");
@@ -11,24 +10,14 @@ public class Main {
         filename = new File(filepath).getName();
         info("Running %s file.".formatted(filename));
 
-        for (int i = 1; i < args.length; i++) {
-            if (args[i].equals("-st")) showTokens = true;
-            else error("Unknown argument `"+args[i]+"`.");
-        }
-
-        // TODO: should lexer be separate between different filetypes?
-        Token[] lexedTokens = Lexer.lexFile(filepath);
+        String  code  = FileSystem.loadFile(filepath);
+        Token[] lexed = Lexer.lex(code, filepath);
         info("Lexer OK.");
-        if (filename.endsWith(".bf")) {
-            Interpreter.executeBF(lexedTokens);
-        } else if (filename.endsWith(".bfn")) {
-            Token[] parsedTokens = Parser.parseTokens(lexedTokens);
-            info("Parser OK.");
-            Interpreter.executeBrainFunk(parsedTokens);
-        } else {
-            error("Invalid file format. Please provide a .bf or .bfn file as a command line argument.");
-        }
 
+        Token[] parsed = Parser.parse(lexed);
+        info("Parser OK.");
+
+        Interpreter.execute(parsed);
     }
 
     private static void info(String message) {
