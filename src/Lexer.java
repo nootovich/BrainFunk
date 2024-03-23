@@ -1,106 +1,95 @@
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Stack;
 
 public class Lexer {
 
-    private static String  filename;
-    private static boolean showTokens = false;
+    public static Token[] lex(String data, String filename) {
+        Stack<Token> tokens = new Stack<>();
+        String[]     lines  = data.split("\n", -1);
+        for (int row = 0; row < lines.length; row++) {
+            String line = lines[row];
+            for (int col = 0; col < line.length(); col++) {
+                char c = line.charAt(col);
+                if (c == ' ' || c == '\n' || c == '\r' || c == '\t') continue;
 
-    public static Token[] lexFile(String filepath) {
-        filename   = new File(filepath).getName();
-        showTokens = Main.showTokens;
-        String rawData = FileSystem.loadFile(filepath);
-        if (rawData == null) error("Could not get file data.");
-        return lexData(rawData, 0, 0).toArray(new Token[0]);
-    }
+                else if (c == '/' && col < line.length() - 1 && line.charAt(col + 1) == '/') break;
+                else if (c == '+') tokens.push(new Token(Token.Type.INC, filename, row, col));
+                else if (c == '-') tokens.push(new Token(Token.Type.DEC, filename, row, col));
+                else if (c == '>') tokens.push(new Token(Token.Type.RGT, filename, row, col));
+                else if (c == '<') tokens.push(new Token(Token.Type.LFT, filename, row, col));
+                else if (c == ',') tokens.push(new Token(Token.Type.INP, filename, row, col));
+                else if (c == '.') tokens.push(new Token(Token.Type.OUT, filename, row, col));
+                else if (c == '[') tokens.push(new Token(Token.Type.JEZ, filename, row, col));
+                else if (c == ']') tokens.push(new Token(Token.Type.JNZ, filename, row, col));
+                else if (c == '$') tokens.push(new Token(Token.Type.PTR, filename, row, col));
+                else if (c == '#') tokens.push(new Token(Token.Type.RET, filename, row, col));
+                else if (c == ':') tokens.push(new Token(Token.Type.COL, filename, row, col));
+                else if (c == ';') tokens.push(new Token(Token.Type.SCL, filename, row, col));
+                else if (c == '{') tokens.push(new Token(Token.Type.UNSAFEJEZ, filename, row, col));
+                else if (c == '}') tokens.push(new Token(Token.Type.UNSAFEJNZ, filename, row, col));
 
-    protected static ArrayList<Token> lexData(String data, int rowOffset, int colOffset) {
-        String[]         lines  = data.split("\n");
-        ArrayList<Token> tokens = new ArrayList<>();
-        for (int dataRow = 0; dataRow < lines.length; dataRow++) {
-            int    row  = dataRow + rowOffset;
-            String line = lines[dataRow];
-
-            for (int dataCol = 0; dataCol < line.length(); dataCol++) {
-                int  col = dataCol + colOffset;
-                char c   = line.charAt(dataCol);
-
-                Token.Type tokenType = null;
-                Token      tk        = null;
-
-                // VANILLA
-                if (c == '+') tokenType = Token.Type.ADD;
-                else if (c == '-') tokenType = Token.Type.SUB;
-                else if (c == '>') tokenType = Token.Type.PTRADD;
-                else if (c == '<') tokenType = Token.Type.PTRSUB;
-                else if (c == '[') tokenType = Token.Type.WHILE;
-                else if (c == ']') tokenType = Token.Type.ENDWHILE;
-                else if (c == '.') tokenType = Token.Type.WRITE;
-                else if (c == ',') tokenType = Token.Type.READ;
-                if (tokenType != null) {tk = new Token(tokenType, filename, row, col);}
-
-                // BFN STUFF
-                else if (c == '/' && dataCol < line.length() - 1 && line.charAt(dataCol + 1) == '/') break;
-                else if (c == '$') tk = new Token(Token.Type.POINTER, filename, row, col);
-                else if (c == '#') tk = new Token(Token.Type.RETURN, filename, row, col);
-                else if (c == '{') tk = new Token(Token.Type.UNSAFEWHILE, filename, row, col);
-                else if (c == '}') tk = new Token(Token.Type.UNSAFEENDWHILE, filename, row, col);
-                else if (c == ':') tk = new Token(Token.Type.COLON, filename, row, col);
                 else if (c == '"') {
-                    int start = dataCol;
-                    while (dataCol < line.length() - 1 && line.charAt(++dataCol) != '"') {}
-                    tk = new Token(Token.Type.STRING, filename, row, start + colOffset);
-                    if (line.charAt(dataCol) != '"' || dataCol - start < 1) error("Unfinished string literal at " + tk);
-                    tk.strValue = line.substring(start + 1, dataCol);
-                } else if (Character.isDigit(c)) {
-                    int start = dataCol;
-                    int val   = c - '0';
-                    while (dataCol < line.length() - 1 && Character.isDigit(line.charAt(dataCol + 1))) val = val * 10 + line.charAt(++dataCol) - '0';
-                    tk = new Token(Token.Type.NUMBER, filename, row, start + colOffset);
-                    if (val < 0) error("Invalid value for a `NUMBER` token `" + val + "` at " + tk);
-                    tk.numValue = val;
-                } else if (Character.isLetter(c) || c == '_') {
-                    int startCol = dataCol;
-                    for (; dataCol < line.length(); dataCol++) {
-                        char cc = line.charAt(dataCol);
-                        if (!Character.isLetterOrDigit(cc) && cc != '_') break;
-                    }
-                    if (dataCol - startCol < 0) error("Unfinished macro definition at " + new Token(Token.Type.ERROR, filename, row, col));
-                    if (dataCol < line.length() && line.charAt(dataCol) == ':') {
-                        tk          = new Token(Token.Type.MACRODEF, filename, row, startCol + colOffset);
-                        tk.strValue = line.substring(startCol, dataCol);
-                        startCol    = ++dataCol;
-                        showTokens  = false;
-                        ArrayList<Token> macroTokens = new ArrayList<>();
-                        for (int col2 = startCol; dataRow < lines.length; dataRow++) {
-                            line = lines[dataRow];
-                            for (; dataCol < line.length(); dataCol++) {
-                                if (line.charAt(dataCol) == ';') break;
-                            }
-                            macroTokens.addAll(lexData(line.substring(col2, dataCol), dataRow, col2 + colOffset));
-                            if (dataCol < line.length() && line.charAt(dataCol) == ';') break;
-                            dataCol = 0;
-                            col2    = 0;
+                    int           scol = col;
+                    StringBuilder sb   = new StringBuilder();
+                    for (col++; col < line.length(); col++) {
+                        c = line.charAt(col);
+                        if (c == '"') break;
+                        if (col == line.length() - 1) {
+                            Token tk = new Token(Token.Type.ERR, filename, row, scol);
+                            Utils.error("Unfinished string literal at: " + tk);
                         }
-                        tk.macroTokens = macroTokens.toArray(new Token[0]);
-                        showTokens     = Main.showTokens;
-                    } else {
-                        tk          = new Token(Token.Type.MACRO, filename, row, startCol + colOffset);
-                        tk.strValue = line.substring(startCol, dataCol);
-                        dataCol--;
+                        sb.append(c);
                     }
+                    Token tk = new Token(Token.Type.STR, filename, row, scol);
+                    tk.strValue = sb.toString();
+                    tokens.push(tk);
                 }
-                if (tk != null) tokens.add(tk);
-                if (showTokens && tk != null) System.out.println(tk);
+
+                else if (Character.isDigit(c)) {
+                    int scol = col;
+                    int num = c - '0';
+                    for (col++; col < line.length(); col++) {
+                        c = line.charAt(col);
+                        if (!Character.isDigit(c)) {
+                            col--;
+                            break;
+                        }
+                        num = num*10 + c-'0';
+                    }
+                    Token tk = new Token(Token.Type.NUM, filename, row, scol);
+                    tk.numValue = num;
+                    tokens.push(tk);
+                }
+
+                else if (Character.isLetter(c)) {
+                    int scol = col;
+                    StringBuilder sb = new StringBuilder().append(c);
+                    for (col++; col<line.length(); col++) {
+                        c = line.charAt(col);
+                        if(!Character.isLetterOrDigit(c) && c != '_') {
+                            col--;
+                            break;
+                        }
+                        sb.append(c);
+                    }
+                    Token tk = new Token(Token.Type.WRD, filename, row, scol);
+                    tk.strValue = sb.toString();
+                    tokens.push(tk);
+                }
+
+                else {
+                   Utils.error("Should be unreachable: "+new Token(Token.Type.ERR, filename, row, col));
+                }
+
             }
         }
-        return tokens;
+
+        Token[] result = new Token[tokens.size()];
+        for (int i = result.length - 1; i >= 0; i--) result[i] = tokens.pop();
+
+        return result;
     }
 
-    private static void error(String message) {
-        StackTraceElement errSrc = Thread.currentThread().getStackTrace()[2];
-        System.out.printf("%s:%d [ERROR]: %s%n", errSrc.getFileName(), errSrc.getLineNumber(), message);
-        System.exit(1);
-    }
 }
 
