@@ -7,13 +7,21 @@ public class Interpreter {
     private static final int TAPE_LEN       = 256;
     private static final int REPETITION_CAP = 10;
 
-    private static byte[] tape    = new byte[TAPE_LEN];
-    private static int    pointer = 0;
+    private static byte[]         tape        = new byte[TAPE_LEN];
+    private static int            pointer     = 0;
+    private static Stack<Integer> returnStack = new Stack<>();
 
     private static Scanner         input       = new Scanner(System.in);
     public static  ArrayList<Byte> inputBuffer = new ArrayList<>();
-    // public static  StringBuilder   inputMemory = new StringBuilder();
-    private static Stack<Integer>  returnStack = new Stack<>();
+    public static  StringBuilder   inputMemory = new StringBuilder();
+
+    public static void reset() {
+        tape    = new byte[TAPE_LEN];
+        pointer = 0;
+        returnStack.clear();
+        inputBuffer.clear();
+        inputMemory.setLength(0);
+    }
 
     public static void execute(Token[] tokens) {
         for (int i = 0; i < tokens.length; i++) {
@@ -53,11 +61,10 @@ public class Interpreter {
 
     private static void read(int amount) {
         for (int repetitions = 0; inputBuffer.size() < amount && repetitions < REPETITION_CAP; repetitions++) {
-            System.out.print("Awaiting input: ");
             char[] in = input.nextLine().toCharArray();
             for (char inChar: in) {
                 inputBuffer.add((byte) inChar);
-                // inputMemory.append(inChar);
+                inputMemory.append(inChar);
             }
         }
         if (inputBuffer.size() < amount) Utils.error("Not enough data for `READ` token. This should be unreachable unless there is a bug in processing user input.");

@@ -1,70 +1,75 @@
-import java.io.File;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.util.Stack;
 
 public class Testing {
 
-    private static final int FILE_NAME_LIMIT       = 20;
-    private static final int TEST_NAME_LIMIT       = 10;
-    private static final int TEST_CLASS_NAME_LIMIT = 17;
-    private static final int LOG_NAME_LIMIT        = 9;
+    private static final int FILE_NAME_LIMIT = 32;
+    private static final int TEST_NAME_LIMIT = 8;
 
-    private static final String TESTING_DIR = "./tests/";
-
+    private static final String TESTING_DIR     = "./tests/";
     private static final String EXPECTED_DIR    = TESTING_DIR + "expected/";
     private static final String SOURCE_FILE     = "src";
     private static final String LEXED_FILE      = "lex";
     private static final String PARSED_FILE     = "prs";
     private static final String TRANSPILED_FILE = "tsp";
-    private static final String INPUT_FILE      = "in";
+    private static final String INPUT_FILE      = "inp";
     private static final String OUTPUT_FILE     = "out";
 
     public static void main(String[] args) {
         String[] files;
-        if (args.length == 0) {
-            files = FileSystem.getDirectoryFiles(TESTING_DIR);
-        } else if (!args[0].equals("-update")) {
-            files = new String[]{args[0]};
-        } else {
-            files = FileSystem.getDirectoryFiles(TESTING_DIR);
-            updateTests();
+        if (args.length == 0) files = FileSystem.getDirectoryFiles(TESTING_DIR);
+        else {
+            Stack<String> fileStack = new Stack<>();
+            for (int i = 0; i < args.length; i++) {
+                if (args[i].equals("-reset")) {
+                    FileSystem.delete(EXPECTED_DIR);
+                    continue;
+                }
+                fileStack.push(args[i]);
+            }
+            files = new String[fileStack.size()];
+            for (int i = files.length - 1; i >= 0; i--) files[i] = fileStack.pop();
         }
 
         for (String file: files) {
-            String filenameSpacing = " ".repeat(FILE_NAME_LIMIT - file.length());
+            Interpreter.reset();
 
             // SOURCE
-            String srcActual = FileSystem.loadFile(TESTING_DIR + file);
-            check(srcActual, expectedName(file, SOURCE_FILE), getLogTemplate("source", file, filenameSpacing));
+            String code = FileSystem.loadFile(TESTING_DIR + file);
+            check(code, expectedName(file, SOURCE_FILE), getLogTemplate("source", file));
 
             // LEXED
-            Token[] lexedTokens = Lexer.lexFile(TESTING_DIR + file);
-            String  lexActual   = tokensToString(lexedTokens);
-            check(lexActual, expectedName(file, LEXED_FILE), getLogTemplate("lexed", file, filenameSpacing));
+            Token[] lexed = Lexer.lex(code, file);
+            check(tokensToString(lexed), expectedName(file, LEXED_FILE), getLogTemplate("lexed", file));
 
             // PARSED
-            Token[] parsedTokens = Parser.parseTokens(lexedTokens);
-            String  prsActual    = tokensToString(parsedTokens);
-            check(prsActual, expectedName(file, PARSED_FILE), getLogTemplate("parsed", file, filenameSpacing));
+            Token[] parsed = Parser.parse(lexed);
+            check(tokensToString(parsed), expectedName(file, PARSED_FILE), getLogTemplate("parsed", file));
 
             // INPUT
-            String inExpected = "";
+            String expectedInput = "";
             try {
-                inExpected = FileSystem.loadFile(expectedName(file, INPUT_FILE));
-                for (char c: inExpected.toCharArray()) Interpreter.inputBuffer.add((byte) c);
-                info(getLogTemplate("input", file, filenameSpacing) + "LOADED.");
+                expectedInput = FileSystem.loadFile(expectedName(file, INPUT_FILE));
+                for (char c: expectedInput.toCharArray()) Interpreter.inputBuffer.add((byte) c);
+                Utils.info(getLogTemplate("input", file) + "LOADED.");
             } catch (RuntimeException ignored) {}
 
             // OUTPUT
-            Interpreter.WRITE_ALLOWED = false;
-            String outActual = Interpreter.executeBrainFunk(parsedTokens);
-            check(outActual, expectedName(file, OUTPUT_FILE), getLogTemplate("output", file, filenameSpacing));
+            PrintStream           stdout    = System.out;
+            ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+            System.setOut(new PrintStream(outStream));
+            Interpreter.execute(parsed);
+            System.out.flush();
+            System.setOut(stdout);
+            check(outStream.toString(), expectedName(file, OUTPUT_FILE), getLogTemplate("output", file));
 
-            // INPUT
-            String inActual = Interpreter.inputMemory.toString();
-            if (inExpected.isEmpty() && !inActual.isEmpty()) {
-                FileSystem.saveFile(expectedName(file, INPUT_FILE), inActual);
-                info(getLogTemplate("input", file, filenameSpacing) + "SAVED.");
+            // SAVE INPUT
+            String input = Interpreter.inputMemory.toString();
+            if (expectedInput.isEmpty() && !input.isEmpty()) {
+                FileSystem.saveFile(expectedName(file, INPUT_FILE), input);
+                Utils.info(getLogTemplate("input", file) + "SAVED.");
             }
         }
     }
@@ -72,18 +77,16 @@ public class Testing {
     private static void check(String actual, String expectedName, String logTemplate) {
         try {
             String expected = FileSystem.loadFile(expectedName);
-            if (actual.equals(expected)) info(logTemplate + "OK.");
+            if (actual.equals(expected)) Utils.info(logTemplate + "OK.");
             else {
-                error(logTemplate + "DIFFERS!\n-------------------------------");
+                Utils.info(logTemplate + "DIFFERS!");
                 Levenstein.printDiff(actual, expected);
-                System.out.println("-------------------------------");
             }
         } catch (UncheckedIOException ignored) {
             FileSystem.saveFile(expectedName, actual);
-            info(logTemplate + "SAVED.");
+            Utils.info(logTemplate + "SAVED.");
         } catch (RuntimeException e) {
-            System.out.println(e);
-            System.exit(1);
+            Utils.error(e.toString());
         }
     }
 
@@ -97,37 +100,10 @@ public class Testing {
         return result.toString();
     }
 
-    private static String getLogTemplate(String testName, String file, String filenameSpacing) {
-        return "`%s`%s%s%s".formatted(file, filenameSpacing, testName, " ".repeat(TEST_NAME_LIMIT - testName.length()));
-    }
-
-    private static void updateTests() {
-        if (new File(EXPECTED_DIR).exists()) {
-            if (!FileSystem.delete(EXPECTED_DIR)) error("Could not delete directory containing expected results of tests.");
-            else info("Successfully cleared expected results of tests.");
-        } else info("The Directory containing expected results of tests doesn't exist, so there is nothing to clear.");
-    }
-
-    // TODO: extract to other classes
-    private static void info(String message) {
-        log("[INFO]:", message);
-    }
-
-    private static void error(String message) {
-        log("[ERROR]:", message);
-    }
-
-    private static void fatal(String message) {
-        log("[FATAL]:", message);
-        System.exit(1);
-    }
-
-    private static void log(String type, String message) {
-        StackTraceElement src                     = Thread.currentThread().getStackTrace()[2];
-        String            testingClassName        = "%s:%d".formatted(src.getFileName(), src.getLineNumber());
-        String            testingClassNameSpacing = " ".repeat(TEST_CLASS_NAME_LIMIT - testingClassName.length());
-        String            logSpacing              = " ".repeat(LOG_NAME_LIMIT - type.length());
-        System.out.printf("%s%s%s%s%s%n", testingClassName, testingClassNameSpacing, type, logSpacing, message);
+    private static String getLogTemplate(String testName, String file) {
+        String filenameSpacing = " ".repeat(FILE_NAME_LIMIT - file.length());
+        String testnameSpacing = " ".repeat(TEST_NAME_LIMIT - testName.length());
+        return "`%s`%s%s%s".formatted(file, filenameSpacing, testName, testnameSpacing);
     }
 
     private static class Levenstein {
@@ -139,6 +115,7 @@ public class Testing {
             String[] linesB = cur.split("\n", -1);
             Patch[]  diff   = Levenstein.getDiff(linesA, linesB);
 
+            System.out.println("-------------------------------");
             for (int i = 0; i < diff.length; i++) {
                 Patch patch  = diff[i];
                 char  action = patch.action;
@@ -149,7 +126,7 @@ public class Testing {
                     default -> throw new RuntimeException("Diff messed up somehow");
                 }
             }
-            System.out.print("\u001B[0m");
+            System.out.println("\u001B[0m-------------------------------");
         }
 
         public static Patch[] getDiff(String[] linesA, String[] linesB) {
