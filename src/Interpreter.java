@@ -4,11 +4,15 @@ import java.util.Stack;
 
 public class Interpreter {
 
+    public static boolean finished = false;
+
     private static final int TAPE_LEN       = 3000;
     private static final int REPETITION_CAP = 10;
 
     public static  byte[]         tape        = new byte[TAPE_LEN];
     public static  int            pointer     = 0;
+    public static  int            ip          = 0;
+    public static  Token[]        tokens      = new Token[0];
     private static Stack<Integer> returnStack = new Stack<>();
 
     private static Scanner         input       = new Scanner(System.in);
@@ -16,47 +20,64 @@ public class Interpreter {
     public static  StringBuilder   inputMemory = new StringBuilder();
 
     public static void reset() {
-        tape    = new byte[TAPE_LEN];
-        pointer = 0;
+        tokens = new Token[0];
+        restart();
+    }
+
+    public static void restart() {
+        finished = false;
+        tape     = new byte[TAPE_LEN];
+        pointer  = 0;
+        ip       = 0;
         returnStack.clear();
         inputBuffer.clear();
         inputMemory.setLength(0);
     }
 
-    public static void execute(Token[] tokens) {
-        for (int i = 0; i < tokens.length; i++) {
-            switch (tokens[i].type) {
-                case INC -> tape[pointer] += (byte) tokens[i].num;
-                case DEC -> tape[pointer] -= (byte) tokens[i].num;
-                case RGT -> pointer = ((pointer + tokens[i].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-                case LFT -> pointer = ((pointer - tokens[i].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-                case JEZ, UNSAFEJEZ -> {
-                    if (tape[pointer] == 0) i = tokens[i].num;
+    public static void execute() {
+        if (finished) Utils.error("Unable to execute the program because it is finished.");
+        switch (tokens[ip].type) {
+            case INC -> tape[pointer] += (byte) tokens[ip].num;
+            case DEC -> tape[pointer] -= (byte) tokens[ip].num;
+            case RGT -> pointer = ((pointer + tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+            case LFT -> pointer = ((pointer - tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+            case JEZ, UNSAFEJEZ -> {
+                if (tape[pointer] == 0) {
+                    ip = tokens[ip].num;
+                    return;
                 }
-                case JNZ, UNSAFEJNZ -> {
-                    if (tape[pointer] != 0) i = tokens[i].num;
-                }
-                case OUT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(tokens[i].num));
-                case INP -> read(tokens[i].num);
-                case STR -> {
-                    for (char c: tokens[i].str.toCharArray()) {
-                        tape[pointer] = (byte) c;
-                        pointer       = (++pointer % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-                    }
-                }
-                case PTR -> {
-                    returnStack.push(pointer);
-                    pointer = tokens[i].num;
-                }
-                case RET -> {
-                    if (returnStack.isEmpty()) Utils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[i]);
-                    pointer = returnStack.pop();
-                }
-                case COL -> {} // TODO: this is temporary
-                case SYS -> syscall();
-                default -> Utils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[i]);
             }
+            case JNZ, UNSAFEJNZ -> {
+                if (tape[pointer] != 0) {
+                    ip = tokens[ip].num;
+                    return;
+                }
+            }
+            case OUT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(tokens[ip].num));
+            case INP -> read(tokens[ip].num);
+            case STR -> {
+                for (char c: tokens[ip].str.toCharArray()) {
+                    tape[pointer] = (byte) c;
+                    pointer       = (++pointer % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+                }
+            }
+            case PTR -> {
+                returnStack.push(pointer);
+                pointer = tokens[ip].num;
+            }
+            case RET -> {
+                if (returnStack.isEmpty()) Utils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[ip]);
+                pointer = returnStack.pop();
+            }
+            case COL, WRD -> {} // TODO: this is temporary
+            case SYS -> syscall();
+            default -> Utils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[ip]);
         }
+        if (ip == tokens.length - 1) {
+            finished = true;
+            return;
+        }
+        ip++;
     }
 
     private static void read(int amount) {

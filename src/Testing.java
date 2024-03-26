@@ -60,7 +60,8 @@ public class Testing {
             PrintStream           stdout    = System.out;
             ByteArrayOutputStream outStream = new ByteArrayOutputStream();
             System.setOut(new PrintStream(outStream));
-            Interpreter.execute(parsed);
+            Interpreter.tokens = parsed;
+            while(!Interpreter.finished) Interpreter.execute();
             System.out.flush();
             System.setOut(stdout);
             check(outStream.toString(), expectedName(file, OUTPUT_FILE), getLogTemplate("output", file));

@@ -17,7 +17,8 @@ public class Main {
         Token[] parsed = Parser.parse(lexed);
         Utils.info("Parser OK.");
 
-        Interpreter.execute(parsed);
+        Interpreter.tokens = parsed;
+        while (!Interpreter.finished) Interpreter.execute();
     }
 
 }

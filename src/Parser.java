@@ -8,7 +8,7 @@ public class Parser {
     private static final int RECURSION_LIMIT = 1000;
     private static       int recursionCount  = 0;
 
-    private static HashMap<String, Token[]> macros   = new HashMap<>();
+    public static  HashMap<String, Token[]> macros   = new HashMap<>();
     private static int                      savedNum = 1;
 
     public static Token[] parse(Token[] tokens) {
@@ -84,7 +84,7 @@ public class Parser {
         return result;
     }
 
-    private static Token[] parseMacroCall(Token[] tokens, Token origin) {
+    public static Token[] parseMacroCall(Token[] tokens, Token origin) {
         recursionCount++;
         if (recursionCount >= RECURSION_LIMIT) Utils.error("Macro expansion limit exceeded.\n" + tokens[0]);
         Stack<Token> parsed = new Stack<>();
