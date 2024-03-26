@@ -3,8 +3,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.List;
-import java.util.*;
 
 public class Debugger {
 
@@ -16,10 +14,8 @@ public class Debugger {
 
     private static Token   mouseToken;
     private static Token[] tokens         = new Token[0];
-    private static Token[] lexedTokens    = new Token[0];
+    private static Token[] lexed          = new Token[0];
     private static Token[] unfoldedTokens = new Token[0];
-
-    private static int ip = 0;
 
     public static void main(String[] args) throws InterruptedException {
 
@@ -29,9 +25,12 @@ public class Debugger {
         filename = new File(filepath).getName();
         if (!filename.endsWith(".bfn") && !filename.endsWith(".bf")) error("Invalid file format. Please provide a .bf or .bfn file.");
 
-        filedata    = FileSystem.loadFile(filepath).split("\n", -1);
-        lexedTokens = Lexer.lexFile(filepath);
-        tokens      = filename.endsWith(".bfn") ? DebugParser.parseTokens(lexedTokens) : lexedTokens;
+        String code = FileSystem.loadFile(filepath);
+        filedata                = code.split("\n", -1);
+        lexed                   = Lexer.lex(code, filepath);
+        Parser.debug            = true;
+        tokens                  = Parser.parse(Token.deepCopy(lexed));
+        DebugInterpreter.tokens = tokens;
 
         DebugWindow debugWindow = new DebugWindow(1400, 785);
         while (true) {
@@ -111,7 +110,7 @@ public class Debugger {
                 @Override
                 public void keyPressed(KeyEvent e) {
 
-                    int savedRow = ip < tokens.length ? tokens[ip].row : 0;
+                    int savedRow = DebugInterpreter.ip < tokens.length ? tokens[DebugInterpreter.ip].row : 0;
                     int key      = e.getKeyCode();
 
                     if (key == KeyEvent.VK_ESCAPE) {
@@ -123,62 +122,43 @@ public class Debugger {
 
                         if (finished) {
                             DebugInterpreter.reset();
+                            finished = false;
                             return;
                         }
 
-                        if (tokens[ip].type == Token.Type.MACRO) {
+                        if (tokens[DebugInterpreter.ip].type == Token.Type.WRD) {
 
                             // If spacebar was pressed on a macro token, this executes everything it can find that
                             // has said macro token as its origin until it can't.
                             // This is bad
                             // TODO: Store tokens that belong to a given macro inside of said macro token
                             //  and execute those instead of just searching by name (which is bad).
-                            String macroName = tokens[ip].strValue;
-                            int    macroLvl  = getLevel(tokens[ip]);
-                            ip++;
-                            while (ip < tokens.length && getOriginOfLevel(tokens[ip], macroLvl).equals(macroName)) {
-                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                                ip++;
+                            String macroName = tokens[DebugInterpreter.ip].str;
+                            int    macroLvl  = getLevel(tokens[DebugInterpreter.ip]);
+                            while (DebugInterpreter.ip < tokens.length && getOriginOfLevel(tokens[DebugInterpreter.ip], macroLvl).equals(macroName)) {
+                                DebugInterpreter.execute();
                             }
 
-                        } else if (tokens[ip].type == Token.Type.WHILE) {
+                        } else if (tokens[DebugInterpreter.ip].type == Token.Type.JEZ || tokens[DebugInterpreter.ip].type == Token.Type.UNSAFEJEZ) {
 
-                            // TODO: store pointer to the end of given `WHILE` token
-                            //  and execute the chunk between them surrounded by
-                            //  both `WHILE` and `ENDWHILE` tokens
-                            Token start      = tokens[ip];
-                            int   startDepth = DebugInterpreter.whileDepth;
-                            do {
-                                DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                                ip++;
-                            }
-                            while (ip < tokens.length &&
-                                   (DebugInterpreter.whileDepth !=
-                                    startDepth ||
-                                    tokens[ip].eq(start)));
+                            int target = tokens[DebugInterpreter.ip].num + 1;
+                            while (DebugInterpreter.ip < tokens.length - 1 && DebugInterpreter.ip != target) DebugInterpreter.execute();
 
                         } else {
-
-                            // TODO: merge DebugInterpreter into Interpreter
-                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                            ip++;
-
+                            DebugInterpreter.execute();
                         }
 
 
                     } else if (!finished && key == KeyEvent.VK_ENTER) {
-
-                        DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                        ip++;
-
+                        DebugInterpreter.execute();
                     }
 
-                    if (ip < tokens.length) {
-                        int newOffsetY = codeOffsetY - (savedRow - tokens[ip].row) * cachedFontH;
+                    if (DebugInterpreter.ip < tokens.length) {
+                        int newOffsetY = codeOffsetY - (savedRow - tokens[DebugInterpreter.ip].row) * cachedFontH;
                         codeOffsetY = Utils.clampi(newOffsetY, 0, cachedLinesToBottom * cachedFontH);
                     }
 
-                    finished |= ip >= tokens.length;
+                    finished |= DebugInterpreter.ip >= tokens.length;
                 }
 
                 private int getLevel(Token tk) {
@@ -196,7 +176,7 @@ public class Debugger {
                         tk = tk.origin;
                         tkLvl--;
                     }
-                    if (tkLvl == lvl && tk.type == Token.Type.MACRO) return tk.strValue;
+                    if (tkLvl == lvl && tk.type == Token.Type.WRD) return tk.str;
                     return "";
                 }
             });
@@ -217,14 +197,13 @@ public class Debugger {
 
                     if (b == MouseEvent.BUTTON1 && !unfolding) {
 
-                        while (mouseToken != null && ip < tokens.length && !tokens[ip].eq(mouseToken)) {
-                            DebugInterpreter.debugExecuteBrainFunk(tokens[ip]);
-                            ip++;
+                        while (mouseToken != null && DebugInterpreter.ip < tokens.length && !tokens[DebugInterpreter.ip].eq(mouseToken)) {
+                            DebugInterpreter.execute();
                         }
 
-                        if (ip >= tokens.length) finished = true;
+                        if (DebugInterpreter.ip >= tokens.length) finished = true;
 
-                    } else if (b == MouseEvent.BUTTON3 && mouseToken != null && mouseToken.type == Token.Type.MACRO) {
+                    } else if (b == MouseEvent.BUTTON3 && mouseToken != null && mouseToken.type == Token.Type.WRD) {
 
                         if (unfolding) {
 
@@ -233,7 +212,7 @@ public class Debugger {
                                 if (unfoldedTokens[mouseTokenLoc].eq(mouseToken)) break;
                             }
 
-                            Token[] macroTokens = findLexedMacroDef(mouseToken.strValue).macroTokens;
+                            Token[] macroTokens = findLexedMacroDef(mouseToken.str).macroTokens;
 
                             int startRow = macroTokens[0].row;
                             int startCol = macroTokens[0].col;
@@ -254,11 +233,11 @@ public class Debugger {
 
                             int endCol = macroTokens[macroTokens.length - 1].col;
 
-                            if (macroTokens[macroTokens.length - 1].type == Token.Type.MACRO) {
-                                endCol += macroTokens[macroTokens.length - 1].strValue.length() - 1;
+                            if (macroTokens[macroTokens.length - 1].type == Token.Type.WRD) {
+                                endCol += macroTokens[macroTokens.length - 1].str.length() - 1;
                             }
 
-                            int mtkColDiff = endCol - unfoldedTokens[mouseTokenLoc].col + 1 - mouseToken.strValue.length();
+                            int mtkColDiff = endCol - unfoldedTokens[mouseTokenLoc].col + 1 - mouseToken.str.length();
                             int mtkRowDiff = endRow - unfoldedTokens[mouseTokenLoc].row;
 
                             for (int i = mouseTokenLoc; i < unfoldedTokens.length; i++) {
@@ -282,7 +261,7 @@ public class Debugger {
 
                         } else {
 
-                            unfoldedTokens = findLexedMacroDef(mouseToken.strValue).macroTokens;
+                            unfoldedTokens = findLexedMacroDef(mouseToken.str).macroTokens;
 
                             int startRow = unfoldedTokens[0].row;
                             int startCol = unfoldedTokens[0].col;
@@ -304,9 +283,9 @@ public class Debugger {
                 }
 
                 private Token findLexedMacroDef(String strValue) {
-                    for (Token t: lexedTokens) {
-                        if (t.type == Token.Type.MACRODEF && t.strValue.equals(strValue)) return t;
-                    }
+                    // for (Token t: lexedTokens) {
+                    //     if (t.type == Token.Type.MACRODEF && t.strValue.equals(strValue)) return t;
+                    // }
                     return null;
                 }
             });
@@ -378,7 +357,7 @@ public class Debugger {
             // Current token outline
             if (!finished) {
                 g2d.setColor(Color.ORANGE);
-                Token tk    = tokens[ip];
+                Token tk    = tokens[DebugInterpreter.ip];
                 int   prevX = Integer.MIN_VALUE;
                 int   prevY = Integer.MIN_VALUE;
                 while (tk != null) {
@@ -391,7 +370,7 @@ public class Debugger {
 
                     // TODO: maybe a pretty drawArc()?)
 
-                    if (prevX != Integer.MIN_VALUE && prevY != Integer.MIN_VALUE){
+                    if (prevX != Integer.MIN_VALUE && prevY != Integer.MIN_VALUE) {
                         g2d.drawLine(ipX + ipW / 2, ipY + ipH / 2, prevX, prevY);
                     }
 
@@ -503,7 +482,7 @@ public class Debugger {
         }
     }
 
-    private static class DebugParser {
+    /*private static class DebugParser {
 
         private static final int RECURSION_LIMIT = 1000;
         private static       int recursionCount  = 0;
@@ -522,26 +501,27 @@ public class Debugger {
             Stack<Token> parsed = new Stack<>();
             for (Token tk: tokens) {
                 if (tk.origin == null) tk.origin = origin;
-                if (tk.type == Token.Type.MACRODEF) {
-                    if (macros.containsKey(tk.strValue)) error("Redefinition of a macro %s.".formatted(tk));
-                    macros.put(tk.strValue, tk.macroTokens);
-                } else if (tk.type == Token.Type.MACRO) {
+                // if (tk.type == Token.Type.MACRODEF) {
+                //     if (macros.containsKey(tk.strValue)) error("Redefinition of a macro %s.".formatted(tk));
+                //     macros.put(tk.strValue, tk.macroTokens);
+                // } else
+                    if (tk.type == Token.Type.WRD) {
                     int amount     = 1;
                     int parsedSize = parsed.size();
-                    if (parsedSize > 0 && parsed.peek().type == Token.Type.NUMBER
-                        && (parsedSize < 2 || parsed.get(parsedSize - 2).type != Token.Type.POINTER)) {
-                        amount = parsed.pop().numValue;
+                    if (parsedSize > 0 && parsed.peek().type == Token.Type.NUM
+                        && (parsedSize < 2 || parsed.get(parsedSize - 2).type != Token.Type.PTR)) {
+                        amount = parsed.pop().num;
                     }
-                    if (!macros.containsKey(tk.strValue)) error("Undefined macro %s.".formatted(tk));
+                    if (!macros.containsKey(tk.str)) error("Undefined macro %s.".formatted(tk));
 
                     // manually deep copying current macro tokens to avoid making a copy of references
-                    Token[] savedMacroTokens = macros.get(tk.strValue);
+                    Token[] savedMacroTokens = macros.get(tk.str);
                     Token[] tokensToPass     = new Token[savedMacroTokens.length];
                     for (int i = 0; i < savedMacroTokens.length; i++) {
                         Token savedToken = savedMacroTokens[i];
                         tokensToPass[i]          = new Token(savedToken.type, savedToken.file, savedToken.row, savedToken.col);
-                        tokensToPass[i].numValue = savedToken.numValue;
-                        tokensToPass[i].strValue = savedToken.strValue;
+                        tokensToPass[i].num = savedToken.num;
+                        tokensToPass[i].str = savedToken.str;
                     }
 
                     List<Token> macroTokens = List.of(parseMacros(tokensToPass, tk));
@@ -559,10 +539,10 @@ public class Debugger {
             Stack<Token> parsed = new Stack<>();
             for (int i = 0; i < tokens.length; i++) {
                 Token tk = tokens[i];
-                if (tk.type == Token.Type.POINTER) {
-                    if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.NUMBER)
+                if (tk.type == Token.Type.PTR) {
+                    if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.NUM)
                         error("Invalid argument for a pointer! Expected a number after: " + tk);
-                    tk.numValue = tokens[++i].numValue;
+                    tk.num = tokens[++i].num;
                 }
                 parsed.push(tk);
             }
@@ -598,11 +578,11 @@ public class Debugger {
 
         private static void debugExecuteBrainFunk(Token tk) {
             switch (tk.type) {
-                case ADD -> tape[pointer] += (byte) getVal();
-                case SUB -> tape[pointer] -= (byte) getVal();
-                case PTRADD -> ptradd(getVal());
-                case PTRSUB -> ptradd(-getVal());
-                case WHILE -> {
+                case INC -> tape[pointer] += (byte) getVal();
+                case DEC -> tape[pointer] -= (byte) getVal();
+                case RGT -> ptradd(getVal());
+                case LFT -> ptradd(-getVal());
+                case JEZ, UNSAFEJEZ -> {
                     if (ip == tokens.length - 1)
                         error("Unmatched brackets at: " + tokens[ip]);
                     if (tape[pointer] == 0) {
@@ -611,14 +591,14 @@ public class Debugger {
                         whileDepth += getVal();
                         while (whileDepth > startDepth) {
                             tk = tokens[++ip];
-                            if (tk.type == Token.Type.WHILE) whileDepth += getVal();
-                            else if (tk.type == Token.Type.ENDWHILE) whileDepth -= getVal();
+                            if (tk.type == Token.Type.JEZ) whileDepth += getVal();
+                            else if (tk.type == Token.Type.JNZ) whileDepth -= getVal();
                             if (whileDepth != 0 && ip == tokens.length - 1)
                                 error("Unmatched brackets at: " + tokens[startIp]);
                         }
                     } else whileDepth += getVal();
                 }
-                case ENDWHILE -> {
+                case JNZ, UNSAFEJNZ -> {
                     // TODO: This is wrong. Mostly in the places of `getVal()`
                     int val = getVal();
                     for (int i = 0; i < val; i++) {
@@ -627,8 +607,8 @@ public class Debugger {
                             int startDepth = whileDepth - 1;
                             while (whileDepth > startDepth) {
                                 tk = tokens[--ip];
-                                if (tk.type == Token.Type.ENDWHILE) whileDepth += getVal();
-                                else if (tk.type == Token.Type.WHILE) whileDepth -= getVal();
+                                if (tk.type == Token.Type.JNZ || tk.type == Token.Type.UNSAFEJNZ) whileDepth += getVal();
+                                else if (tk.type == Token.Type.JEZ || tk.type == Token.Type.UNSAFEJEZ) whileDepth -= getVal();
                                 if (whileDepth != 0 && ip == 0)
                                     error("Unmatched brackets at: " + tokens[startIp]);
                             }
@@ -636,33 +616,34 @@ public class Debugger {
                         } else whileDepth--;
                     }
                 }
-                case WRITE -> write(getVal());
-                case READ -> read(getVal());
-                case NUMBER -> saveVal(tk);
-                case STRING -> {
+                case OUT -> write(getVal());
+                case INP -> read(getVal());
+                case NUM -> saveVal(tk);
+                case STR -> {
                     int val = getVal();
                     for (int j = 0; j < val; j++) {
-                        for (int k = 0; k < tk.strValue.length(); k++) {
-                            tape[pointer] = (byte) tk.strValue.charAt(k);
+                        for (int k = 0; k < tk.str.length(); k++) {
+                            tape[pointer] = (byte) tk.str.charAt(k);
                             ptradd(1);
                         }
                     }
                 }
-                case POINTER -> {
+                case PTR -> {
                     int val = getVal();
                     for (int j = 0; j < val; j++) {
                         ptrHistory.push(pointer);
-                        pointer = tk.numValue;
+                        pointer = tk.num;
                     }
                 }
-                case RETURN -> {
+                case RET -> {
                     int val = getVal();
                     for (int j = 0; j < val; j++) {
                         if (ptrHistory.isEmpty()) error("Not enough pointer history for: " + tk);
                         pointer = ptrHistory.pop();
                     }
                 }
-                case MACRO -> {}
+                case WRD -> {}
+                case COL -> ip++;
                 default -> error("Unknown token type `" + tk.type + "`");
             }
         }
@@ -673,7 +654,7 @@ public class Debugger {
 
         private static void saveVal(Token tk) {
             if (savedVal >= 0) error("Two consecutive numbers after one another are not supported: " + tk);
-            savedVal = tk.numValue;
+            savedVal = tk.num;
         }
 
         private static int getVal() {
@@ -700,5 +681,5 @@ public class Debugger {
         private static void write(int amount) {
             for (int i = 0; i < amount; i++) System.out.print((char) tape[pointer]);
         }
-    }
+    }*/
 }

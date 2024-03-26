@@ -82,6 +82,8 @@ public class Token {
     public String toString() {
         StringBuilder result = new StringBuilder("%s:%d:%d [%s{%d}".formatted(file, row + 1, col, type, num, str));
         if (str != null) result.append(":{\"").append(str).append("\"}");
-        return result.append("]").toString();
+        result.append("]");
+        if (origin != null) result.append("\n    From: ").append(origin);
+        return result.toString();
     }
 }
