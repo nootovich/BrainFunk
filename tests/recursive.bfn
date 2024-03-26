@@ -1,0 +1,4 @@
+// one iteration : +-++-+-+
+// which is just : ++
+// outputs : "0"
+a:b c;b:c d;c:d e;d:e -;e:+;24a.

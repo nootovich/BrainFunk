@@ -28,7 +28,8 @@ public class Debugger {
         String code = FileSystem.loadFile(filepath);
         filedata                = code.split("\n", -1);
         lexed                   = Lexer.lex(code, filepath);
-        tokens                  = filename.endsWith(".bfn") ? Parser.parse(lexed) : lexed;
+        Parser.debug            = true;
+        tokens                  = Parser.parse(Token.deepCopy(lexed));
         DebugInterpreter.tokens = tokens;
 
         DebugWindow debugWindow = new DebugWindow(1400, 785);

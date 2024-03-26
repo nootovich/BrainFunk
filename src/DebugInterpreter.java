@@ -61,7 +61,7 @@ public class DebugInterpreter {
                 if (returnStack.isEmpty()) Utils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[ip]);
                 pointer = returnStack.pop();
             }
-            case COL -> {} // TODO: this is temporary
+            case COL, WRD -> {} // TODO: this is temporary
             case SYS -> syscall();
             default -> Utils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[ip]);
         }
