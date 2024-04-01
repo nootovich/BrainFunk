@@ -50,6 +50,19 @@ public class Debugger {
 
         private final Color COLOR_BG   = new Color(0x3D4154);
         private final Color COLOR_DATA = new Color(0x4C5470);
+        public enum colorEnum {
+            COLOR_BG, COLOR_DATA, COLOR_TEXT, COLOR_TEXT_FADED, COLOR_HIGHLIGHT, COLOR_SELECT, COLOR_CONNECTION
+        }
+
+        public Color[] colors = new Color[]{
+            new Color(0x153243),
+            new Color(0x284B63),
+            new Color(0xFFFFFF),
+            new Color(0x7EA8BE),
+            new Color(0x5EF38C),
+            new Color(0xFFC69B),
+            new Color(0xD9E985),
+            };
 
         private final int cachedFontW, cachedFontH;
         private final int cachedLinesToBottom;
@@ -82,7 +95,6 @@ public class Debugger {
             g2d = (Graphics2D) buffer.getGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.setBackground(COLOR_BG);
             g2d.setFont(font);
 
             FontMetrics metrics = g2d.getFontMetrics();
@@ -97,7 +109,7 @@ public class Debugger {
                 public void keyPressed(KeyEvent e) {
                     int savedRow = Interpreter.ip < Interpreter.tokens.length ? Interpreter.tokens[Interpreter.ip].row : 0;
 
-                    switch(e.getKeyCode()) {
+                    switch (e.getKeyCode()) {
                         case KeyEvent.VK_ESCAPE -> {
                             Utils.info("Debugger terminated by user.");
                             System.exit(0);
@@ -156,81 +168,86 @@ public class Debugger {
                             }
                         }
 
-                    } else if (b == MouseEvent.BUTTON3 && mouseToken != null && mouseToken.type == Token.Type.WRD) {
+                    } else if (b == MouseEvent.BUTTON3) {
+                        if (mouseToken == null) {
+                            unfolding  = false;
+                            mouseToken = null;
+                        } else if (mouseToken.type == Token.Type.WRD) {
 
-                        if (unfolding) {
+                            if (unfolding) {
 
-                            int mouseTokenLoc = 0;
-                            for (; mouseTokenLoc < unfoldedTokens.length; mouseTokenLoc++) {
-                                if (unfoldedTokens[mouseTokenLoc].eq(mouseToken)) break;
-                            }
-
-                            Token[] macroTokens = Parser.macros.get(mouseToken.str);
-
-                            int startRow = macroTokens[0].row;
-                            int startCol = macroTokens[0].col;
-
-                            for (int i = 0; i < macroTokens.length; i++) {
-                                macroTokens[i].row -= startRow;
-                                macroTokens[i].row += mouseToken.row;
-                            }
-
-                            startRow = macroTokens[0].row;
-                            int endRow = macroTokens[macroTokens.length - 1].row;
-
-                            for (int i = 0; i < macroTokens.length; i++) {
-                                if (macroTokens[i].row != startRow) break;
-                                macroTokens[i].col -= startCol;
-                                macroTokens[i].col += mouseToken.col;
-                            }
-
-                            int endCol = macroTokens[macroTokens.length - 1].col;
-
-                            if (macroTokens[macroTokens.length - 1].type == Token.Type.WRD) {
-                                endCol += macroTokens[macroTokens.length - 1].str.length() - 1;
-                            }
-
-                            int mtkColDiff = endCol - unfoldedTokens[mouseTokenLoc].col + 1 - mouseToken.str.length();
-                            int mtkRowDiff = endRow - unfoldedTokens[mouseTokenLoc].row;
-
-                            for (int i = mouseTokenLoc; i < unfoldedTokens.length; i++) {
-                                unfoldedTokens[i].row += mtkRowDiff;
-                                if (unfoldedTokens[i].row == mouseToken.row) {
-                                    unfoldedTokens[i].col += mtkColDiff;
+                                int mouseTokenLoc = 0;
+                                for (; mouseTokenLoc < unfoldedTokens.length; mouseTokenLoc++) {
+                                    if (unfoldedTokens[mouseTokenLoc].eq(mouseToken)) break;
                                 }
+
+                                Token[] macroTokens = Parser.macros.get(mouseToken.str);
+
+                                int startRow = macroTokens[0].row;
+                                int startCol = macroTokens[0].col;
+
+                                for (int i = 0; i < macroTokens.length; i++) {
+                                    macroTokens[i].row -= startRow;
+                                    macroTokens[i].row += mouseToken.row;
+                                }
+
+                                startRow = macroTokens[0].row;
+                                int endRow = macroTokens[macroTokens.length - 1].row;
+
+                                for (int i = 0; i < macroTokens.length; i++) {
+                                    if (macroTokens[i].row != startRow) break;
+                                    macroTokens[i].col -= startCol;
+                                    macroTokens[i].col += mouseToken.col;
+                                }
+
+                                int endCol = macroTokens[macroTokens.length - 1].col;
+
+                                if (macroTokens[macroTokens.length - 1].type == Token.Type.WRD) {
+                                    endCol += macroTokens[macroTokens.length - 1].str.length() - 1;
+                                }
+
+                                int mtkColDiff = endCol - unfoldedTokens[mouseTokenLoc].col + 1 - mouseToken.str.length();
+                                int mtkRowDiff = endRow - unfoldedTokens[mouseTokenLoc].row;
+
+                                for (int i = mouseTokenLoc; i < unfoldedTokens.length; i++) {
+                                    unfoldedTokens[i].row += mtkRowDiff;
+                                    if (unfoldedTokens[i].row == mouseToken.row) {
+                                        unfoldedTokens[i].col += mtkColDiff;
+                                    }
+                                }
+
+                                Token[] temp = unfoldedTokens;
+                                unfoldedTokens = new Token[unfoldedTokens.length + macroTokens.length - 1];
+
+                                Token[] macroTokensCopy = Token.deepCopy(macroTokens);
+                                System.arraycopy(temp, 0, unfoldedTokens, 0, mouseTokenLoc);
+                                System.arraycopy(macroTokensCopy, 0, unfoldedTokens, mouseTokenLoc, macroTokens.length);
+                                System.arraycopy(temp, mouseTokenLoc + 1, unfoldedTokens, mouseTokenLoc + macroTokens.length, temp.length - mouseTokenLoc - 1);
+
+                                updateUnfoldedData();
+
+                                mouseToken = null;
+
+                            } else {
+
+                                unfoldedTokens = Parser.macros.get(mouseToken.str);
+
+                                int startRow = unfoldedTokens[0].row;
+                                int startCol = unfoldedTokens[0].col;
+
+                                for (int i = 0; i < unfoldedTokens.length; i++) {
+                                    unfoldedTokens[i].row -= startRow;
+                                }
+
+                                for (int i = 0; i < unfoldedTokens.length; i++) {
+                                    if (unfoldedTokens[i].row != startRow) break;
+                                    unfoldedTokens[i].col -= startCol;
+                                }
+
+                                updateUnfoldedData();
+                                unfolding  = true;
+                                mouseToken = null;
                             }
-
-                            Token[] temp = unfoldedTokens;
-                            unfoldedTokens = new Token[unfoldedTokens.length + macroTokens.length - 1];
-
-                            Token[] macroTokensCopy = Token.deepCopy(macroTokens);
-                            System.arraycopy(temp, 0, unfoldedTokens, 0, mouseTokenLoc);
-                            System.arraycopy(macroTokensCopy, 0, unfoldedTokens, mouseTokenLoc, macroTokens.length);
-                            System.arraycopy(temp, mouseTokenLoc + 1, unfoldedTokens, mouseTokenLoc + macroTokens.length, temp.length - mouseTokenLoc - 1);
-
-                            updateUnfoldedData();
-
-                            mouseToken = null;
-
-                        } else {
-
-                            unfoldedTokens = Parser.macros.get(mouseToken.str);
-
-                            int startRow = unfoldedTokens[0].row;
-                            int startCol = unfoldedTokens[0].col;
-
-                            for (int i = 0; i < unfoldedTokens.length; i++) {
-                                unfoldedTokens[i].row -= startRow;
-                            }
-
-                            for (int i = 0; i < unfoldedTokens.length; i++) {
-                                if (unfoldedTokens[i].row != startRow) break;
-                                unfoldedTokens[i].col -= startCol;
-                            }
-
-                            updateUnfoldedData();
-                            unfolding  = true;
-                            mouseToken = null;
                         }
                     }
                 }
@@ -253,19 +270,20 @@ public class Debugger {
         }
 
         public void paint(Graphics g) {
-            g2d.clearRect(0, 0, w, h);
+            g2d.setColor(colors[colorEnum.COLOR_BG.ordinal()]);
+            g2d.fillRect(0, 0, w, h);
 
-            g2d.setColor(COLOR_DATA);
+            g2d.setColor(colors[colorEnum.COLOR_DATA.ordinal()]);
             g2d.fillRect(codeX, codeY, codeW, codeH);
             g2d.fillRect(tapeX, tapeY, tapeW, tapeH);
 
             if (Interpreter.finished) {
-                g2d.setColor(Color.ORANGE);
+                g2d.setColor(colors[colorEnum.COLOR_HIGHLIGHT.ordinal()]);
                 String execFinished = "Execution finished, press \"SPACE\" to restart";
                 g2d.drawString(execFinished, codeX + codeW / 2 - (cachedFontW * execFinished.length() / 2), codeY + codeH + cachedFontH);
             }
 
-            g2d.setColor(Color.WHITE);
+            g2d.setColor(colors[colorEnum.COLOR_TEXT.ordinal()]);
 
             // Memory values
             {
@@ -276,9 +294,11 @@ public class Debugger {
                     String val = hex(Interpreter.tape[i]);
                     g2d.drawString(val, x + 8, y);
                     if (i == Interpreter.pointer) {
-                        g2d.setColor(Color.ORANGE);
+                        g2d.setColor(colors[colorEnum.COLOR_HIGHLIGHT.ordinal()]);
+                        g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
                         g2d.drawRect(x + 8, y - cachedFontH + 4, cachedFontW * 2, cachedFontH);
-                        g2d.setColor(Color.WHITE);
+                        g2d.setColor(colors[colorEnum.COLOR_TEXT.ordinal()]);
+                        g2d.setStroke(new BasicStroke(1));
                     }
                     x += valW;
                     if (x >= w - codeX - valW) {
@@ -292,7 +312,7 @@ public class Debugger {
 
             // Program
             {
-                if (unfolding) g2d.setColor(Color.LIGHT_GRAY);
+                if (unfolding) g2d.setColor(colors[colorEnum.COLOR_TEXT_FADED.ordinal()]);
                 int y = codeY + cachedFontH - codeOffsetY;
                 for (int i = 0; i < filedata.length; i++) {
                     g2d.drawString(filedata[i], codeX + 8, y);
@@ -302,7 +322,8 @@ public class Debugger {
 
             // Current token outline
             if (!Interpreter.finished) {
-                g2d.setColor(Color.ORANGE);
+                g2d.setColor(colors[colorEnum.COLOR_HIGHLIGHT.ordinal()]);
+                g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
                 Token tk    = Interpreter.tokens[Interpreter.ip];
                 int   prevX = Integer.MIN_VALUE;
                 int   prevY = Integer.MIN_VALUE;
@@ -312,7 +333,8 @@ public class Debugger {
                     int ipW = tk.len() * cachedFontW;
                     int ipH = cachedFontH;
                     g2d.drawRect(ipX, ipY, ipW, ipH);
-                    g2d.setColor(Color.GRAY);
+                    g2d.setStroke(new BasicStroke(1));
+                    g2d.setColor(colors[colorEnum.COLOR_CONNECTION.ordinal()]);
 
                     // TODO: maybe a pretty drawArc()?)
 
@@ -328,7 +350,7 @@ public class Debugger {
 
             // Unfolding window
             if (unfolding) {
-                g2d.setColor(COLOR_DATA);
+                g2d.setColor(colors[colorEnum.COLOR_DATA.ordinal()]);
                 String[] uData = unfoldedData.split("\n", -1);
                 int      w     = 0;
                 int      h     = uData.length * cachedFontH;
@@ -365,7 +387,8 @@ public class Debugger {
                 }
                 ipW = mouseToken.len() * cachedFontW;
                 ipH = cachedFontH;
-                g2d.setColor(Color.CYAN);
+                g2d.setColor(colors[colorEnum.COLOR_SELECT.ordinal()]);
+                g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
                 g2d.drawRect(ipX, ipY, ipW, ipH);
             }
 
