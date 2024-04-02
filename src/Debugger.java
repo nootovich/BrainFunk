@@ -48,8 +48,6 @@ public class Debugger {
         private final BufferedImage buffer;
         private final Font          font = new Font("Roboto Mono", Font.PLAIN, 16);
 
-        private final Color COLOR_BG   = new Color(0x3D4154);
-        private final Color COLOR_DATA = new Color(0x4C5470);
         public enum colorEnum {
             COLOR_BG, COLOR_DATA, COLOR_TEXT, COLOR_TEXT_FADED, COLOR_HIGHLIGHT, COLOR_SELECT, COLOR_CONNECTION
         }
