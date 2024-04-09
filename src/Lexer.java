@@ -25,8 +25,8 @@ public class Lexer {
                 else if (c == ':') lexed.push(new Token(Token.Type.COL, filepath, row, col));
                 else if (c == ';') lexed.push(new Token(Token.Type.SCL, filepath, row, col));
                 else if (c == '@') lexed.push(new Token(Token.Type.SYS, filepath, row, col));
-                else if (c == '{') lexed.push(new Token(Token.Type.UNSAFEJEZ, filepath, row, col));
-                else if (c == '}') lexed.push(new Token(Token.Type.UNSAFEJNZ, filepath, row, col));
+                else if (c == '{') lexed.push(new Token(Token.Type.URS, filepath, row, col));
+                else if (c == '}') lexed.push(new Token(Token.Type.URE, filepath, row, col));
 
                 else if (c == '"') {
                     int           scol = col;

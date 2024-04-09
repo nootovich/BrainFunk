@@ -9,15 +9,17 @@ public class Interpreter {
     private static final int TAPE_LEN       = 3000;
     private static final int REPETITION_CAP = 10;
 
-    public static  byte[]         tape        = new byte[TAPE_LEN];
-    public static  int            pointer     = 0;
-    public static  int            ip          = 0;
-    public static  Token[]        tokens      = new Token[0];
-    private static Stack<Integer> returnStack = new Stack<>();
+    public static        byte[]         tape         = new byte[TAPE_LEN];
+    public static        int            pointer      = 0;
+    public static        int            ip           = 0;
+    private static       int            unsafeStart  = -1;
+    public static        Token[]        tokens       = new Token[0];
+    private static final Stack<Integer> returnStack  = new Stack<>();
+    private static final Stack<Integer> pointerStack = new Stack<>();
 
-    private static Scanner         input       = new Scanner(System.in);
-    public static  ArrayList<Byte> inputBuffer = new ArrayList<>();
-    public static  StringBuilder   inputMemory = new StringBuilder();
+    private static final Scanner         input       = new Scanner(System.in);
+    public static        ArrayList<Byte> inputBuffer = new ArrayList<>();
+    public static        StringBuilder   inputMemory = new StringBuilder();
 
     public static void reset() {
         tokens = new Token[0];
@@ -41,17 +43,42 @@ public class Interpreter {
             case DEC -> tape[pointer] -= (byte) tokens[ip].num;
             case RGT -> pointer = ((pointer + tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
             case LFT -> pointer = ((pointer - tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-            case JEZ, UNSAFEJEZ -> {
+            case JEZ -> {
                 if (tape[pointer] == 0) {
-                    ip = tokens[ip].num;
+                    ip = tokens[ip].num + 1;
                     return;
+                } else if (unsafeStart == -1) {
+                    pointerStack.push(pointer);
                 }
             }
-            case JNZ, UNSAFEJNZ -> {
+            case JNZ -> {
+                if (unsafeStart == -1) {
+                    int expectedPointer = pointerStack.pop();
+                    if (pointer != expectedPointer) {
+                        while (!pointerStack.isEmpty()) Utils.info("STACK DUMP: " + pointerStack.pop());
+                        Utils.error("Unexpected pointer location when leaving a loop: %s%nExpected '%d' but got '%d'."
+                                        .formatted(tokens[ip], expectedPointer, pointer));
+                    }
+                }
                 if (tape[pointer] != 0) {
                     ip = tokens[ip].num;
                     return;
                 }
+            }
+            case URS -> {
+                if (unsafeStart != -1) Utils.error("Invalid unsafe region start token: " + tokens[ip]);
+                unsafeStart = pointer;
+            }
+            case URE -> {
+                if (unsafeStart == -1) Utils.error("Invalid unsafe region end token: " + tokens[ip]);
+                if (ip < tokens.length-1 && tokens[ip+1].type == Token.Type.COL){
+                    unsafeStart = tokens[++ip].num;
+                }
+                if (pointer != unsafeStart) {
+                    Utils.error("Unexpected pointer location when leaving an unsafe region: %s%nExpected '%d' but got '%d'."
+                                    .formatted(tokens[ip], unsafeStart, pointer));
+                }
+                unsafeStart = -1;
             }
             case OUT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(tokens[ip].num));
             case INP -> read(tokens[ip].num);
@@ -69,7 +96,7 @@ public class Interpreter {
                 if (returnStack.isEmpty()) Utils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[ip]);
                 pointer = returnStack.pop();
             }
-            case COL, WRD -> {} // TODO: this is temporary
+            case WRD -> {} // TODO: this is temporary
             case SYS -> syscall();
             default -> Utils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[ip]);
         }

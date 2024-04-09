@@ -4,7 +4,7 @@ public class Token {
         INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, // VANILLA
         NUM, STR, PTR, RET, WRD,
         COL, SCL,
-        UNSAFEJEZ, UNSAFEJNZ,
+        URS, URE,
         SYS, ERR
     }
 
@@ -54,8 +54,8 @@ public class Token {
             case RET -> "#";
             case COL -> ":";
             case SCL -> ";";
-            case UNSAFEJEZ -> "{";
-            case UNSAFEJNZ -> "}";
+            case URS -> "{";
+            case URE -> "}";
             case SYS -> "@";
             case ERR -> throw new RuntimeException("Attempted to get a representation of an `ERROR` token... HOW!?");
         };

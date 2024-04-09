@@ -9,6 +9,6 @@ dup:clnregs[-r0+r1+##]r1[-#+r1]#;
 
 // writing output to console
 println:print >10+.[-]<;
-print:<[<]>[.>]<;
+print:{<[<]>[.>]}<;
 
-$4 "Hello, world!" < println dup println
+$4 "Hello, world!" println dup println

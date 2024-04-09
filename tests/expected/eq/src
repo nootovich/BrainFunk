@@ -22,7 +22,7 @@ eq:dup2tor2 r2>>+<<[->-<]>[[-]>[-]<]>[-<<+>>]#;
 
 // writing output to console
 println:print 10+.[-];
-print:<[<]>[.>]<clear;
+print:{<[<]>[.>]<clear};
 clear:[[-]<]>;
 
 $4  2 +> 2  + eq r2 48+ println

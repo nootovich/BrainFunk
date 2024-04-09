@@ -1,6 +1,6 @@
 println:print 10+.[-];
-print:<[<]>[.>]<clear;
-clear:[[-]<]>;
+print:{<[<]>[.>]}<clear;
+clear:{[[-]<]>}:0;
 
 "Hello, world!" println
 

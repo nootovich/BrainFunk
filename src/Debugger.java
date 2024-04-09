@@ -260,7 +260,6 @@ public class Debugger {
             });
 
             pack();
-            Insets insets = getInsets();
             setSize(width + insets.left + insets.right, height + insets.top + insets.bottom);
             setLocation(x, y);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
