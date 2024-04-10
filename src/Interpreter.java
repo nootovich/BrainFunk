@@ -4,10 +4,12 @@ import java.util.Stack;
 
 public class Interpreter {
 
-    public static boolean finished = false;
-
     private static final int TAPE_LEN       = 3000;
     private static final int REPETITION_CAP = 10;
+
+    public static Main.ProgramType programType = Main.ProgramType.ERR;
+
+    public static boolean finished = false;
 
     public static        byte[]         tape         = new byte[TAPE_LEN];
     public static        int            pointer      = 0;
@@ -22,7 +24,8 @@ public class Interpreter {
     public static        StringBuilder   inputMemory = new StringBuilder();
 
     public static void reset() {
-        tokens = new Token[0];
+        programType = Main.ProgramType.ERR;
+        tokens      = new Token[0];
         restart();
     }
 
@@ -36,9 +39,20 @@ public class Interpreter {
         inputMemory.setLength(0);
     }
 
+    public static void loadProgram(Token[] program, Main.ProgramType pType) {
+        tokens      = program;
+        programType = pType;
+    }
+
     public static void execute() {
-        if (finished) Utils.error("Unable to execute the program because it is finished.");
+        if (programType == Main.ProgramType.ERR) {
+            Utils.error("The program was not loaded properly. Please use `loadProgram()` function.");
+        } else if (finished) {
+            Utils.error("Unable to execute the program because it is finished.");
+        }
         switch (tokens[ip].type) {
+
+            // BF, BFN, BFNX
             case INC -> tape[pointer] += (byte) tokens[ip].num;
             case DEC -> tape[pointer] -= (byte) tokens[ip].num;
             case RGT -> pointer = ((pointer + tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
@@ -47,12 +61,12 @@ public class Interpreter {
                 if (tape[pointer] == 0) {
                     ip = tokens[ip].num + 1;
                     return;
-                } else if (unsafeStart == -1) {
+                } else if (programType != Main.ProgramType.BF && unsafeStart == -1) {
                     pointerStack.push(pointer);
                 }
             }
             case JNZ -> {
-                if (unsafeStart == -1) {
+                if (programType != Main.ProgramType.BF && unsafeStart == -1) {
                     int expectedPointer = pointerStack.pop();
                     if (pointer != expectedPointer) {
                         while (!pointerStack.isEmpty()) Utils.info("STACK DUMP: " + pointerStack.pop());
@@ -65,13 +79,49 @@ public class Interpreter {
                     return;
                 }
             }
+            case OUT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(tokens[ip].num));
+            case INP -> read(tokens[ip].num);
+
+            // BFN, BFNX
+            case STR -> {
+                if (programType == Main.ProgramType.BF) {
+                    Utils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+                }
+                for (char c: tokens[ip].str.toCharArray()) {
+                    tape[pointer] = (byte) c;
+                    pointer       = (++pointer % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+                }
+            }
+            case PTR -> {
+                if (programType == Main.ProgramType.BF) {
+                    Utils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+                }
+                returnStack.push(pointer);
+                pointer = tokens[ip].num;
+            }
+            case RET -> {
+                if (programType == Main.ProgramType.BF) {
+                    Utils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+                } else if (returnStack.isEmpty()) {
+                    Utils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[ip]);
+                }
+                pointer = returnStack.pop();
+            }
             case URS -> {
-                if (unsafeStart != -1) Utils.error("Invalid unsafe region start token: " + tokens[ip]);
+                if (programType == Main.ProgramType.BF) {
+                    Utils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+                } else if (unsafeStart != -1) {
+                    Utils.error("Invalid unsafe region start token: " + tokens[ip]);
+                }
                 unsafeStart = pointer;
             }
             case URE -> {
-                if (unsafeStart == -1) Utils.error("Invalid unsafe region end token: " + tokens[ip]);
-                if (ip < tokens.length-1 && tokens[ip+1].type == Token.Type.COL){
+                if (programType == Main.ProgramType.BF) {
+                    Utils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+                } else if (unsafeStart == -1) {
+                    Utils.error("Invalid unsafe region end token: " + tokens[ip]);
+                }
+                if (ip < tokens.length - 1 && tokens[ip + 1].type == Token.Type.COL) {
                     unsafeStart = tokens[++ip].num;
                 }
                 if (pointer != unsafeStart) {
@@ -80,24 +130,17 @@ public class Interpreter {
                 }
                 unsafeStart = -1;
             }
-            case OUT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(tokens[ip].num));
-            case INP -> read(tokens[ip].num);
-            case STR -> {
-                for (char c: tokens[ip].str.toCharArray()) {
-                    tape[pointer] = (byte) c;
-                    pointer       = (++pointer % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-                }
-            }
-            case PTR -> {
-                returnStack.push(pointer);
-                pointer = tokens[ip].num;
-            }
-            case RET -> {
-                if (returnStack.isEmpty()) Utils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[ip]);
-                pointer = returnStack.pop();
-            }
             case WRD -> {} // TODO: this is temporary
-            case SYS -> syscall();
+
+            // BFNX
+            case SYS -> {
+                if (programType != Main.ProgramType.BFNX) {
+                    Utils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+                }
+                syscall();
+            }
+
+            // UNREACHABLE
             default -> Utils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[ip]);
         }
         if (ip == tokens.length - 1) {

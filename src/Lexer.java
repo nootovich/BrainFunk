@@ -2,7 +2,7 @@ import java.util.Stack;
 
 public class Lexer {
 
-    public static Token[] lex(String data, String filepath) {
+    public static Token[] lex(String data, String filepath, Main.ProgramType programType) {
         Stack<Token> lexed = new Stack<>();
         String[]     lines = data.split("\n", -1);
         for (int row = 0; row < lines.length; row++) {
@@ -11,7 +11,7 @@ public class Lexer {
                 char c = line.charAt(col);
                 if (c == ' ' || c == '\n' || c == '\r' || c == '\t') continue;
 
-                else if (c == '/' && col < line.length() - 1 && line.charAt(col + 1) == '/') break;
+                // BF, BFN, BFNX
                 else if (c == '+') lexed.push(new Token(Token.Type.INC, filepath, row, col));
                 else if (c == '-') lexed.push(new Token(Token.Type.DEC, filepath, row, col));
                 else if (c == '>') lexed.push(new Token(Token.Type.RGT, filepath, row, col));
@@ -20,14 +20,16 @@ public class Lexer {
                 else if (c == '.') lexed.push(new Token(Token.Type.OUT, filepath, row, col));
                 else if (c == '[') lexed.push(new Token(Token.Type.JEZ, filepath, row, col));
                 else if (c == ']') lexed.push(new Token(Token.Type.JNZ, filepath, row, col));
+                if (programType == Main.ProgramType.BF) continue;
+
+                // BFN, BFNX
+                if (c == '/' && col < line.length() - 1 && line.charAt(col + 1) == '/') break;
                 else if (c == '$') lexed.push(new Token(Token.Type.PTR, filepath, row, col));
                 else if (c == '#') lexed.push(new Token(Token.Type.RET, filepath, row, col));
                 else if (c == ':') lexed.push(new Token(Token.Type.COL, filepath, row, col));
                 else if (c == ';') lexed.push(new Token(Token.Type.SCL, filepath, row, col));
-                else if (c == '@') lexed.push(new Token(Token.Type.SYS, filepath, row, col));
                 else if (c == '{') lexed.push(new Token(Token.Type.URS, filepath, row, col));
                 else if (c == '}') lexed.push(new Token(Token.Type.URE, filepath, row, col));
-
                 else if (c == '"') {
                     int           scol = col;
                     StringBuilder sb   = new StringBuilder();
@@ -42,7 +44,6 @@ public class Lexer {
                     }
                     lexed.push(new Token(Token.Type.STR, sb.toString(), filepath, row, scol));
                 }
-
                 else if (Character.isDigit(c)) {
                     int scol = col;
                     int num = c - '0';
@@ -56,7 +57,6 @@ public class Lexer {
                     }
                     lexed.push(new Token(Token.Type.NUM, num, filepath, row, scol));
                 }
-
                 else if (Character.isLetter(c)) {
                     int scol = col;
                     StringBuilder sb = new StringBuilder().append(c);
@@ -70,11 +70,15 @@ public class Lexer {
                     }
                     lexed.push(new Token(Token.Type.WRD, sb.toString(), filepath, row, scol));
                 }
+                if (programType == Main.ProgramType.BFN) continue;
 
+                // BFNX
+                if (c == '@') lexed.push(new Token(Token.Type.SYS, filepath, row, col));
+
+                // UNREACHABLE
                 else {
                    Utils.error("Should be unreachable: "+new Token(Token.Type.ERR, filepath, row, col));
                 }
-
             }
         }
 

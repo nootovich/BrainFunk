@@ -1,4 +1,5 @@
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.util.Stack;
@@ -34,6 +35,18 @@ public class Testing {
         }
 
         for (String file: files) {
+            String[] filenameParts = file.split("\\.");
+            String   extension     = filenameParts[filenameParts.length - 1];
+            Main.ProgramType programType = switch (extension) {
+                case "bf" -> Main.ProgramType.BF;
+                case "bfn" -> Main.ProgramType.BFN;
+                case "bfnx" -> Main.ProgramType.BFNX;
+                default -> {
+                    Utils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
+                    yield Main.ProgramType.ERR;
+                }
+            };
+
             Interpreter.reset();
 
             // SOURCE
@@ -41,7 +54,7 @@ public class Testing {
             check(code, expectedName(file, SOURCE_FILE), getLogTemplate("source", file));
 
             // LEXED
-            Token[] lexed = Lexer.lex(code, file);
+            Token[] lexed = Lexer.lex(code, file, programType);
             check(tokensToString(lexed), expectedName(file, LEXED_FILE), getLogTemplate("lexed", file));
 
             // PARSED
@@ -60,8 +73,8 @@ public class Testing {
             PrintStream           stdout    = System.out;
             ByteArrayOutputStream outStream = new ByteArrayOutputStream();
             System.setOut(new PrintStream(outStream));
-            Interpreter.tokens = parsed;
-            while(!Interpreter.finished) Interpreter.execute();
+            Interpreter.loadProgram(parsed, programType);
+            while (!Interpreter.finished) Interpreter.execute();
             System.out.flush();
             System.setOut(stdout);
             check(outStream.toString(), expectedName(file, OUTPUT_FILE), getLogTemplate("output", file));

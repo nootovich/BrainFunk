@@ -14,21 +14,30 @@ public class Debugger {
     private static Token[] unfoldedTokens = new Token[0];
 
     public static void main(String[] args) throws InterruptedException {
-
-        if (args.length < 1) Utils.error("Please provide a .bf or .bfn file as a command line argument.");
-        String filepath = args[0];
-
-        String filename = new File(filepath).getName();
-        if (!filename.endsWith(".bfn") && !filename.endsWith(".bf")) {
-            Utils.error("Invalid file format. Please provide a .bf or .bfn file.");
+        if (args.length < 1) {
+            Utils.error("No file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
         }
+        String filepath = args[0];
+        String filename = new File(filepath).getName();
+        String[] filenameParts = filename.split("\\.");
+        String   extension     = filenameParts[filenameParts.length - 1];
+        Main.ProgramType programType = switch (extension) {
+            case "bf" -> Main.ProgramType.BF;
+            case "bfn" -> Main.ProgramType.BFN;
+            case "bfnx" -> Main.ProgramType.BFNX;
+            default -> {
+                Utils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
+                yield Main.ProgramType.ERR;
+            }
+        };
 
         String code = FileSystem.loadFile(filepath);
         filedata = code.split("\n", -1);
 
         Parser.debug = true;
-        Token[] lexed = Lexer.lex(code, filepath);
-        Interpreter.tokens = Parser.parse(Token.deepCopy(lexed));
+        Token[] lexed = Lexer.lex(code, filepath, programType);
+        Token[] parsed = Parser.parse(Token.deepCopy(lexed));
+        Interpreter.loadProgram(parsed, programType);
 
         DebugWindow debugWindow = new DebugWindow(1400, 785);
         while (true) {
