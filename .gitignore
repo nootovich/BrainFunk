@@ -1,1 +1,6 @@
+.idea/
 out/
+*.iml
+*.json
+*.jfr
+mess/
