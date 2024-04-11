@@ -21,11 +21,28 @@ public class Token {
     public int    row;
     public int    col;
 
-    public Token(Type type, String file, int row, int col)             {this.type = type; this.file = file; this.row = row; this.col = col;}
+    public Token(Type type, String file, int row, int col) {
+        this.type = type;
+        this.file = file.replace('\\', '/');
+        this.row  = row;
+        this.col  = col;
+    }
 
-    public Token(Type type, String str, String file, int row, int col) {this.type = type; this.str = str; this.file = file; this.row = row; this.col = col;}
+    public Token(Type type, String str, String file, int row, int col) {
+        this.type = type;
+        this.str  = str;
+        this.file = file.replace('\\', '/');
+        this.row  = row;
+        this.col  = col;
+    }
 
-    public Token(Type type, int num, String file, int row, int col)    {this.type = type; this.num = num; this.file = file; this.row = row; this.col = col;}
+    public Token(Type type, int num, String file, int row, int col) {
+        this.type = type;
+        this.num  = num;
+        this.file = file.replace('\\', '/');
+        this.row  = row;
+        this.col  = col;
+    }
 
     public boolean eq(Token t) {
         boolean result = (row == t.row && col == t.col && type == t.type && num == t.num);
