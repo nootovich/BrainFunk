@@ -1,6 +1,4 @@
-println:print 10+.[-];
-print:{<[<]>[.>]}<clear;
-clear:{[[-]<]>}:0;
+!"../std/stdout.bfn"
 
 "Hello, world!" println
 

@@ -1,5 +1,4 @@
 import java.io.File;
-import java.nio.file.Path;
 
 public class Main {
 
@@ -30,7 +29,7 @@ public class Main {
         Token[] lexed = Lexer.lex(code, filepath, programType);
         Utils.info("Lexer OK.");
 
-        Token[] parsed = Parser.parse(lexed);
+        Token[] parsed = Parser.parse(lexed, filepath);
         Utils.info("Parser OK.");
 
         Interpreter.loadProgram(parsed, programType);

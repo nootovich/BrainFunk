@@ -1,3 +1,5 @@
+import java.io.File;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Stack;
 
@@ -11,7 +13,8 @@ public class Parser {
     public static  HashMap<String, Token[]> macros   = new HashMap<>();
     private static int                      savedNum = 1;
 
-    public static Token[] parse(Token[] tokens) {
+    public static Token[] parse(Token[] tokens, String filepath) {
+        tokens = parseImports(tokens, filepath);
         tokens = parseNums(tokens);
         tokens = parseMacroDef(tokens);
         tokens = parseMacroCall(tokens, null);
@@ -19,11 +22,46 @@ public class Parser {
         return tokens;
     }
 
+    private static Token[] parseImports(Token[] tokens, String filepath) {
+        Stack<Token> parsed = new Stack<>();
+        for (int i = 0; i < tokens.length; i++) {
+            switch (tokens[i].type) {
+                case IMP -> {
+                    if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.STR) {
+                        Utils.error("No import file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
+                    }
+                    String   importStr       = tokens[++i].str;
+                    String   importPath      = Path.of(filepath).getParent().resolve(importStr).normalize().toString();
+                    String   importName      = new File(importPath).getName();
+                    String[] importNameParts = importName.split("\\.");
+                    String   importExtension = importNameParts[importNameParts.length - 1];
+                    Main.ProgramType importProgramType = switch (importExtension) {
+                        case "bf" -> Main.ProgramType.BF;
+                        case "bfn" -> Main.ProgramType.BFN;
+                        case "bfnx" -> Main.ProgramType.BFNX;
+                        default -> {
+                            Utils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
+                            yield Main.ProgramType.ERR;
+                        }
+                    };
+                    String  importCode  = FileSystem.loadFile(importPath);
+                    Token[] importLexed = Lexer.lex(importCode, importPath, importProgramType);
+                    for (Token t: importLexed) parsed.push(t);
+                }
+                case INC, DEC, RGT, LFT, JEZ, JNZ, INP, OUT, NUM, STR, WRD, PTR, RET, COL, SCL, URS, URE, SYS -> parsed.push(tokens[i]);
+                default -> Utils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
+            }
+        }
+        tokens = new Token[parsed.size()];
+        for (int i = tokens.length - 1; i >= 0; i--) tokens[i] = parsed.pop();
+        return tokens;
+    }
+
     private static Token[] parseNums(Token[] tokens) {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, STR, RET, WRD, SYS -> {
+                case INC, DEC, RGT, LFT, INP, OUT, STR, RET, WRD, IMP, SYS -> {
                     tokens[i].num = popNum();
                     parsed.push(tokens[i]);
                 }

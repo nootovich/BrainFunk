@@ -35,6 +35,7 @@ public class Testing {
         }
 
         for (String file: files) {
+            String filepath = TESTING_DIR + file;
             String[] filenameParts = file.split("\\.");
             String   extension     = filenameParts[filenameParts.length - 1];
             Main.ProgramType programType = switch (extension) {
@@ -50,7 +51,7 @@ public class Testing {
             Interpreter.reset();
 
             // SOURCE
-            String code = FileSystem.loadFile(TESTING_DIR + file);
+            String code = FileSystem.loadFile(filepath);
             check(code, expectedName(file, SOURCE_FILE), getLogTemplate("source", file));
 
             // LEXED
@@ -58,7 +59,7 @@ public class Testing {
             check(tokensToString(lexed), expectedName(file, LEXED_FILE), getLogTemplate("lexed", file));
 
             // PARSED
-            Token[] parsed = Parser.parse(lexed);
+            Token[] parsed = Parser.parse(lexed, filepath);
             check(tokensToString(parsed), expectedName(file, PARSED_FILE), getLogTemplate("parsed", file));
 
             // INPUT

@@ -30,6 +30,7 @@ public class Lexer {
                 else if (c == ';') lexed.push(new Token(Token.Type.SCL, filepath, row, col));
                 else if (c == '{') lexed.push(new Token(Token.Type.URS, filepath, row, col));
                 else if (c == '}') lexed.push(new Token(Token.Type.URE, filepath, row, col));
+                else if (c == '!') lexed.push(new Token(Token.Type.IMP, filepath, row, col));
                 else if (c == '"') {
                     int           scol = col;
                     StringBuilder sb   = new StringBuilder();
@@ -43,26 +44,24 @@ public class Lexer {
                         sb.append(c);
                     }
                     lexed.push(new Token(Token.Type.STR, sb.toString(), filepath, row, scol));
-                }
-                else if (Character.isDigit(c)) {
+                } else if (Character.isDigit(c)) {
                     int scol = col;
-                    int num = c - '0';
+                    int num  = c - '0';
                     for (col++; col < line.length(); col++) {
                         c = line.charAt(col);
                         if (!Character.isDigit(c)) {
                             col--;
                             break;
                         }
-                        num = num*10 + c-'0';
+                        num = num * 10 + c - '0';
                     }
                     lexed.push(new Token(Token.Type.NUM, num, filepath, row, scol));
-                }
-                else if (Character.isLetter(c)) {
-                    int scol = col;
-                    StringBuilder sb = new StringBuilder().append(c);
-                    for (col++; col<line.length(); col++) {
+                } else if (Character.isLetter(c)) {
+                    int           scol = col;
+                    StringBuilder sb   = new StringBuilder().append(c);
+                    for (col++; col < line.length(); col++) {
                         c = line.charAt(col);
-                        if(!Character.isLetterOrDigit(c) && c != '_') {
+                        if (!Character.isLetterOrDigit(c) && c != '_') {
                             col--;
                             break;
                         }
@@ -72,7 +71,6 @@ public class Lexer {
                 } else if (programType == Main.ProgramType.BFN) {
                     Utils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Token.Type.ERR, filepath, row, col)));
                 }
-                if (programType == Main.ProgramType.BFN) continue;
 
                 // BFNX
                 else if (c == '@') lexed.push(new Token(Token.Type.SYS, filepath, row, col));

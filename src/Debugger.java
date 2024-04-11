@@ -36,7 +36,7 @@ public class Debugger {
 
         Parser.debug = true;
         Token[] lexed = Lexer.lex(code, filepath, programType);
-        Token[] parsed = Parser.parse(Token.deepCopy(lexed));
+        Token[] parsed = Parser.parse(Token.deepCopy(lexed), filepath);
         Interpreter.loadProgram(parsed, programType);
 
         DebugWindow debugWindow = new DebugWindow(1400, 785);

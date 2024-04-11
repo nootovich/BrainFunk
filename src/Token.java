@@ -5,6 +5,7 @@ public class Token {
         NUM, STR, PTR, RET, WRD,
         COL, SCL,
         URS, URE,
+        IMP,
         SYS, ERR
     }
 
@@ -73,6 +74,7 @@ public class Token {
             case SCL -> ";";
             case URS -> "{";
             case URE -> "}";
+            case IMP -> "!";
             case SYS -> "@";
             case ERR -> throw new RuntimeException("Attempted to get a representation of an `ERROR` token... HOW!?");
         };
