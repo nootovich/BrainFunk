@@ -20,10 +20,10 @@ public class Lexer {
                 else if (c == '.') lexed.push(new Token(Token.Type.OUT, filepath, row, col));
                 else if (c == '[') lexed.push(new Token(Token.Type.JEZ, filepath, row, col));
                 else if (c == ']') lexed.push(new Token(Token.Type.JNZ, filepath, row, col));
-                if (programType == Main.ProgramType.BF) continue;
+                else if (programType == Main.ProgramType.BF) continue;
 
                 // BFN, BFNX
-                if (c == '/' && col < line.length() - 1 && line.charAt(col + 1) == '/') break;
+                else if (c == '/' && col < line.length() - 1 && line.charAt(col + 1) == '/') break;
                 else if (c == '$') lexed.push(new Token(Token.Type.PTR, filepath, row, col));
                 else if (c == '#') lexed.push(new Token(Token.Type.RET, filepath, row, col));
                 else if (c == ':') lexed.push(new Token(Token.Type.COL, filepath, row, col));
@@ -69,16 +69,15 @@ public class Lexer {
                         sb.append(c);
                     }
                     lexed.push(new Token(Token.Type.WRD, sb.toString(), filepath, row, scol));
+                } else if (programType == Main.ProgramType.BFN) {
+                    Utils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Token.Type.ERR, filepath, row, col)));
                 }
                 if (programType == Main.ProgramType.BFN) continue;
 
                 // BFNX
-                if (c == '@') lexed.push(new Token(Token.Type.SYS, filepath, row, col));
+                else if (c == '@') lexed.push(new Token(Token.Type.SYS, filepath, row, col));
 
-                // UNREACHABLE
-                else {
-                   Utils.error("Should be unreachable: "+new Token(Token.Type.ERR, filepath, row, col));
-                }
+                else Utils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Token.Type.ERR, filepath, row, col)));
             }
         }
 
