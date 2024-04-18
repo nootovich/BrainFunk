@@ -143,10 +143,7 @@ public class Interpreter {
             // UNREACHABLE
             default -> Utils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[ip]);
         }
-        if (ip == tokens.length - 1) {
-            finished = true;
-            return;
-        }
+        if (ip == tokens.length - 1) finished = true;
         ip++;
     }
 
