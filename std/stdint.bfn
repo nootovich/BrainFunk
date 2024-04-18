@@ -1,0 +1,13 @@
+incShort : +[ [->+<] <    -    > ] <    +    > >[-<+>]<  ;
+decShort :  [ [->+<] <    +    > ] <    -    > >[-<+>]<- ;
+
+incTiny  : +[ [->+<] <decShort> ] <incShort> >[-<+>]<  ;
+decTiny  :  [ [->+<] <incShort> ] <decShort> >[-<+>]<- ;
+
+incInt   : +[ [->+<] <decTiny > ] <incTiny > >[-<+>]<  ;
+decInt   :  [ [->+<] <incTiny > ] <decTiny > >[-<+>]<- ;
+
+
+
+addInt: 3< [-5<+5>] > [-5< incShort 5>] > [-5< incTiny 5>] > [-5< incInt 5>] ;
+subInt: 3< [-5<-5>] > [-5< subShort 5>] > [-5< subTiny 5>] > [-5< subInt 5>] ;
