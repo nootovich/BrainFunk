@@ -109,8 +109,9 @@ public class Debugger {
             cachedFontH         = metrics.getHeight();
             cachedFontW         = (int) metrics.getStringBounds("@", null).getWidth();
             cachedLinesToBottom = filedata.length - codeH / cachedFontH;
-            codeOffsetY         = Utils.clampi(Interpreter.tokens[0].row * cachedFontH - codeH / 2, 0, cachedLinesToBottom * cachedFontH);
-
+            if (Interpreter.tokens.length > 0) {
+                codeOffsetY = Utils.clampi(Interpreter.tokens[0].row * cachedFontH - codeH / 2, 0, cachedLinesToBottom * cachedFontH);
+            }
             addKeyListener(new KeyAdapter() {
                 @Override
                 public void keyPressed(KeyEvent e) {
@@ -133,7 +134,7 @@ public class Debugger {
                                 int     n     = Interpreter.ip + Parser.parseMacroCall(macro, null).length;
                                 while (Interpreter.ip < n) Interpreter.execute();
 
-                            } else if (Interpreter.tokens[Interpreter.ip].type == Token.Type.JEZ || Interpreter.tokens[Interpreter.ip].type == Token.Type.UNSAFEJEZ) {
+                            } else if (Interpreter.tokens[Interpreter.ip].type == Token.Type.JEZ || Interpreter.tokens[Interpreter.ip].type == Token.Type.URS) {
 
                                 int target = Interpreter.tokens[Interpreter.ip].num + 1;
                                 while (Interpreter.ip < Interpreter.tokens.length - 1 && Interpreter.ip != target) Interpreter.execute();
@@ -327,7 +328,7 @@ public class Debugger {
             }
 
             // Current token outline
-            if (!Interpreter.finished) {
+            if (!Interpreter.finished && Interpreter.tokens.length > 0) {
                 g2d.setColor(colors[colorEnum.COLOR_HIGHLIGHT.ordinal()]);
                 g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
                 Token tk    = Interpreter.tokens[Interpreter.ip];
