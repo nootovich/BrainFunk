@@ -1,12 +1,11 @@
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.util.Stack;
 
+
 public class Testing {
 
-    private static final int FILE_NAME_LIMIT = 32;
     private static final int TEST_NAME_LIMIT = 8;
 
     private static final String TESTING_DIR     = "./tests/";
@@ -18,24 +17,37 @@ public class Testing {
     private static final String INPUT_FILE      = "inp";
     private static final String OUTPUT_FILE     = "out";
 
+    private static boolean logLevenstein  = true;
+    private static int     filenameMaxLen = 0;
+
     public static void main(String[] args) {
-        String[] files;
-        if (args.length == 0) files = FileSystem.getDirectoryFiles(TESTING_DIR);
-        else {
-            Stack<String> fileStack = new Stack<>();
-            for (int i = 0; i < args.length; i++) {
-                if (args[i].equals("-reset")) {
-                    FileSystem.delete(EXPECTED_DIR);
-                    continue;
-                }
-                fileStack.push(args[i]);
+        Stack<String> fileStack = new Stack<>();
+        for (int i = 0; i < args.length; i++) {
+            switch (args[i]) {
+                case "-reset" -> FileSystem.delete(EXPECTED_DIR);
+                case "-nolev" -> logLevenstein = false;
+                default -> fileStack.push(args[i]);
             }
+        }
+
+        String[] files;
+        if (fileStack.isEmpty()) {
+            files = FileSystem.getDirectoryFiles(TESTING_DIR);
+        } else {
             files = new String[fileStack.size()];
-            for (int i = files.length - 1; i >= 0; i--) files[i] = fileStack.pop();
+            for (int i = files.length - 1; i >= 0; i--) {
+                files[i] = fileStack.pop();
+            }
         }
 
         for (String file: files) {
-            String filepath = TESTING_DIR + file;
+            if (file.length() + 1 > filenameMaxLen) {
+                filenameMaxLen = file.length() + 1;
+            }
+        }
+
+        for (String file: files) {
+            String   filepath      = TESTING_DIR + file;
             String[] filenameParts = file.split("\\.");
             String   extension     = filenameParts[filenameParts.length - 1];
             Main.ProgramType programType = switch (extension) {
@@ -86,16 +98,17 @@ public class Testing {
                 FileSystem.saveFile(expectedName(file, INPUT_FILE), input);
                 Utils.info(getLogTemplate("input", file) + "SAVED.");
             }
+
+            Utils.info(getLogTemplate("", file) + "OK.");
         }
     }
 
     private static void check(String actual, String expectedName, String logTemplate) {
         try {
             String expected = FileSystem.loadFile(expectedName);
-            if (actual.equals(expected)) Utils.info(logTemplate + "OK.");
-            else {
+            if (!actual.equals(expected)) {
                 Utils.info(logTemplate + "DIFFERS!");
-                Levenstein.printDiff(actual, expected);
+                if (logLevenstein) Levenstein.printDiff(actual, expected);
             }
         } catch (UncheckedIOException ignored) {
             FileSystem.saveFile(expectedName, actual);
@@ -116,7 +129,7 @@ public class Testing {
     }
 
     private static String getLogTemplate(String testName, String file) {
-        String filenameSpacing = " ".repeat(FILE_NAME_LIMIT - file.length());
+        String filenameSpacing = " ".repeat(filenameMaxLen - file.length());
         String testnameSpacing = " ".repeat(TEST_NAME_LIMIT - testName.length());
         return "`%s`%s%s%s".formatted(file, filenameSpacing, testName, testnameSpacing);
     }
