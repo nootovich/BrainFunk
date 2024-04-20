@@ -1,13 +1,23 @@
-incShort : +[ [->+<] <    -    > ] <    +    > >[-<+>]<  ;
-decShort :  [ [->+<] <    +    > ] <    -    > >[-<+>]<- ;
+// TODO: consts
+// 4 bytes for int
+// 2 bytes as a temp storage for int operations (inc, dec, add, sub)
+//sizeofInt = 5
 
-incTiny  : +[ [->+<] <decShort> ] <incShort> >[-<+>]<  ;
-decTiny  :  [ [->+<] <incShort> ] <decShort> >[-<+>]<- ;
+nextInt: 6> ; // TODO: nextInt: sizeofInt> ;
+prevInt: 6< ; // TODO: prevInt: sizeofInt< ;
 
-incInt   : +[ [->+<] <decTiny > ] <incTiny > >[-<+>]<  ;
-decInt   :  [ [->+<] <incTiny > ] <decTiny > >[-<+>]<- ;
+incByte : + ;
+decByte : - ;
+incShort: ifSetup + if0 incByte  2>- endif0   ;
+decShort: ifSetup   if0 decByte  2>- endif0 - ;
+incTiny : ifSetup + if0 incShort 2>  endif0   ;
+decTiny : ifSetup   if0 decShort 2>  endif0 - ;
+incInt  : ifSetup + if0 incTiny  2>  endif0   ;
+decInt  : ifSetup   if0 decTiny  2>  endif0 - ;
 
+ifSetup:  >+>[-]2<  ;
+if0    : {[>-]>[2<  ;
+endif0 :      >]2<} ;
 
-
-addInt: 3< [-5<+5>] > [-5< incShort 5>] > [-5< incTiny 5>] > [-5< incInt 5>] ;
-subInt: 3< [-5<-5>] > [-5< subShort 5>] > [-5< subTiny 5>] > [-5< subInt 5>] ;
+addInt: 3< [-6< incByte 6>] > [-6< incShort 6>] > [-6< incTiny 6>] > [-6< incInt 6>] prevInt ; // TODO: intended to use const `sizeofInt` in place of `6`
+subInt: 3< [-6< decByte 6>] > [-6< subShort 6>] > [-6< subTiny 6>] > [-6< subInt 6>] prevInt ; // TODO: intended to use const `sizeofInt` in place of `6`
