@@ -8,7 +8,6 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        boolean profiling = false;
         boolean profiling          = false;
         boolean transpile          = false;
         String  transpiledFilepath = null;
