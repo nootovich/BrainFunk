@@ -61,25 +61,25 @@ public class Testing {
             };
 
             Interpreter.reset();
+            boolean passed = true;
 
             // SOURCE
             String code = FileSystem.loadFile(filepath);
-            check(code, expectedName(file, SOURCE_FILE), getLogTemplate("source", file));
+            passed &= check(code, expectedName(file, SOURCE_FILE), getLogTemplate("source", file));
 
             // LEXED
             Token[] lexed = Lexer.lex(code, file, programType);
-            check(tokensToString(lexed), expectedName(file, LEXED_FILE), getLogTemplate("lexed", file));
+            passed &= check(tokensToString(lexed), expectedName(file, LEXED_FILE), getLogTemplate("lexed", file));
 
             // PARSED
             Token[] parsed = Parser.parse(lexed, filepath);
-            check(tokensToString(parsed), expectedName(file, PARSED_FILE), getLogTemplate("parsed", file));
+            passed &= check(tokensToString(parsed), expectedName(file, PARSED_FILE), getLogTemplate("parsed", file));
 
             // INPUT
             String expectedInput = "";
             try {
                 expectedInput = FileSystem.loadFile(expectedName(file, INPUT_FILE));
                 for (char c: expectedInput.toCharArray()) Interpreter.inputBuffer.add((byte) c);
-                Utils.info(getLogTemplate("input", file) + "LOADED.");
             } catch (RuntimeException ignored) {}
 
             // OUTPUT
@@ -90,7 +90,7 @@ public class Testing {
             while (!Interpreter.finished) Interpreter.execute();
             System.out.flush();
             System.setOut(stdout);
-            check(outStream.toString(), expectedName(file, OUTPUT_FILE), getLogTemplate("output", file));
+            passed &= check(outStream.toString(), expectedName(file, OUTPUT_FILE), getLogTemplate("output", file));
 
             // SAVE INPUT
             String input = Interpreter.inputMemory.toString();
@@ -99,23 +99,26 @@ public class Testing {
                 Utils.info(getLogTemplate("input", file) + "SAVED.");
             }
 
-            Utils.info(getLogTemplate("", file) + "OK.");
+            if (passed) Utils.info(getLogTemplate("", file) + "OK.");
         }
     }
 
-    private static void check(String actual, String expectedName, String logTemplate) {
+    private static boolean check(String actual, String expectedName, String logTemplate) {
         try {
             String expected = FileSystem.loadFile(expectedName);
             if (!actual.equals(expected)) {
                 Utils.info(logTemplate + "DIFFERS!");
                 if (logLevenstein) Levenstein.printDiff(actual, expected);
+                return false;
             }
         } catch (UncheckedIOException ignored) {
             FileSystem.saveFile(expectedName, actual);
             Utils.info(logTemplate + "SAVED.");
+            return false;
         } catch (RuntimeException e) {
             Utils.error(e.toString());
         }
+        return true;
     }
 
     private static String expectedName(String file, String type) {
