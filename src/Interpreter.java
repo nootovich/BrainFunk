@@ -14,10 +14,10 @@ public class Interpreter {
     public static        byte[]         tape         = new byte[TAPE_LEN];
     public static        int            pointer      = 0;
     public static        int            ip           = 0;
-    private static       int            unsafeStart  = -1;
     public static        Token[]        tokens       = new Token[0];
     private static final Stack<Integer> returnStack  = new Stack<>();
     private static final Stack<Integer> pointerStack = new Stack<>();
+    private static final Stack<Integer> unsafeStack  = new Stack<>();
 
     private static final Scanner         input       = new Scanner(System.in);
     public static        ArrayList<Byte> inputBuffer = new ArrayList<>();
@@ -62,11 +62,12 @@ public class Interpreter {
                     ip = tokens[ip].num + 1;
                     return;
                 } else if (programType != Main.ProgramType.BF && unsafeStart == -1) {
+                } else if (programType != Main.ProgramType.BF && unsafeStack.empty()) {
                     pointerStack.push(pointer);
                 }
             }
             case JNZ -> {
-                if (programType != Main.ProgramType.BF && unsafeStart == -1) {
+                if (programType != Main.ProgramType.BF && unsafeStack.empty()) {
                     int expectedPointer = pointerStack.pop();
                     if (pointer != expectedPointer) {
                         while (!pointerStack.isEmpty()) Utils.info("STACK DUMP: " + pointerStack.pop());
@@ -110,25 +111,25 @@ public class Interpreter {
             case URS -> {
                 if (programType == Main.ProgramType.BF) {
                     Utils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-                } else if (unsafeStart != -1) {
-                    Utils.error("Invalid unsafe region start token: " + tokens[ip]);
                 }
-                unsafeStart = pointer;
+                unsafeStack.push(pointer);
             }
             case URE -> {
                 if (programType == Main.ProgramType.BF) {
                     Utils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-                } else if (unsafeStart == -1) {
+                } else if (unsafeStack.empty()) {
                     Utils.error("Invalid unsafe region end token: " + tokens[ip]);
                 }
                 if (ip < tokens.length - 1 && tokens[ip + 1].type == Token.Type.COL) {
-                    unsafeStart = tokens[++ip].num;
+                    unsafeStack.pop();
+                    unsafeStack.push(tokens[++ip].num);
                 }
-                if (pointer != unsafeStart) {
+
+                int curLocation = unsafeStack.pop();
+                if (curLocation != pointer) {
                     Utils.error("Unexpected pointer location when leaving an unsafe region: %s%nExpected '%d' but got '%d'."
-                                    .formatted(tokens[ip], unsafeStart, pointer));
+                                    .formatted(tokens[ip], curLocation, pointer));
                 }
-                unsafeStart = -1;
             }
             case WRD -> {} // TODO: this is temporary
 
