@@ -15,9 +15,28 @@ decTiny : ifSetup   if0 decShort 2>  endif0 - ;
 incInt  : ifSetup + if0 incTiny  2>  endif0   ;
 decInt  : ifSetup   if0 decTiny  2>  endif0 - ;
 
-ifSetup:  >+>[-]2<  ;
-if0    : {[>-]>[2<  ;
-endif0 :      >]2<} ;
+ifSetup: >+>[-]2< ;
+if0    : [>-]>[2< ;
+endif0 :     >]2< ;
 
 addInt: 3< [-6< incByte 6>] > [-6< incShort 6>] > [-6< incTiny 6>] > [-6< incInt 6>] prevInt ; // TODO: intended to use const `sizeofInt` in place of `6`
 subInt: 3< [-6< decByte 6>] > [-6< subShort 6>] > [-6< subTiny 6>] > [-6< subInt 6>] prevInt ; // TODO: intended to use const `sizeofInt` in place of `6`
+
+modOnce:
+2nextInt incInt prevInt decInt [ nextInt ]
+nextInt [ prevInt incInt nextInt decInt ]
+2prevInt [ prevInt ] nextInt decInt
+;
+
+jankyIntMod: {       [ modOnce ]
+<[>  decInt modOnce +[ modOnce ] <]
+<[2> decInt modOnce +[ modOnce ]
+<[>  decInt modOnce +[ modOnce ] <] <]
+<[3> decInt modOnce +[ modOnce ]
+<[>  decInt modOnce +[ modOnce ] <]
+<[2> decInt modOnce +[ modOnce ]
+<[>  decInt modOnce +[ modOnce ] <] <] <]
+3> }
+nextInt [-] nextInt [- 2prevInt + 2nextInt ] 2prevInt
+;
+
