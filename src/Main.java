@@ -9,6 +9,9 @@ public class Main {
 
     public static void main(String[] args) {
         boolean profiling = false;
+        boolean profiling          = false;
+        boolean transpile          = false;
+        String  transpiledFilepath = null;
 
         if (args.length < 1) {
             Utils.error("No file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
@@ -31,6 +34,13 @@ public class Main {
         for (int i = 1; i < args.length; i++) {
             switch (args[i]) {
                 case "-p", "--profiling" -> profiling = true;
+                case "-t", "--transpile" -> {
+                    if (i == args.length - 1) {
+                        Utils.error("No name for transpiled file was provided");
+                    }
+                    transpile          = true;
+                    transpiledFilepath = "./%s.bf".formatted(args[++i]);
+                }
                 default -> Utils.error("Unknown argument " + args[i]);
             }
         }
@@ -43,6 +53,33 @@ public class Main {
 
         Token[] parsed = Parser.parse(lexed, filepath);
         Utils.info("Parser OK.");
+
+        if (transpile) {
+            int           pad = 0;
+            StringBuilder sb  = new StringBuilder();
+            for (int i = 0; i < parsed.length; i++) {
+                Token t = parsed[i];
+                if (t.type.ordinal() < 6) {
+                    sb.append(t.repr().repeat(t.num));
+                } else if (t.type == Token.Type.JEZ) {
+                    if (t.num - parsed[t.num].num < 5) {
+                        sb.append(t.repr());
+                        i++;
+                        while (i < t.num) {
+                            sb.append(parsed[i].repr().repeat(parsed[i].num));
+                            i++;
+                        }
+                        sb.append(parsed[i].repr());
+                    } else {
+                        sb.append('\n').append("  ".repeat(pad++)).append(t.repr()).append('\n').append("  ".repeat(pad));
+                    }
+                } else if (t.type == Token.Type.JNZ) {
+                    sb.append('\n').append("  ".repeat(--pad)).append(t.repr()).append('\n').append("  ".repeat(pad));
+                }
+            }
+            FileSystem.saveFile(transpiledFilepath, sb.toString());
+            System.exit(0);
+        }
 
         Interpreter.loadProgram(parsed, programType);
         if (!profiling) {
