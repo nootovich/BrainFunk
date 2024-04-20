@@ -1,3 +1,4 @@
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.Stack;
@@ -61,7 +62,6 @@ public class Interpreter {
                 if (tape[pointer] == 0) {
                     ip = tokens[ip].num + 1;
                     return;
-                } else if (programType != Main.ProgramType.BF && unsafeStart == -1) {
                 } else if (programType != Main.ProgramType.BF && unsafeStack.empty()) {
                     pointerStack.push(pointer);
                 }
