@@ -99,7 +99,7 @@ public class Token {
     }
 
     public String toString() {
-        StringBuilder result = new StringBuilder("%s:%d:%d [%s{%d}".formatted(file, row + 1, col, type, num, str));
+        StringBuilder result = new StringBuilder("%s:%d:%d [%s{%d}".formatted(file, row + 1, col, type, num));
         if (str != null) result.append(":{\"").append(str).append("\"}");
         result.append("]");
         if (origin != null) result.append("\n    From: ").append(origin);
