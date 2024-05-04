@@ -1,5 +1,4 @@
 import java.io.File;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Stack;
 
@@ -31,7 +30,7 @@ public class Parser {
                         Utils.error("No import file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
                     }
                     String   importStr       = tokens[++i].str;
-                    String   importPath      = Path.of(filepath).getParent().resolve(importStr).normalize().toString();
+                    String   importPath      = FileSystem.combinePaths(filepath, importStr);
                     String   importName      = new File(importPath).getName();
                     String[] importNameParts = importName.split("\\.");
                     String   importExtension = importNameParts[importNameParts.length - 1];
@@ -44,7 +43,8 @@ public class Parser {
                             yield Main.ProgramType.ERR;
                         }
                     };
-                    String  importCode  = FileSystem.loadFile(importPath);
+                    String importCode = FileSystem.loadFile(importPath);
+                    if (debug) Debugger.filedata.put(importPath, importCode.split("\n", -1));
                     Token[] importLexed = Lexer.lex(importCode, importPath, importProgramType);
                     for (Token t: importLexed) parsed.push(t);
                 }

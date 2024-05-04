@@ -3,12 +3,14 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class Debugger {
 
     public static boolean unfolding = false;
 
-    private static String[] filedata = {""};
+    public static  HashMap<String, String[]> filedata = new HashMap<>();
+    private static String                    filepath = "";
 
     public static Token   mouseToken;
     public static Token[] unfoldedTokens = new Token[0];
@@ -17,7 +19,7 @@ public class Debugger {
         if (args.length < 1) {
             Utils.error("No file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
         }
-        String   filepath      = args[0];
+        filepath = FileSystem.normalizePath(args[0]);
         String   filename      = new File(filepath).getName();
         String[] filenameParts = filename.split("\\.");
         String   extension     = filenameParts[filenameParts.length - 1];
@@ -32,7 +34,7 @@ public class Debugger {
         };
 
         String code = FileSystem.loadFile(filepath);
-        filedata = code.split("\n", -1);
+        filedata.put(filepath, code.split("\n", -1));
 
         Parser.debug = true;
         Token[] lexed  = Lexer.lex(code, filepath, programType);
@@ -113,7 +115,7 @@ public class Debugger {
             FontMetrics metrics = g2d.getFontMetrics();
             cachedFontH         = metrics.getHeight();
             cachedFontW         = (int) metrics.getStringBounds("@", null).getWidth();
-            cachedLinesToBottom = filedata.length - codeH / cachedFontH;
+            cachedLinesToBottom = filedata.get(filepath).length - codeH / cachedFontH;
             codeOffsetY         = Utils.clampi(Arrays.stream(Interpreter.tokens).findFirst().get().row * cachedFontH - codeH / 2, 0, cachedLinesToBottom * cachedFontH);
 
             addKeyListener(IOHandler.getKeyHandler());
@@ -198,9 +200,10 @@ public class Debugger {
             // Program
             {
                 if (unfolding) g2d.setColor(COLORS.COLOR_TEXT_FADED.val);
-                int y = codeY + cachedFontH - codeOffsetY;
-                for (int i = 0; i < filedata.length; i++) {
-                    g2d.drawString(filedata[i], codeX + 8, y);
+                int      y           = codeY + cachedFontH - codeOffsetY;
+                String[] curFileData = filedata.get(Interpreter.tokens[Interpreter.ip].file);
+                for (int i = 0; i < curFileData.length; i++) {
+                    g2d.drawString(curFileData[i], codeX + 8, y);
                     y += cachedFontH;
                 }
             }
@@ -209,10 +212,11 @@ public class Debugger {
             if (!Interpreter.finished && Interpreter.tokens.length > 0) {
                 g2d.setColor(COLORS.COLOR_HIGHLIGHT.val);
                 g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
-                Token tk    = Interpreter.tokens[Interpreter.ip];
-                int   prevX = Integer.MIN_VALUE;
-                int   prevY = Integer.MIN_VALUE;
-                while (tk != null) {
+                Token  tk       = Interpreter.tokens[Interpreter.ip];
+                int    prevX    = Integer.MIN_VALUE;
+                int    prevY    = Integer.MIN_VALUE;
+                String prevFile = tk.file;
+                while (tk != null && tk.file.equals(prevFile)) {
                     int ipX = codeX + tk.col * cachedFontW + 8;
                     int ipY = codeY + tk.row * cachedFontH + 5 - codeOffsetY;
                     int ipW = tk.len() * cachedFontW;
@@ -282,6 +286,7 @@ public class Debugger {
         }
 
         public static void findMouseToken(int mouseX, int mouseY) {
+            String file = Interpreter.tokens[Interpreter.ip].file;
             if (unfolding) {
 
                 float unfoldingWindowX = codeX / 2.f + codeW / 2.f - cachedUnfoldedDataWidth / 2.f;
@@ -289,19 +294,19 @@ public class Debugger {
 
                 int row = (int) (((float) mouseY - unfoldingWindowY) / cachedFontH) + unfoldedTokens[0].row;
                 int col = (int) (((float) mouseX - unfoldingWindowX) / cachedFontW) + unfoldedTokens[0].col;
-                mouseToken = getTokenByRowCol(unfoldedTokens, row, col);
+                mouseToken = getTokenFromArray(unfoldedTokens, row, col, file);
 
             } else {
 
                 int row = (int) (((float) mouseY - codeY + codeOffsetY) / cachedFontH);
                 int col = (int) (((float) mouseX - codeX) / cachedFontW);
-                mouseToken = getTokenByRowCol(Interpreter.tokens, row, col);
+                mouseToken = getTokenFromArray(Interpreter.tokens, row, col, file);
 
             }
         }
 
-        private static Token getTokenByRowCol(Token[] array, int row, int col) {
-            for (Token t: array) if (t.row == row && t.col <= col && t.col + t.len() >= col) return t;
+        private static Token getTokenFromArray(Token[] array, int row, int col, String file) {
+            for (Token t: array) if (t.row == row && t.col <= col && t.col + t.len() >= col && t.file.equals(file)) return t;
             return null;
         }
 

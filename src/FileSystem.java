@@ -42,6 +42,14 @@ public class FileSystem {
         }
     }
 
+    public static String combinePaths(String base, String addition) {
+        return normalizePath(Path.of(base).getParent().resolve(addition).normalize().toString());
+    }
+
+    public static String normalizePath(String path) {
+        return path.replace('\\', '/');
+    }
+
     public static boolean delete(String path) {
         boolean success = true;
         File    file    = new File(path);

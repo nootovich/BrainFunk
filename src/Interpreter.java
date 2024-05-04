@@ -1,4 +1,3 @@
-import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.Stack;
@@ -144,8 +143,8 @@ public class Interpreter {
             // UNREACHABLE
             default -> Utils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[ip]);
         }
-        if (ip == tokens.length - 1) finished = true;
-        ip++;
+        if (ip >= tokens.length - 1) finished = true;
+        else ip++;
     }
 
     private static void read(int amount) {

@@ -76,6 +76,7 @@ public class IOHandler {
                     Debugger.DebugWindow.codeOffsetY = Utils.clampi(newOffsetY, 0, Debugger.DebugWindow.cachedLinesToBottom * Debugger.DebugWindow.cachedFontH);
                 }
 
+                Debugger.DebugWindow.cachedLinesToBottom = Debugger.filedata.get(Interpreter.tokens[Interpreter.ip].file).length - Debugger.DebugWindow.codeH / Debugger.DebugWindow.cachedFontH;
             }
         };
     }
@@ -210,6 +211,8 @@ public class IOHandler {
                         Debugger.mouseToken = null;
                     }
                 }
+
+                Debugger.DebugWindow.cachedLinesToBottom = Debugger.filedata.get(Interpreter.tokens[Interpreter.ip].file).length - Debugger.DebugWindow.codeH / Debugger.DebugWindow.cachedFontH;
             }
         };
     }
