@@ -96,8 +96,8 @@ public class BrainFunk {
                 System.out.printf("Token '%s' was encountered % 12d times and took % 12f secs%n", Token.Type.values()[i], counter[i], timer[i] * 0.000000001f);
             }
             System.out.printf("Parsed tokens: %d%n", parsed.length);
-            System.out.printf("Total tokens: %d%n", Arrays.stream(counter).sum());
-            System.out.printf("Total time: %f secs%n", Arrays.stream(timer).sum() * 0.000000001f);
+            System.out.printf("Executed tokens: %d%n", Arrays.stream(counter).sum());
+            System.out.printf("Total time: %f secs%n", Arrays.stream(timer).sum() * 1e-9);
         }
     }
 }
