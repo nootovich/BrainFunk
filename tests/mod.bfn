@@ -13,7 +13,7 @@ dup2tor2:duptor2 r2>>[-]>[-]<<<[->>+<<]#<duptor2 r2>>[-<+>]#;
 // a = tape[i], b = tape[i-1]; return a == b;
 // return value is saved on r2
 // uses 3 bytes of space
-eq:dup2tor2 r2>>+<<[->-<]>[[-]>[-]<]>[-<<+>>]#;
+eq:dup2tor2 r2>>+<<[->-<]>[[+]>[-]<]>[-<<+>>]#;
 
 // a = tape[i], b = tape[i-1]; return b % a;
 // return value is saved in r1
