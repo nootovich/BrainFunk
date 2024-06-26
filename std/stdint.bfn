@@ -40,3 +40,52 @@ jankyIntMod:         [ modOnce ]
 nextInt [-] nextInt [- 2prevInt + 2nextInt ] 2prevInt
 ;
 
+modOnce:
+2nextInt incInt prevInt decInt [ nextInt ]
+ nextInt movIntL
+2prevInt [ prevInt ] nextInt decInt
+;
+
+nextInt: 8> ; // TODO: nextInt: sizeofInt> ;
+prevInt: 8< ; // TODO: prevInt: sizeofInt< ;
+
+incByte : + ;
+decByte : - ;
+incShort: ifSetupShort + ifShort0 incByte  2>- endifShort0   ;
+decShort: ifSetupShort   ifShort0 decByte  2>- endifShort0 - ;
+incTiny : ifSetupTiny  + ifTiny0  incShort 2>  endifTiny0    ;
+decTiny : ifSetupTiny    ifTiny0  decShort 2>  endifTiny0  - ;
+incInt  : ifSetupInt   + ifInt0   incTiny  2>  endifInt0     ;
+decInt  : ifSetupInt     ifInt0   decTiny  2>  endifInt0   - ;
+
+ifSetupShort: 3>[-]+>[-]4< ;
+ifShort0    : [3>-]3>[4<    ;
+endifShort0 :     3>]4<    ;
+ifSetupTiny : 2>[-]+>[-]3< ;
+ifTiny0     : [2>-]2>[3<    ;
+endifTiny0  :     2>]3<    ;
+ifSetupInt  : 1>[-]+>[-]2< ;
+ifInt0      : [1>-]>[2<    ;
+endifInt0   :     1>]2<    ;
+
+//addInt: 3<[- prevInt + nextInt]>[- prevInt +[<-4>]3>[3<]4<+ nextInt >]>[- prevInt +[<-3>]3>[2<]4<+[<-4>]3>[3<]4<+ nextInt 2>]>[- prevInt +[<-2>]3>[2<]4<+[<-4>]3>[3<]4<+ nextInt 3>];
+//addInt: [ - prevInt incInt nextInt ] < [ - prevInt incTiny nextInt ] < [ - prevInt incShort nextInt ] < [ - prevInt incByte nextInt ] 3> ;
+addInt: 3< [-prevInt incByte nextInt] > [-prevInt incShort nextInt] > [-prevInt incTiny nextInt] > [-prevInt incInt nextInt] prevInt ;
+subInt: 3< [-prevInt decByte nextInt] > [-prevInt subShort nextInt] > [-prevInt subTiny nextInt] > [-prevInt subInt nextInt] prevInt ;
+
+dupIntByte: [ - nextInt + >+< prevInt ] nextInt > [ - prevInt <+> nextInt ] < ;
+dupInt: 3< dupIntByte 7< dupIntByte 7< dupIntByte 7< dupIntByte ;
+
+movIntL: [-prevInt+nextInt] < [-prevInt+nextInt] < [-prevInt+nextInt] < [-prevInt+nextInt] 3> ;
+
+overIntByte: [-16>+>+17<] 17> [-17<+17>] < ;
+overInt: 3< overIntByte 15< overIntByte 15< overIntByte 15< overIntByte ;
+
+shortgt0: { >[-] >[-] 2< [ 3> + < ] < [ 4> + 2< ] 2> [ 2< ] 2> [ - 2< + 2> ] 3< } ;
+
+// abcdxyf
+
+//00 { >[-] >[-] 2< d [ 3> + < ] d < c [ 4> + 2< ] c 2> x [ 2< ] x 2> f [ - 2< + 2> ] f 3< d } ;
+//01 { >[-] >[-] 2< d [ 3> + < ] y < x [ 4> + 2< ] x 2> f [ 2< ] x 2> f [ - 2< + 2> ] f 3< d } ;
+//10 { >[-] >[-] 2< d [ 3> + < ] d < c [ 4> + 2< ] x 2> f [ 2< ] x 2> f [ - 2< + 2> ] f 3< d } ;
+//11 { >[-] >[-] 2< d [ 3> + < ] y < x [ 4> + 2< ] x 2> f [ 2< ] x 2> f [ - 2< + 2> ] f 3< d } ;
