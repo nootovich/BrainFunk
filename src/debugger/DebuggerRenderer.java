@@ -4,6 +4,7 @@ import BrainFunk.Interpreter;
 import BrainFunk.Token;
 import nootovich.nglib.NGGraphics;
 import nootovich.nglib.NGRenderer;
+import nootovich.nglib.NGVec2i;
 
 import java.awt.*;
 
@@ -28,7 +29,7 @@ public class DebuggerRenderer extends NGRenderer {
     protected static int cachedFontH;
     protected static int cachedLinesToBottom;
 
-    private static Token mouseToken = null;
+    protected static Token mouseToken = null;
 
     protected static String[] filedata = {""};
 
@@ -159,7 +160,7 @@ public class DebuggerRenderer extends NGRenderer {
         g.resetClip();
     }
 
-    private static void findMouseToken(int mouseX, int mouseY) {
+    protected static void findMouseToken(NGVec2i pos) {
 //        if (unfolding) {
 //
 //            // FIXME: wrong col pos (and most likely everything)
@@ -169,8 +170,8 @@ public class DebuggerRenderer extends NGRenderer {
 //            int col              = (mouseX - unfoldingWindowX - unfoldedDataPad) / cachedFontW;
 //            mouseToken = getTokenByRowCol(unfoldedTokens, row, col);
 //        } else {
-        int row = (mouseY - codeY - codePadH + codeOffsetY) / cachedFontH - 1;
-        int col = (mouseX - codeX - codePadH) / cachedFontW;
+        int row = (pos.y - codeY - codePadH + codeOffsetY) / cachedFontH - 1;
+        int col = (pos.x - codeX - codePadH) / cachedFontW;
         mouseToken = getTokenByRowCol(Interpreter.tokens, row, col);
 //        }
     }
