@@ -1,3 +1,7 @@
+import BrainFunk.*;
+import nootovich.nglib.NGFileSystem;
+import nootovich.nglib.NGUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
@@ -24,7 +28,7 @@ public class Testing {
         Stack<String> fileStack = new Stack<>();
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
-                case "-reset" -> FileSystem.delete(EXPECTED_DIR);
+                case "-reset" -> NGFileSystem.delete(EXPECTED_DIR);
                 case "-nolev" -> logLevenstein = false;
                 default -> fileStack.push(args[i]);
             }
@@ -32,7 +36,7 @@ public class Testing {
 
         String[] files;
         if (fileStack.isEmpty()) {
-            files = FileSystem.getDirectoryFiles(TESTING_DIR);
+            files = NGFileSystem.getDirectoryFiles(TESTING_DIR);
         } else {
             files = new String[fileStack.size()];
             for (int i = files.length - 1; i >= 0; i--) {
@@ -55,7 +59,7 @@ public class Testing {
                 case "bfn" -> Main.ProgramType.BFN;
                 case "bfnx" -> Main.ProgramType.BFNX;
                 default -> {
-                    Utils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
+                    NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
                     yield Main.ProgramType.ERR;
                 }
             };
@@ -64,7 +68,7 @@ public class Testing {
             boolean passed = true;
 
             // SOURCE
-            String code = FileSystem.loadFile(filepath);
+            String code = NGFileSystem.loadFile(filepath);
             passed &= check(code, expectedName(file, SOURCE_FILE), getLogTemplate("source", file));
 
             // LEXED
@@ -78,7 +82,7 @@ public class Testing {
             // INPUT
             String expectedInput = "";
             try {
-                expectedInput = FileSystem.loadFile(expectedName(file, INPUT_FILE));
+                expectedInput = NGFileSystem.loadFile(expectedName(file, INPUT_FILE));
                 for (char c: expectedInput.toCharArray()) Interpreter.inputBuffer.add((byte) c);
             } catch (RuntimeException ignored) {}
 
@@ -95,28 +99,28 @@ public class Testing {
             // SAVE INPUT
             String input = Interpreter.inputMemory.toString();
             if (expectedInput.isEmpty() && !input.isEmpty()) {
-                FileSystem.saveFile(expectedName(file, INPUT_FILE), input);
-                Utils.info(getLogTemplate("input", file) + "SAVED.");
+                NGFileSystem.saveFile(expectedName(file, INPUT_FILE), input);
+                NGUtils.info(getLogTemplate("input", file) + "SAVED.");
             }
 
-            if (passed) Utils.info(getLogTemplate("", file) + "OK.");
+            if (passed) NGUtils.info(getLogTemplate("", file) + "OK.");
         }
     }
 
     private static boolean check(String actual, String expectedName, String logTemplate) {
         try {
-            String expected = FileSystem.loadFile(expectedName);
+            String expected = NGFileSystem.loadFile(expectedName);
             if (!actual.equals(expected)) {
-                Utils.info(logTemplate + "DIFFERS!");
+                NGUtils.info(logTemplate + "DIFFERS!");
                 if (logLevenstein) Levenstein.printDiff(actual, expected);
                 return false;
             }
         } catch (UncheckedIOException ignored) {
-            FileSystem.saveFile(expectedName, actual);
-            Utils.info(logTemplate + "SAVED.");
+            NGFileSystem.saveFile(expectedName, actual);
+            NGUtils.info(logTemplate + "SAVED.");
             return false;
         } catch (RuntimeException e) {
-            Utils.error(e.toString());
+            NGUtils.error(e.toString());
         }
         return true;
     }

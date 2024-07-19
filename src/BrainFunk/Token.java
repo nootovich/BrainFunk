@@ -1,3 +1,5 @@
+package BrainFunk;
+
 public class Token {
 
     public enum Type {

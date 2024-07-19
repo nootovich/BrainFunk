@@ -1,3 +1,8 @@
+package BrainFunk;
+
+import nootovich.nglib.NGFileSystem;
+import nootovich.nglib.NGUtils;
+
 import java.io.File;
 import java.util.Arrays;
 
@@ -13,7 +18,7 @@ public class Main {
         String  transpiledFilepath = null;
 
         if (args.length < 1) {
-            Utils.error("No file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
+            NGUtils.error("No file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
         }
 
         String   filepath      = args[0];
@@ -25,7 +30,7 @@ public class Main {
             case "bfn" -> ProgramType.BFN;
             case "bfnx" -> ProgramType.BFNX;
             default -> {
-                Utils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
+                NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
                 yield ProgramType.ERR;
             }
         };
@@ -35,23 +40,23 @@ public class Main {
                 case "-p", "--profiling" -> profiling = true;
                 case "-t", "--transpile" -> {
                     if (i == args.length - 1) {
-                        Utils.error("No name for transpiled file was provided");
+                        NGUtils.error("No name for transpiled file was provided");
                     }
                     transpile          = true;
                     transpiledFilepath = "./%s.bf".formatted(args[++i]);
                 }
-                default -> Utils.error("Unknown argument " + args[i]);
+                default -> NGUtils.error("Unknown argument " + args[i]);
             }
         }
 
-        Utils.info("Running %s program.".formatted(filename));
+        NGUtils.info("Running %s program.".formatted(filename));
 
-        String  code  = FileSystem.loadFile(filepath);
+        String  code  = NGFileSystem.loadFile(filepath);
         Token[] lexed = Lexer.lex(code, filepath, programType);
-        Utils.info("Lexer  OK.");
+        NGUtils.info("Lexer  OK.");
 
         Token[] parsed = Parser.parse(lexed, filepath);
-        Utils.info("Parser OK.");
+        NGUtils.info("Parser OK.");
 
         if (transpile) {
             int           pad = 0;
@@ -76,7 +81,7 @@ public class Main {
                     sb.append('\n').append("  ".repeat(--pad)).append(t.repr()).append('\n').append("  ".repeat(pad));
                 }
             }
-            FileSystem.saveFile(transpiledFilepath, sb.toString());
+            NGFileSystem.saveFile(transpiledFilepath, sb.toString());
             System.exit(0);
         }
 

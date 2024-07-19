@@ -1,3 +1,7 @@
+package BrainFunk;
+
+import nootovich.nglib.NGUtils;
+
 import java.util.Stack;
 
 public class Lexer {
@@ -39,7 +43,7 @@ public class Lexer {
                         if (c == '"') break;
                         if (col == line.length() - 1) {
                             Token tk = new Token(Token.Type.ERR, filepath, row, scol);
-                            Utils.error("Unfinished string literal at: " + tk);
+                            NGUtils.error("Unfinished string literal at: " + tk);
                         }
                         sb.append(c);
                     }
@@ -69,13 +73,13 @@ public class Lexer {
                     }
                     lexed.push(new Token(Token.Type.WRD, sb.toString(), filepath, row, scol));
                 } else if (programType == Main.ProgramType.BFN) {
-                    Utils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Token.Type.ERR, filepath, row, col)));
+                    NGUtils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Token.Type.ERR, filepath, row, col)));
                 }
 
                 // BFNX
                 else if (c == '@') lexed.push(new Token(Token.Type.SYS, filepath, row, col));
 
-                else Utils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Token.Type.ERR, filepath, row, col)));
+                else NGUtils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Token.Type.ERR, filepath, row, col)));
             }
         }
 

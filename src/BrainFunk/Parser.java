@@ -1,7 +1,14 @@
+package BrainFunk;
+
+import nootovich.nglib.NGFileSystem;
+import nootovich.nglib.NGUtils;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Stack;
+
+import static BrainFunk.Token.Type.*;
 
 public class Parser {
 
@@ -27,8 +34,8 @@ public class Parser {
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
                 case IMP -> {
-                    if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.STR) {
-                        Utils.error("No import file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
+                    if (i == tokens.length - 1 || tokens[i + 1].type != STR) {
+                        NGUtils.error("No import file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
                     }
                     String   importStr       = tokens[++i].str;
                     String   importPath      = Path.of(filepath).getParent().resolve(importStr).normalize().toString();
@@ -40,16 +47,16 @@ public class Parser {
                         case "bfn" -> Main.ProgramType.BFN;
                         case "bfnx" -> Main.ProgramType.BFNX;
                         default -> {
-                            Utils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
+                            NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
                             yield Main.ProgramType.ERR;
                         }
                     };
-                    String  importCode  = FileSystem.loadFile(importPath);
+                    String  importCode  = NGFileSystem.loadFile(importPath);
                     Token[] importLexed = Lexer.lex(importCode, importPath, importProgramType);
                     for (Token t: importLexed) parsed.push(t);
                 }
                 case INC, DEC, RGT, LFT, JEZ, JNZ, INP, OUT, NUM, STR, WRD, PTR, RET, COL, SCL, URS, URE, SYS -> parsed.push(tokens[i]);
-                default -> Utils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
+                default -> NGUtils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
             }
         }
         tokens = new Token[parsed.size()];
@@ -66,11 +73,11 @@ public class Parser {
                     parsed.push(tokens[i]);
                 }
                 case JEZ, JNZ, SCL, URS, URE -> {
-                    if (popNum() > 1) Utils.error("Unexpected `NUM` token.\n" + tokens[i - 1]);
+                    if (popNum() > 1) NGUtils.error("Unexpected `NUM` token.\n" + tokens[i - 1]);
                     parsed.push(tokens[i]);
                 }
                 case COL -> {
-                    if (i > 0 && tokens[i - 1].type == Token.Type.URE) {
+                    if (i > 0 && tokens[i - 1].type == URE) {
                         tokens[i].num = tokens[i + 1].num;
                         parsed.push(tokens[i++]);
                     } else {
@@ -79,11 +86,11 @@ public class Parser {
                 }
                 case NUM -> pushNum(tokens[i]);
                 case PTR -> {
-                    if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.NUM) Utils.error("No jump location for pointer.\n" + tokens[i]);
+                    if (i == tokens.length - 1 || tokens[i + 1].type != NUM) NGUtils.error("No jump location for pointer.\n" + tokens[i]);
                     tokens[i].num = tokens[i + 1].num;
                     parsed.push(tokens[i++]);
                 }
-                default -> Utils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
+                default -> NGUtils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
             }
         }
         tokens = new Token[parsed.size()];
@@ -97,7 +104,7 @@ public class Parser {
             switch (tokens[i].type) {
                 case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, URS, URE, SYS -> parsed.push(tokens[i]);
                 case WRD -> {
-                    if (i == tokens.length - 1 || tokens[i + 1].type != Token.Type.COL) {
+                    if (i == tokens.length - 1 || tokens[i + 1].type != COL) {
                         parsed.push(tokens[i]);
                         continue;
                     }
@@ -105,8 +112,8 @@ public class Parser {
                     String       macroName  = tokens[i].str;
                     Stack<Token> macroStack = new Stack<>();
                     for (i += 2; i < tokens.length; i++) {
-                        if (tokens[i].type == Token.Type.SCL) break;
-                        if (i == tokens.length - 1 && tokens[i].type != Token.Type.SCL) Utils.error("Unfinished macro definition.\n" + tokens[si]);
+                        if (tokens[i].type == SCL) break;
+                        if (i == tokens.length - 1 && tokens[i].type != SCL) NGUtils.error("Unfinished macro definition.\n" + tokens[si]);
                         tokens[i].origin = tokens[si];
                         macroStack.push(tokens[i]);
                     }
@@ -114,7 +121,7 @@ public class Parser {
                     for (int j = macroTokens.length - 1; j >= 0; j--) macroTokens[j] = macroStack.pop();
                     macros.put(macroName, macroTokens);
                 }
-                default -> Utils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
+                default -> NGUtils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
             }
         }
         Token[] result = new Token[parsed.size()];
@@ -124,7 +131,7 @@ public class Parser {
 
     public static Token[] parseMacroCall(Token[] tokens, Token origin) {
         recursionCount++;
-        if (recursionCount >= RECURSION_LIMIT) Utils.error("Macro expansion limit exceeded.\n" + tokens[0]);
+        if (recursionCount >= RECURSION_LIMIT) NGUtils.error("Macro expansion limit exceeded.\n" + tokens[0]);
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
@@ -133,7 +140,7 @@ public class Parser {
                     parsed.push(tokens[i]);
                 }
                 case WRD -> {
-                    if (!macros.containsKey(tokens[i].str)) Utils.error("Undefined macro.\n" + tokens[i]);
+                    if (!macros.containsKey(tokens[i].str)) NGUtils.error("Undefined macro.\n" + tokens[i]);
                     tokens[i].origin = origin;
                     if (debug) parsed.push(tokens[i]);
                     Token[] macroTokens = parseMacroCall(macros.get(tokens[i].str), tokens[i]);
@@ -144,7 +151,7 @@ public class Parser {
                         }
                     }
                 }
-                default -> Utils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
+                default -> NGUtils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
             }
         }
         recursionCount--;
@@ -160,15 +167,15 @@ public class Parser {
                 case INC, DEC, RGT, LFT, INP, OUT, NUM, STR, PTR, RET, WRD, COL, SCL, SYS -> {}
                 case JEZ, URS -> jumps.push(i);
                 case JNZ, URE -> {
-                    if (jumps.isEmpty()) Utils.error("Unmatched brackets.\n" + tokens[i]);
+                    if (jumps.isEmpty()) NGUtils.error("Unmatched brackets.\n" + tokens[i]);
                     int jmp = jumps.pop();
                     tokens[jmp].num = i;
                     tokens[i].num   = jmp;
                 }
-                default -> Utils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
+                default -> NGUtils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
             }
         }
-        if (!jumps.isEmpty()) Utils.error("Unmatched brackets.\n" + tokens[jumps.pop()]);
+        if (!jumps.isEmpty()) NGUtils.error("Unmatched brackets.\n" + tokens[jumps.pop()]);
         return tokens;
     }
 
@@ -179,7 +186,7 @@ public class Parser {
     }
 
     private static void pushNum(Token numTk) {
-        if (savedNum > 1) Utils.error("Two consecutive `NUM` tokens are unsupported.\n" + numTk);
+        if (savedNum > 1) NGUtils.error("Two consecutive `NUM` tokens are unsupported.\n" + numTk);
         savedNum = numTk.num;
     }
 }
