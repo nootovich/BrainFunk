@@ -9,7 +9,7 @@ import nootovich.nglib.NGUtils;
 
 import static debugger.DebuggerRenderer.*;
 
-public class DebugKeyboardhandler extends NGKeyHandler {
+public class DebuggerKeyHandler extends NGKeyHandler {
     @Override
     public void onKeyDn(int key, char chr) {
         int savedRow = Interpreter.ip < Interpreter.tokens.length ? Interpreter.tokens[Interpreter.ip].row : 0;

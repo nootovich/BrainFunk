@@ -169,7 +169,7 @@ public class Debugger {
 //            });
         } // TODO: Make more handlers
 
-        window.setKeyHandler(new DebugKeyboardhandler());
+        window.setKeyHandler(new DebuggerKeyHandler());
         Timer timer = new Timer(100, _ -> window.redraw());
         timer.start();
     }
