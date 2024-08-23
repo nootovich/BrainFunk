@@ -1,13 +1,13 @@
 package BrainFunk;
 
-import nootovich.nglib.NGFileSystem;
-import nootovich.nglib.NGUtils;
-
 import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Stack;
+import nootovich.nglib.NGFileSystem;
+import nootovich.nglib.NGUtils;
 
+import static BrainFunk.BrainFunk.ProgramType;
 import static BrainFunk.Token.Type.*;
 
 public class Parser {
@@ -42,13 +42,13 @@ public class Parser {
                     String   importName      = new File(importPath).getName();
                     String[] importNameParts = importName.split("\\.");
                     String   importExtension = importNameParts[importNameParts.length - 1];
-                    Main.ProgramType importProgramType = switch (importExtension) {
-                        case "bf" -> Main.ProgramType.BF;
-                        case "bfn" -> Main.ProgramType.BFN;
-                        case "bfnx" -> Main.ProgramType.BFNX;
+                    ProgramType importProgramType = switch (importExtension) {
+                        case "bf" -> ProgramType.BF;
+                        case "bfn" -> ProgramType.BFN;
+                        case "bfnx" -> ProgramType.BFNX;
                         default -> {
                             NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
-                            yield Main.ProgramType.ERR;
+                            yield ProgramType.ERR;
                         }
                     };
                     String  importCode  = NGFileSystem.loadFile(importPath);

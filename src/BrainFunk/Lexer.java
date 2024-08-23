@@ -1,12 +1,13 @@
 package BrainFunk;
 
+import java.util.Stack;
 import nootovich.nglib.NGUtils;
 
-import java.util.Stack;
+import static BrainFunk.BrainFunk.ProgramType;
 
 public class Lexer {
 
-    public static Token[] lex(String data, String filepath, Main.ProgramType programType) {
+    public static Token[] lex(String data, String filepath, ProgramType programType) {
         Stack<Token> lexed = new Stack<>();
         String[]     lines = data.split("\n", -1);
         for (int row = 0; row < lines.length; row++) {
@@ -24,7 +25,7 @@ public class Lexer {
                 else if (c == '.') lexed.push(new Token(Token.Type.OUT, filepath, row, col));
                 else if (c == '[') lexed.push(new Token(Token.Type.JEZ, filepath, row, col));
                 else if (c == ']') lexed.push(new Token(Token.Type.JNZ, filepath, row, col));
-                else if (programType == Main.ProgramType.BF) continue;
+                else if (programType == ProgramType.BF) continue;
 
                 // BFN, BFNX
                 else if (c == '/' && col < line.length() - 1 && line.charAt(col + 1) == '/') break;
@@ -72,7 +73,7 @@ public class Lexer {
                         sb.append(c);
                     }
                     lexed.push(new Token(Token.Type.WRD, sb.toString(), filepath, row, scol));
-                } else if (programType == Main.ProgramType.BFN) {
+                } else if (programType == ProgramType.BFN) {
                     NGUtils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Token.Type.ERR, filepath, row, col)));
                 }
 

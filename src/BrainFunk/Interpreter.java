@@ -1,10 +1,8 @@
 package BrainFunk;
 
+import BrainFunk.BrainFunk.ProgramType;
+import java.util.*;
 import nootovich.nglib.NGUtils;
-
-import java.util.ArrayList;
-import java.util.Scanner;
-import java.util.Stack;
 
 import static BrainFunk.Token.Type.COL;
 
@@ -13,7 +11,7 @@ public class Interpreter {
     private static final int TAPE_LEN       = 3000;
     private static final int REPETITION_CAP = 10;
 
-    public static Main.ProgramType programType = Main.ProgramType.ERR;
+    public static ProgramType programType = ProgramType.ERR;
 
     public static boolean finished = false;
 
@@ -30,7 +28,7 @@ public class Interpreter {
     public static        StringBuilder   inputMemory = new StringBuilder();
 
     public static void reset() {
-        programType = Main.ProgramType.ERR;
+        programType = ProgramType.ERR;
         tokens      = new Token[0];
         restart();
     }
@@ -45,13 +43,13 @@ public class Interpreter {
         inputMemory.setLength(0);
     }
 
-    public static void loadProgram(Token[] program, Main.ProgramType pType) {
+    public static void loadProgram(Token[] program, ProgramType pType) {
         tokens      = program;
         programType = pType;
     }
 
     public static void execute() {
-        if (programType == Main.ProgramType.ERR) {
+        if (programType == ProgramType.ERR) {
             NGUtils.error("The program was not loaded properly. Please use `loadProgram()` function.");
         } else if (finished) {
             NGUtils.error("Unable to execute the program because it is finished.");
@@ -67,12 +65,12 @@ public class Interpreter {
                 if (tape[pointer] == 0) {
                     ip = tokens[ip].num + 1;
                     return;
-                } else if (programType != Main.ProgramType.BF && unsafeStack.empty()) {
+                } else if (programType != ProgramType.BF && unsafeStack.empty()) {
                     pointerStack.push(pointer);
                 }
             }
             case JNZ -> {
-                if (programType != Main.ProgramType.BF && unsafeStack.empty()) {
+                if (programType != ProgramType.BF && unsafeStack.empty()) {
                     int expectedPointer = pointerStack.pop();
                     if (pointer != expectedPointer) {
                         while (!pointerStack.isEmpty()) NGUtils.info("STACK DUMP: " + pointerStack.pop());
@@ -90,7 +88,7 @@ public class Interpreter {
 
             // BFN, BFNX
             case STR -> {
-                if (programType == Main.ProgramType.BF) {
+                if (programType == ProgramType.BF) {
                     NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
                 }
                 for (char c: tokens[ip].str.toCharArray()) {
@@ -99,14 +97,14 @@ public class Interpreter {
                 }
             }
             case PTR -> {
-                if (programType == Main.ProgramType.BF) {
+                if (programType == ProgramType.BF) {
                     NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
                 }
                 returnStack.push(pointer);
                 pointer = tokens[ip].num;
             }
             case RET -> {
-                if (programType == Main.ProgramType.BF) {
+                if (programType == ProgramType.BF) {
                     NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
                 } else if (returnStack.isEmpty()) {
                     NGUtils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[ip]);
@@ -114,13 +112,13 @@ public class Interpreter {
                 pointer = returnStack.pop();
             }
             case URS -> {
-                if (programType == Main.ProgramType.BF) {
+                if (programType == ProgramType.BF) {
                     NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
                 }
                 unsafeStack.push(pointer);
             }
             case URE -> {
-                if (programType == Main.ProgramType.BF) {
+                if (programType == ProgramType.BF) {
                     NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
                 } else if (unsafeStack.empty()) {
                     NGUtils.error("Invalid unsafe region end token: " + tokens[ip]);
@@ -140,7 +138,7 @@ public class Interpreter {
 
             // BFNX
             case SYS -> {
-                if (programType != Main.ProgramType.BFNX) {
+                if (programType != ProgramType.BFNX) {
                     NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
                 }
                 syscall();

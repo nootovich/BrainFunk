@@ -1,11 +1,10 @@
 import BrainFunk.*;
+import java.io.*;
+import java.util.Stack;
 import nootovich.nglib.NGFileSystem;
 import nootovich.nglib.NGUtils;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.io.UncheckedIOException;
-import java.util.Stack;
+import static BrainFunk.BrainFunk.ProgramType;
 
 
 public class Testing {
@@ -54,13 +53,13 @@ public class Testing {
             String   filepath      = TESTING_DIR + file;
             String[] filenameParts = file.split("\\.");
             String   extension     = filenameParts[filenameParts.length - 1];
-            Main.ProgramType programType = switch (extension) {
-                case "bf" -> Main.ProgramType.BF;
-                case "bfn" -> Main.ProgramType.BFN;
-                case "bfnx" -> Main.ProgramType.BFNX;
+            ProgramType programType = switch (extension) {
+                case "bf" -> ProgramType.BF;
+                case "bfn" -> ProgramType.BFN;
+                case "bfnx" -> ProgramType.BFNX;
                 default -> {
                     NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
-                    yield Main.ProgramType.ERR;
+                    yield ProgramType.ERR;
                 }
             };
 
