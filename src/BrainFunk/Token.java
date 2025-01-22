@@ -100,10 +100,16 @@ public class Token {
         return result;
     }
 
+    @Override
     public String toString() {
         StringBuilder result = new StringBuilder("%s:%d:%d [%s{%d}".formatted(file, row + 1, col, type, num));
         if (str != null) result.append(":{\"").append(str).append("\"}");
         result.append("]");
+        return result.toString();
+    }
+
+    public String toStringDetailed() {
+        StringBuilder result = new StringBuilder(toString());
         if (origin != null) result.append("\n    From: ").append(origin);
         return result.toString();
     }
