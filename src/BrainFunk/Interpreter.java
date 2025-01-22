@@ -4,8 +4,6 @@ import BrainFunk.BrainFunk.ProgramType;
 import java.util.*;
 import nootovich.nglib.NGUtils;
 
-import static BrainFunk.Token.Type.COL;
-
 public class Interpreter {
 
     private static final int TAPE_LEN       = 3000;
@@ -15,13 +13,12 @@ public class Interpreter {
 
     public static boolean finished = false;
 
-    public static        byte[]         tape         = new byte[TAPE_LEN];
-    public static        int            pointer      = 0;
-    public static        int            ip           = 0;
-    public static        Token[]        tokens       = new Token[0];
-    private static final Stack<Integer> returnStack  = new Stack<>();
-    private static final Stack<Integer> pointerStack = new Stack<>();
-    private static final Stack<Integer> unsafeStack  = new Stack<>();
+    public static  byte[]         tape         = new byte[TAPE_LEN];
+    public static  int            pointer      = 0;
+    public static  int            ip           = 0;
+    public static  Token[]        tokens       = new Token[0];
+    private static Stack<Integer> returnStack  = new Stack<>();
+    private static Stack<Integer> pointerStack = new Stack<>();
 
     private static final Scanner         input       = new Scanner(System.in);
     public static        ArrayList<Byte> inputBuffer = new ArrayList<>();
@@ -34,13 +31,15 @@ public class Interpreter {
     }
 
     public static void restart() {
-        finished = false;
-        tape     = new byte[TAPE_LEN];
-        pointer  = 0;
-        ip       = 0;
-        returnStack.clear();
-        inputBuffer.clear();
-        inputMemory.setLength(0);
+        finished     = false;
+        tape         = new byte[TAPE_LEN];
+        pointer      = 0;
+        ip           = 0;
+        returnStack  = new Stack<>();
+        inputBuffer  = new ArrayList<>();
+        pointerStack = new Stack<>();
+        inputMemory  = new StringBuilder();
+        System.gc();
     }
 
     public static void loadProgram(Token[] program, ProgramType pType) {
@@ -65,19 +64,11 @@ public class Interpreter {
                 if (tape[pointer] == 0) {
                     ip = tokens[ip].num + 1;
                     return;
-                } else if (programType != ProgramType.BF && unsafeStack.empty()) {
+                } else if (programType != ProgramType.BF) {
                     pointerStack.push(pointer);
                 }
             }
             case JNZ -> {
-                if (programType != ProgramType.BF && unsafeStack.empty()) {
-                    int expectedPointer = pointerStack.pop();
-                    if (pointer != expectedPointer) {
-                        while (!pointerStack.isEmpty()) NGUtils.info("STACK DUMP: " + pointerStack.pop());
-                        NGUtils.error("Unexpected pointer location when leaving a loop: %s%nExpected '%d' but got '%d'."
-                                .formatted(tokens[ip], expectedPointer, pointer));
-                    }
-                }
                 if (tape[pointer] != 0) {
                     ip = tokens[ip].num;
                     return;
@@ -111,30 +102,7 @@ public class Interpreter {
                 }
                 pointer = returnStack.pop();
             }
-            case URS -> {
-                if (programType == ProgramType.BF) {
-                    NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-                }
-                unsafeStack.push(pointer);
-            }
-            case URE -> {
-                if (programType == ProgramType.BF) {
-                    NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-                } else if (unsafeStack.empty()) {
-                    NGUtils.error("Invalid unsafe region end token: " + tokens[ip]);
-                }
-                if (ip < tokens.length - 1 && tokens[ip + 1].type == COL) {
-                    unsafeStack.pop();
-                    unsafeStack.push(tokens[++ip].num);
-                }
-
-                int curLocation = unsafeStack.pop();
-                if (curLocation != pointer) {
-                    NGUtils.error("Unexpected pointer location when leaving an unsafe region: %s%nExpected '%d' but got '%d'."
-                            .formatted(tokens[ip], curLocation, pointer));
-                }
-            }
-            case WRD -> {} // TODO: this is temporary
+            case WRD -> { } // TODO: this is temporary
 
             // BFNX
             case SYS -> {

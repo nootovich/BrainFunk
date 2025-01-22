@@ -2,6 +2,7 @@ package debugger;
 
 import BrainFunk.Parser;
 import BrainFunk.Token;
+import BrainFunk.Token.Type;
 import java.awt.FontMetrics;
 import java.awt.GraphicsEnvironment;
 import nootovich.nglib.*;
@@ -24,7 +25,7 @@ public class Debugger extends NGMain {
         setFrameRate(60);
 
         createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, new DebuggerRenderer());
-        window.jf.setLocation(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[1].getDefaultConfiguration().getBounds().getLocation());
+        window.jf.setLocation(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[0].getDefaultConfiguration().getBounds().getLocation());
 
         BUTTON_TOKEN_LIST = new NGVec4i(areaCode.x(), 5, areaCode.y() - 10, areaCode.y() - 10);
 
@@ -69,13 +70,13 @@ public class Debugger extends NGMain {
             restart();
             return;
         }
-        if (tokens[ip].type == Token.Type.WRD) {
+        if (tokens[ip].type == Type.WRD) {
 
             // TODO: cache parsed macros
             Token[] macro = new Token[]{tokens[ip]};
             int     n     = ip + Parser.parseMacroCall(macro, null).length;
             while (ip < n) execute();
-        } else if (tokens[ip].type == Token.Type.JEZ || tokens[ip].type == Token.Type.URS) {
+        } else if (tokens[ip].type == Type.JEZ) {
 
             int target = tokens[ip].num + 1;
             while (ip < tokens.length - 1 && ip != target) execute();

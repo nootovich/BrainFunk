@@ -55,7 +55,7 @@ public class Parser {
                     Token[] importLexed = Lexer.lex(importCode, importPath, importProgramType);
                     for (Token t: importLexed) parsed.push(t);
                 }
-                case INC, DEC, RGT, LFT, JEZ, JNZ, INP, OUT, NUM, STR, WRD, PTR, RET, COL, SCL, URS, URE, SYS -> parsed.push(tokens[i]);
+                case INC, DEC, RGT, LFT, JEZ, JNZ, INP, OUT, NUM, STR, WRD, PTR, RET, COL, SCL, SYS -> parsed.push(tokens[i]);
                 default -> NGUtils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
             }
         }
@@ -72,18 +72,11 @@ public class Parser {
                     tokens[i].num = popNum();
                     parsed.push(tokens[i]);
                 }
-                case JEZ, JNZ, SCL, URS, URE -> {
+                case JEZ, JNZ, SCL -> {
                     if (popNum() > 1) NGUtils.error("Unexpected `NUM` token.\n" + tokens[i - 1]);
                     parsed.push(tokens[i]);
                 }
-                case COL -> {
-                    if (i > 0 && tokens[i - 1].type == URE) {
-                        tokens[i].num = tokens[i + 1].num;
-                        parsed.push(tokens[i++]);
-                    } else {
-                        parsed.push(tokens[i]);
-                    }
-                }
+                case COL -> parsed.push(tokens[i]);
                 case NUM -> pushNum(tokens[i]);
                 case PTR -> {
                     if (i == tokens.length - 1 || tokens[i + 1].type != NUM) NGUtils.error("No jump location for pointer.\n" + tokens[i]);
@@ -102,7 +95,7 @@ public class Parser {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, URS, URE, SYS -> parsed.push(tokens[i]);
+                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, SYS -> parsed.push(tokens[i]);
                 case WRD -> {
                     if (i == tokens.length - 1 || tokens[i + 1].type != COL) {
                         parsed.push(tokens[i]);
@@ -135,7 +128,7 @@ public class Parser {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, URS, URE, SYS -> {
+                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, SYS -> {
                     tokens[i].origin = origin;
                     parsed.push(tokens[i]);
                 }
@@ -164,9 +157,9 @@ public class Parser {
         Stack<Integer> jumps = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, NUM, STR, PTR, RET, WRD, COL, SCL, SYS -> {}
-                case JEZ, URS -> jumps.push(i);
-                case JNZ, URE -> {
+                case INC, DEC, RGT, LFT, INP, OUT, NUM, STR, PTR, RET, WRD, COL, SCL, SYS -> { }
+                case JEZ -> jumps.push(i);
+                case JNZ -> {
                     if (jumps.isEmpty()) NGUtils.error("Unmatched brackets.\n" + tokens[i]);
                     int jmp = jumps.pop();
                     tokens[jmp].num = i;

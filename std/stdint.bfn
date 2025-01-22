@@ -28,7 +28,7 @@ nextInt [ prevInt incInt nextInt decInt ]
 2prevInt [ prevInt ] nextInt decInt
 ;
 
-jankyIntMod: {       [ modOnce ]
+jankyIntMod:         [ modOnce ]
 <[>  decInt modOnce +[ modOnce ] <]
 <[2> decInt modOnce +[ modOnce ]
 <[>  decInt modOnce +[ modOnce ] <] <]
@@ -36,7 +36,7 @@ jankyIntMod: {       [ modOnce ]
 <[>  decInt modOnce +[ modOnce ] <]
 <[2> decInt modOnce +[ modOnce ]
 <[>  decInt modOnce +[ modOnce ] <] <] <]
-3> }
+3>
 nextInt [-] nextInt [- 2prevInt + 2nextInt ] 2prevInt
 ;
 

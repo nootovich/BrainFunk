@@ -33,8 +33,6 @@ public class Lexer {
                 else if (c == '#') lexed.push(new Token(Token.Type.RET, filepath, row, col));
                 else if (c == ':') lexed.push(new Token(Token.Type.COL, filepath, row, col));
                 else if (c == ';') lexed.push(new Token(Token.Type.SCL, filepath, row, col));
-                else if (c == '{') lexed.push(new Token(Token.Type.URS, filepath, row, col));
-                else if (c == '}') lexed.push(new Token(Token.Type.URE, filepath, row, col));
                 else if (c == '!') lexed.push(new Token(Token.Type.IMP, filepath, row, col));
                 else if (c == '"') {
                     int           scol = col;
