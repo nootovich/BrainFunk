@@ -2,9 +2,10 @@ package BrainFunk;
 
 import java.io.File;
 import java.util.Arrays;
-import nootovich.nglib.*;
+import nootovich.nglib.NGFileSystem;
+import nootovich.nglib.NGUtils;
 
-public class BrainFunk extends NGMain {
+public class BrainFunk {
 
     public enum ProgramType {
         BF, BFN, BFNX, ERR
