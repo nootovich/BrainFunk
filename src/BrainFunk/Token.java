@@ -3,7 +3,7 @@ package BrainFunk;
 public class Token {
 
     public enum Type {
-        INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, // VANILLA
+        PLUS, MINUS, GREATER, LESS, COMMA, DOT, LBRACKET, RBRACKET, // VANILLA
         NUM, STR, PTR, RET, WRD,
         COL, SCL,
         IMP,
@@ -57,14 +57,14 @@ public class Token {
 
     public String repr() {
         return switch (type) {
-            case INC -> "+";
-            case DEC -> "-";
-            case RGT -> ">";
-            case LFT -> "<";
-            case JEZ -> "[";
-            case JNZ -> "]";
-            case OUT -> ".";
-            case INP -> ",";
+            case PLUS -> "+";
+            case MINUS -> "-";
+            case GREATER -> ">";
+            case LESS -> "<";
+            case LBRACKET -> "[";
+            case RBRACKET -> "]";
+            case DOT -> ".";
+            case COMMA -> ",";
             case NUM -> String.valueOf(num);
             case STR -> '\"' + str + '\"';
             // case MACRODEF -> strValue + ':';

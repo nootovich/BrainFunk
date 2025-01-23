@@ -1,5 +1,6 @@
 package BrainFunk;
 
+import BrainFunk.Op.Type;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -8,17 +9,90 @@ import nootovich.nglib.NGFileSystem;
 import nootovich.nglib.NGUtils;
 
 import static BrainFunk.BrainFunk.ProgramType;
+import static BrainFunk.Op.Type.JEZ;
+import static BrainFunk.Op.Type.JNZ;
 import static BrainFunk.Token.Type.*;
 
 public class Parser {
 
-    public static boolean debug = false;
+    public static boolean debug = true;
 
     private static final int RECURSION_LIMIT = 1000;
     private static       int recursionCount  = 0;
 
     public static  HashMap<String, Token[]> macros   = new HashMap<>();
+    public static  HashMap<String, Op[]>    macros2  = new HashMap<>();
     private static int                      savedNum = 1;
+
+    public static Op[] parse2(Token[] tokens) {
+        Stack<Op> ops = new Stack<>();
+        for (int i = 0; i < tokens.length; i++) {
+            Token t = tokens[i];
+            ops.push(switch (t.type) {
+                case PLUS, MINUS, GREATER, LESS, COMMA, DOT -> new Op(Type.values()[t.type.ordinal()], t);
+                case LBRACKET -> {
+                    int depth = 0;
+                    for (int j = i + 1; j <= tokens.length; j++) {
+                        if (j == tokens.length) break;
+                        else if (tokens[j].type == LBRACKET) depth++;
+                        else if (tokens[j].type == RBRACKET && depth-- == 0) yield new Op(JEZ, t, j);
+                    }
+                    yield NGUtils.error("Unmatched '[' at %s".formatted(t));
+                }
+                case RBRACKET -> {
+                    for (int j = 0; j < ops.size(); j++) {
+                        if (ops.get(j).num == i) yield new Op(JNZ, t, j);
+                    }
+                    yield NGUtils.error("Unmatched ']' at %s".formatted(t));
+                }
+                // case NUM ->  new Op();
+                // case STR ->  new Op();
+                // case PTR ->  new Op();
+                // case RET ->  new Op();
+                case WRD -> {
+                    if (i + 1 < tokens.length && tokens[i + 1].type == COL) {
+                        // MACRODEF
+                        int j;
+                        for (j = i + 2; j <= tokens.length; j++) {
+                            if (j == tokens.length) {
+                                yield NGUtils.error("Unfinished macro definition at " + t);
+                            } else if (tokens[j].type == SCL) {
+                                break;
+                            }
+                        }
+                        if (macros2.containsKey(t.str)) {
+                            NGUtils.error("Redefinition of a macro '%s' ".formatted(t.str));
+                            NGUtils.info("Originally defined here %s".formatted(macros2.get(t.str)));
+                            yield null;
+                        }
+                        Token[] macroTokens = new Token[j - i + 2];
+                        System.arraycopy(tokens, i + 2, macroTokens, 0, macroTokens.length);
+                        Op[] macroOps = parse2(macroTokens);
+                        macros2.put(t.str, macroOps);
+                    } else {
+                        // MACRO
+                        yield NGUtils.error("TODO");
+                        // for (int k = 0; k < macroOps.length - 1; k++) ops.push(macroOps[k]);
+                        // yield macroOps[macroOps.length - 1];
+                    }
+                    yield NGUtils.error("TODO");
+                }
+                // case COL ->  new Op();
+                // case SCL ->  new Op();
+                // case IMP ->  new Op();
+                // case SYS ->  new Op();
+                // case ERR ->  new Op();
+                default -> NGUtils.error("Encountered unexpected token type '%s' in parsing".formatted(t.type));
+            });
+        }
+
+        Op[] result = new Op[ops.size()];
+        for (
+            int i = result.length - 1;
+            i >= 0; i--)
+            result[i] = ops.pop();
+        return result;
+    }
 
     public static Token[] parse(Token[] tokens, String filepath) {
         tokens = parseImports(tokens, filepath);
@@ -55,7 +129,7 @@ public class Parser {
                     Token[] importLexed = Lexer.lex(importCode, importPath, importProgramType);
                     for (Token t: importLexed) parsed.push(t);
                 }
-                case INC, DEC, RGT, LFT, JEZ, JNZ, INP, OUT, NUM, STR, WRD, PTR, RET, COL, SCL, SYS -> parsed.push(tokens[i]);
+                case PLUS, MINUS, GREATER, LESS, LBRACKET, RBRACKET, COMMA, DOT, NUM, STR, WRD, PTR, RET, COL, SCL, SYS -> parsed.push(tokens[i]);
                 default -> NGUtils.error("Unexpected token in parsing. Probably a bug in `Lexer`.\n" + tokens[i]);
             }
         }
@@ -68,11 +142,11 @@ public class Parser {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, STR, RET, WRD, IMP, SYS -> {
+                case PLUS, MINUS, GREATER, LESS, COMMA, DOT, STR, RET, WRD, IMP, SYS -> {
                     tokens[i].num = popNum();
                     parsed.push(tokens[i]);
                 }
-                case JEZ, JNZ, SCL -> {
+                case LBRACKET, RBRACKET, SCL -> {
                     if (popNum() > 1) NGUtils.error("Unexpected `NUM` token.\n" + tokens[i - 1]);
                     parsed.push(tokens[i]);
                 }
@@ -95,7 +169,7 @@ public class Parser {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, SYS -> parsed.push(tokens[i]);
+                case PLUS, MINUS, GREATER, LESS, COMMA, DOT, LBRACKET, RBRACKET, NUM, STR, PTR, RET, COL, SCL, SYS -> parsed.push(tokens[i]);
                 case WRD -> {
                     if (i == tokens.length - 1 || tokens[i + 1].type != COL) {
                         parsed.push(tokens[i]);
@@ -128,7 +202,7 @@ public class Parser {
         Stack<Token> parsed = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, NUM, STR, PTR, RET, COL, SCL, SYS -> {
+                case PLUS, MINUS, GREATER, LESS, COMMA, DOT, LBRACKET, RBRACKET, NUM, STR, PTR, RET, COL, SCL, SYS -> {
                     tokens[i].origin = origin;
                     parsed.push(tokens[i]);
                 }
@@ -157,9 +231,9 @@ public class Parser {
         Stack<Integer> jumps = new Stack<>();
         for (int i = 0; i < tokens.length; i++) {
             switch (tokens[i].type) {
-                case INC, DEC, RGT, LFT, INP, OUT, NUM, STR, PTR, RET, WRD, COL, SCL, SYS -> { }
-                case JEZ -> jumps.push(i);
-                case JNZ -> {
+                case PLUS, MINUS, GREATER, LESS, COMMA, DOT, NUM, STR, PTR, RET, WRD, COL, SCL, SYS -> { }
+                case LBRACKET -> jumps.push(i);
+                case RBRACKET -> {
                     if (jumps.isEmpty()) NGUtils.error("Unmatched brackets.\n" + tokens[i]);
                     int jmp = jumps.pop();
                     tokens[jmp].num = i;

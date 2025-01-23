@@ -24,14 +24,14 @@ public class Lexer {
             Token token = switch (c) {
                 case ' ', '\t', '\r' -> { skip = true; yield null; }
                 case '\n' -> { bol = i + 1; row++; skip = true; yield null; }
-                case '+' -> new Token(Type.INC, filepath, row, col);
-                case '-' -> new Token(Type.DEC, filepath, row, col);
-                case '>' -> new Token(Type.RGT, filepath, row, col);
-                case '<' -> new Token(Type.LFT, filepath, row, col);
-                case ',' -> new Token(Type.INP, filepath, row, col);
-                case '.' -> new Token(Type.OUT, filepath, row, col);
-                case '[' -> new Token(Type.JEZ, filepath, row, col);
-                case ']' -> new Token(Type.JNZ, filepath, row, col);
+                case '+' -> new Token(Type.PLUS, filepath, row, col);
+                case '-' -> new Token(Type.MINUS, filepath, row, col);
+                case '>' -> new Token(Type.GREATER, filepath, row, col);
+                case '<' -> new Token(Type.LESS, filepath, row, col);
+                case ',' -> new Token(Type.COMMA, filepath, row, col);
+                case '.' -> new Token(Type.DOT, filepath, row, col);
+                case '[' -> new Token(Type.LBRACKET, filepath, row, col);
+                case ']' -> new Token(Type.RBRACKET, filepath, row, col);
                 case '$' -> new Token(Type.PTR, filepath, row, col);
                 case '#' -> new Token(Type.RET, filepath, row, col);
                 case ':' -> new Token(Type.COL, filepath, row, col);

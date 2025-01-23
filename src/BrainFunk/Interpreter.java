@@ -56,11 +56,11 @@ public class Interpreter {
         switch (tokens[ip].type) {
 
             // BF, BFN, BFNX
-            case INC -> tape[pointer] += (byte) tokens[ip].num;
-            case DEC -> tape[pointer] -= (byte) tokens[ip].num;
-            case RGT -> pointer = ((pointer + tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-            case LFT -> pointer = ((pointer - tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-            case JEZ -> {
+            case PLUS -> tape[pointer] += (byte) tokens[ip].num;
+            case MINUS -> tape[pointer] -= (byte) tokens[ip].num;
+            case GREATER -> pointer = ((pointer + tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+            case LESS -> pointer = ((pointer - tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+            case LBRACKET -> {
                 if (tape[pointer] == 0) {
                     ip = tokens[ip].num + 1;
                     return;
@@ -68,14 +68,14 @@ public class Interpreter {
                     pointerStack.push(pointer);
                 }
             }
-            case JNZ -> {
+            case RBRACKET -> {
                 if (tape[pointer] != 0) {
                     ip = tokens[ip].num;
                     return;
                 }
             }
-            case OUT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(tokens[ip].num));
-            case INP -> read(tokens[ip].num);
+            case DOT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(tokens[ip].num));
+            case COMMA -> read(tokens[ip].num);
 
             // BFN, BFNX
             case STR -> {

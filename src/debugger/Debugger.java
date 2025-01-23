@@ -62,7 +62,7 @@ public class Debugger extends NGMain {
             // TODO: cache parsed macros
             int target = ip + Parser.parseMacroCall(new Token[]{tokens[ip]}, null).length;
             while (ip < tokens.length - 1 && ip < target) execute();
-        } else if (tokens[ip].type == Type.JEZ) {
+        } else if (tokens[ip].type == Type.LBRACKET) {
             int target = tokens[ip].num + 1;
             while (ip < tokens.length - 1 && ip < target) execute();
         } else execute();
