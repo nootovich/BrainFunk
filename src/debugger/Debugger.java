@@ -17,8 +17,7 @@ public class Debugger extends NGMain {
     public static final int WINDOW_WIDTH  = 1600;
     public static final int WINDOW_HEIGHT = 900;
 
-    public static  NGVec4i BUTTON_TOKEN_LIST;
-    private static int     savedRow = 0;
+    // public static NGVec4i BUTTON_TOKEN_LIST;
 
     public void main() {
         setTickRate(0);
@@ -27,32 +26,22 @@ public class Debugger extends NGMain {
         createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, new DebuggerRenderer());
         window.jf.setLocation(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[0].getDefaultConfiguration().getBounds().getLocation());
 
-        BUTTON_TOKEN_LIST = new NGVec4i(areaCode.x(), 5, areaCode.y() - 10, areaCode.y() - 10);
+        // BUTTON_TOKEN_LIST = new NGVec4i(areaCode.x(), 5, areaCode.y() - 10, areaCode.y() - 10);
 
         FontMetrics metrics = window.jf.getFontMetrics(font);
-        cachedFontH         = metrics.getHeight();
-        cachedFontW         = metrics.charWidth('@');
-        cachedLinesToBottom = filedata.length - areaCode.h() / cachedFontH;
-        fontSize            = new NGVec2i(cachedFontW, cachedFontH);
-
-        if (tokens.length > 0) {
-            codeOffsetY = NGUtils.clamp(tokens[0].row * cachedFontH - (h - w / 20) / 2, 0, cachedLinesToBottom * cachedFontH);
-        }
+        fontSize            = new NGVec2i(metrics.charWidth('@'), metrics.getHeight());
+        cachedLinesToBottom = filedata.length - (areaCode.h() - areaPadding.h()) / fontSize.h();
+        if (tokens.length > 0) codeOffsetY = NGUtils.clamp(tokens[0].row * fontSize.h() - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
 
         start();
     }
 
     @Override
-    public void onAnyKeyPress(int keyCode, char keyChar) {
-        savedRow = ip < tokens.length ? tokens[ip].row : 0;
-    }
-
-    @Override
     public void afterAnyKeyPress(int keyCode, char keyChar) {
-        if (!finished) {
-            int newOffsetY = codeOffsetY - (savedRow - tokens[ip].row) * cachedFontH;
-            codeOffsetY = NGUtils.clamp(newOffsetY, 0, cachedLinesToBottom * cachedFontH);
-        }
+        if (finished) return;
+        int tokenTextPos = tokens[ip].row * fontSize.h();
+        if (codeOffsetY < tokenTextPos && tokenTextPos < codeOffsetY + areaCode.h()) return;
+        codeOffsetY = NGUtils.clamp(tokenTextPos - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
     }
 
     @Override
@@ -69,18 +58,13 @@ public class Debugger extends NGMain {
     public void onSpacePress() {
         if (finished) {
             restart();
-            return;
-        }
-        if (tokens[ip].type == Type.WRD) {
-
+        } else if (tokens[ip].type == Type.WRD) {
             // TODO: cache parsed macros
-            Token[] macro = new Token[]{tokens[ip]};
-            int     n     = ip + Parser.parseMacroCall(macro, null).length;
-            while (ip < n) execute();
+            int target = ip + Parser.parseMacroCall(new Token[]{tokens[ip]}, null).length;
+            while (ip < tokens.length - 1 && ip < target) execute();
         } else if (tokens[ip].type == Type.JEZ) {
-
             int target = tokens[ip].num + 1;
-            while (ip < tokens.length - 1 && ip != target) execute();
+            while (ip < tokens.length - 1 && ip < target) execute();
         } else execute();
     }
 
@@ -91,13 +75,13 @@ public class Debugger extends NGMain {
 
     @Override
     public void onLMBPress(NGVec2i pos) {
-        if (pos.isInside(BUTTON_TOKEN_LIST)) {
+        if (false) {//pos.isInside(BUTTON_TOKEN_LIST)) {
             if (mode == NORMAL) {
                 mode                = TOKEN_LIST;
                 cachedLinesToBottom = tokens.length;
             } else {
                 mode                = NORMAL;
-                cachedLinesToBottom = filedata.length - areaCode.h() / cachedFontH;
+                cachedLinesToBottom = filedata.length - areaCode.h() / fontSize.h();
             }
             return;
         }
@@ -109,7 +93,7 @@ public class Debugger extends NGMain {
 
     @Override
     public void onMouseWheel(NGVec2i pos, int direction) {
-        codeOffsetY = NGUtils.clamp(codeOffsetY + direction * cachedFontH * 3, 0, cachedLinesToBottom * cachedFontH);
+        codeOffsetY = NGUtils.clamp(codeOffsetY + direction * fontSize.h() * 3, 0, cachedLinesToBottom * fontSize.h());
         findMouseToken(pos);
     }
 }

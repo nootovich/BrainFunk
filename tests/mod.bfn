@@ -19,20 +19,21 @@ eq:dup2tor2 r2>>+<<[->-<]>[[-]>[-]<]>[-<<+>>]#;
 // return value is saved in r1
 // uses >=3 bytes of space
 mod:dup2tor1 r1[->>+eq r2[[-]r1>>[-]#]#<]>[-]>[-<<+>>]#;
-// mod:dup2tor1 r1 // copy the values to r1 like this: [b, a, -, -]
-//     [ // while b > 0
-//         - // b--
-//         >>+ // c++
-//         eq r2 [[-] // if c == a
-//             r1 >> [-] // c = 0
-//             # // go back to r2
-//             ] // endif
-//         #< // go back to b
-//     ] // end the loop
-//     >[-] // clean a
-//     >[-<<+>>] // move c to r1
-//     # // return
-// ;
+
+//mod:dup2tor1 r1          // copy the values to r1 like this: [b, a, -, -]
+//    [                    // while b > 0
+//        -                // b--
+//        >>+              // c++
+//        eq r2 [[-]       // if c == a
+//            r1 >> [-]    // c = 0
+//            #            // go back to r2
+//            ]            // endif
+//        #<               // go back to b
+//    ]                    // end the loop
+//    >[-]                 // clean a
+//    >[-<<+>>]            // move c to r1
+//    #                    // return
+//;
 
 
 

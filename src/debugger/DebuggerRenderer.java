@@ -17,8 +17,6 @@ public class DebuggerRenderer extends NGRenderer {
 
     public static NGVec2i fontSize;
     public static int     codeOffsetY = 0;
-    public static int     cachedFontW; // TODO: remove
-    public static int     cachedFontH; // TODO: remove
     public static int     cachedLinesToBottom;
 
     public static Token mouseToken = null;
@@ -84,14 +82,14 @@ public class DebuggerRenderer extends NGRenderer {
 
         // Memory values
         {
-            for (int y = 0; y < Interpreter.tape.length / 8 && y < areaTape.h() / cachedFontH; y++) {
+            for (int y = 0; y < Interpreter.tape.length / 8 && y < areaTape.h() / fontSize.h(); y++) {
                 for (int x = 0; x < 8; x++) {
-                    int cx = x * cachedFontW * 3 + areaTape.x() + areaPadding.x() / 3;
-                    int cy = (y + 1) * cachedFontH + areaTape.y();
+                    int cx = x * fontSize.w() * 3 + areaTape.x() + areaPadding.x() / 3;
+                    int cy = (y + 1) * fontSize.h() + areaTape.y();
                     g.drawText(hex(Interpreter.tape[y * 8 + x]), cx, cy, colors[colorEnum.COLOR_TEXT.ordinal()]);
                     if (y * 8 + x == Interpreter.pointer) {
                         g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
-                        g.drawRectBorder(cx, cy - cachedFontH + 5, cachedFontW * 2, cachedFontH, colors[colorEnum.COLOR_HIGHLIGHT.ordinal()]);
+                        g.drawRectBorder(cx, cy - fontSize.h() + 5, fontSize.w() * 2, fontSize.h(), colors[colorEnum.COLOR_HIGHLIGHT.ordinal()]);
                         g.setStroke(new BasicStroke(1));
                     }
                 }
@@ -107,7 +105,7 @@ public class DebuggerRenderer extends NGRenderer {
                 NGVec2i p1 = areaText.xy().addY(g.g2d.getFontMetrics().getAscent());
                 for (int i = 0; i < filedata.length; i++) {
                     g.drawText(filedata[i], p1, colors[colorEnum.COLOR_TEXT.ordinal()]);
-                    p1 = p1.addY(cachedFontH);
+                    p1 = p1.addY(fontSize.h());
                 }
             } else if (mode == MODE.TOKEN_LIST) {
                 g.resetClip();
@@ -148,15 +146,13 @@ public class DebuggerRenderer extends NGRenderer {
         }
         g.resetClip();
 
-        g.drawRect(Debugger.BUTTON_TOKEN_LIST, Color.RED);
+        // g.drawRect(Debugger.BUTTON_TOKEN_LIST, Color.RED);
     }
 
     public void reset() { }
 
     public static void findMouseToken(NGVec2i pos) {
-        mouseToken = getTokenByRowCol(tokens,
-                                      // TODO: this should be just pos.sub(areaText).divide(cachedFontW, cachedFontH)
-                                      pos.sub(areaCode.x(), areaCode.y()).sub(areaPadding).add(0, codeOffsetY).divide(cachedFontW, cachedFontH));
+        mouseToken = getTokenByRowCol(tokens, pos.sub(areaCode.xy().add(areaPadding).subY(codeOffsetY)).divide(fontSize.w(), fontSize.h()));
     }
 
     private static Token getTokenByRowCol(Token[] array, NGVec2i pos) {
