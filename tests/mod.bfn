@@ -38,7 +38,7 @@ mod:dup2tor1 r1[->>+eq r2[[-]r1>>[-]#]#<]>[-]>[-<<+>>]#;
 
 // writing output to console
 println:print 10+.[-];
-print:{<[<]>[.>]<clear};
+print:<[<]>[.>]<clear;
 clear:[[-]<]>;
 
 $8  10 +> 7 + mod r1 48+ println

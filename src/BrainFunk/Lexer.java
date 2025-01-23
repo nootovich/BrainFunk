@@ -1,5 +1,6 @@
 package BrainFunk;
 
+import BrainFunk.Token.Type;
 import java.util.Stack;
 import nootovich.nglib.NGUtils;
 
@@ -7,86 +8,93 @@ import static BrainFunk.BrainFunk.ProgramType;
 
 public class Lexer {
 
+    // TODO: add back checks related to 'programType'
     public static Token[] lex(String data, String filepath, ProgramType programType) {
         Stack<Token> lexed = new Stack<>();
-        String[]     lines = data.split("\n", -1);
-        for (int row = 0; row < lines.length; row++) {
-            String line = lines[row];
-            for (int col = 0; col < line.length(); col++) {
-                char c = line.charAt(col);
-                if (c == ' ' || c == '\n' || c == '\r' || c == '\t') continue;
 
-                // BF, BFN, BFNX
-                else if (c == '+') lexed.push(new Token(Token.Type.INC, filepath, row, col));
-                else if (c == '-') lexed.push(new Token(Token.Type.DEC, filepath, row, col));
-                else if (c == '>') lexed.push(new Token(Token.Type.RGT, filepath, row, col));
-                else if (c == '<') lexed.push(new Token(Token.Type.LFT, filepath, row, col));
-                else if (c == ',') lexed.push(new Token(Token.Type.INP, filepath, row, col));
-                else if (c == '.') lexed.push(new Token(Token.Type.OUT, filepath, row, col));
-                else if (c == '[') lexed.push(new Token(Token.Type.JEZ, filepath, row, col));
-                else if (c == ']') lexed.push(new Token(Token.Type.JNZ, filepath, row, col));
-                else if (programType == ProgramType.BF) continue;
+        int row = 0;
+        int col = 0;
+        int bol = 0;
 
-                // BFN, BFNX
-                else if (c == '/' && col < line.length() - 1 && line.charAt(col + 1) == '/') break;
-                else if (c == '$') lexed.push(new Token(Token.Type.PTR, filepath, row, col));
-                else if (c == '#') lexed.push(new Token(Token.Type.RET, filepath, row, col));
-                else if (c == ':') lexed.push(new Token(Token.Type.COL, filepath, row, col));
-                else if (c == ';') lexed.push(new Token(Token.Type.SCL, filepath, row, col));
-                else if (c == '!') lexed.push(new Token(Token.Type.IMP, filepath, row, col));
-                else if (c == '"') {
-                    int           scol = col;
-                    StringBuilder sb   = new StringBuilder();
-                    for (col++; col < line.length(); col++) {
-                        c = line.charAt(col);
-                        if (c == '"') break;
-                        if (col == line.length() - 1) {
-                            Token tk = new Token(Token.Type.ERR, filepath, row, scol);
-                            NGUtils.error("Unfinished string literal at: " + tk);
-                        }
-                        sb.append(c);
+        char[] dataChars = data.toCharArray();
+        for (int i = 0; i < dataChars.length; i++) {
+            boolean skip = false;
+            col = i - bol;
+            char c = dataChars[i];
+            Token token = switch (c) {
+                case ' ', '\t', '\r' -> { skip = true; yield null; }
+                case '\n' -> { bol = i + 1; row++; skip = true; yield null; }
+                case '+' -> new Token(Type.INC, filepath, row, col);
+                case '-' -> new Token(Type.DEC, filepath, row, col);
+                case '>' -> new Token(Type.RGT, filepath, row, col);
+                case '<' -> new Token(Type.LFT, filepath, row, col);
+                case ',' -> new Token(Type.INP, filepath, row, col);
+                case '.' -> new Token(Type.OUT, filepath, row, col);
+                case '[' -> new Token(Type.JEZ, filepath, row, col);
+                case ']' -> new Token(Type.JNZ, filepath, row, col);
+                case '$' -> new Token(Type.PTR, filepath, row, col);
+                case '#' -> new Token(Type.RET, filepath, row, col);
+                case ':' -> new Token(Type.COL, filepath, row, col);
+                case ';' -> new Token(Type.SCL, filepath, row, col);
+                case '!' -> new Token(Type.IMP, filepath, row, col);
+                case '@' -> new Token(Type.SYS, filepath, row, col);
+                case '/' -> {
+                    if (i < dataChars.length - 1 && dataChars[i + 1] == '/') {
+                        skip = true;
+                        while (dataChars[++i] != '\n') { }
+                        i--;
                     }
-                    lexed.push(new Token(Token.Type.STR, sb.toString(), filepath, row, scol));
-                } else if (Character.isDigit(c)) {
-                    int scol = col;
-                    int num  = c - '0';
-                    for (col++; col < line.length(); col++) {
-                        c = line.charAt(col);
-                        if (!Character.isDigit(c)) {
-                            col--;
-                            break;
-                        }
-                        num = num * 10 + c - '0';
-                    }
-                    lexed.push(new Token(Token.Type.NUM, num, filepath, row, scol));
-                } else if (Character.isLetter(c)) {
-                    int           scol = col;
-                    StringBuilder sb   = new StringBuilder().append(c);
-                    for (col++; col < line.length(); col++) {
-                        c = line.charAt(col);
-                        if (!Character.isLetterOrDigit(c) && c != '_') {
-                            col--;
-                            break;
-                        }
-                        sb.append(c);
-                    }
-                    lexed.push(new Token(Token.Type.WRD, sb.toString(), filepath, row, scol));
-                } else if (programType == ProgramType.BFN) {
-                    NGUtils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Token.Type.ERR, filepath, row, col)));
+                    yield null;
                 }
-
-                // BFNX
-                else if (c == '@') lexed.push(new Token(Token.Type.SYS, filepath, row, col));
-
-                else NGUtils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Token.Type.ERR, filepath, row, col)));
+                case '"' -> {
+                    StringBuilder sb = new StringBuilder();
+                    for (i++; i < dataChars.length; i++) {
+                        if (dataChars[i] == '"') break;
+                        else if (i == '\n' || i == dataChars.length - 1) {
+                            yield NGUtils.error("Unfinished string literal at: " + new Token(Type.ERR, filepath, row, col));
+                        }
+                        sb.append(dataChars[i]);
+                    }
+                    yield new Token(Type.STR, sb.toString(), filepath, row, col);
+                }
+                default -> null;
+            };
+            if (token != null) {
+                lexed.push(token);
+                continue;
+            } else if (skip) {
+                continue;
+            } else if (Character.isDigit(c)) {
+                int num = c - '0';
+                for (i++; i < dataChars.length; i++) {
+                    if (!Character.isDigit(dataChars[i])) {
+                        i--;
+                        break;
+                    }
+                    num = num * 10 + dataChars[i] - '0';
+                }
+                lexed.push(new Token(Type.NUM, num, filepath, row, col));
+                continue;
+            } else if (Character.isLetter(c)) {
+                StringBuilder sb = new StringBuilder().append(c);
+                for (i++; i < dataChars.length; i++) {
+                    if (!Character.isLetterOrDigit(dataChars[i]) && dataChars[i] != '_') {
+                        i--;
+                        break;
+                    }
+                    sb.append(dataChars[i]);
+                }
+                lexed.push(new Token(Type.WRD, sb.toString(), filepath, row, col));
+                continue;
             }
+            NGUtils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Type.ERR, filepath, row, col)));
         }
 
         Token[] result = new Token[lexed.size()];
         for (int i = result.length - 1; i >= 0; i--) result[i] = lexed.pop();
+        lexed = new Stack<>();
 
         return result;
     }
-
 }
 

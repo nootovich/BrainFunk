@@ -15,10 +15,11 @@ public class DebuggerRenderer extends NGRenderer {
     public static NGVec2i areaPadding;
     public static NGVec4i areaTape;
 
-    public static int codeOffsetY = 0;
-    public static int cachedFontW;
-    public static int cachedFontH;
-    public static int cachedLinesToBottom;
+    public static NGVec2i fontSize;
+    public static int     codeOffsetY = 0;
+    public static int     cachedFontW; // TODO: remove
+    public static int     cachedFontH; // TODO: remove
+    public static int     cachedLinesToBottom;
 
     public static Token mouseToken = null;
 
@@ -97,22 +98,22 @@ public class DebuggerRenderer extends NGRenderer {
             }
         }
 
+        NGVec4i areaText = new NGVec4i(areaCode.xy().add(areaPadding).subY(codeOffsetY), fontSize.yx());
+
         // Program
         {
             if (mode == MODE.NORMAL) {
                 g.setClip(areaCode.x(), areaCode.y(), areaCode.w(), areaCode.h());
-                int y = areaCode.y() + cachedFontH - codeOffsetY;
+                NGVec2i p1 = areaText.xy().addY(g.g2d.getFontMetrics().getAscent());
                 for (int i = 0; i < filedata.length; i++) {
-                    g.drawText(filedata[i], areaCode.x() + areaPadding.w(), y + areaPadding.h(), colors[colorEnum.COLOR_TEXT.ordinal()]);
-                    y += cachedFontH;
+                    g.drawText(filedata[i], p1, colors[colorEnum.COLOR_TEXT.ordinal()]);
+                    p1 = p1.addY(cachedFontH);
                 }
             } else if (mode == MODE.TOKEN_LIST) {
                 g.resetClip();
                 for (int i = 0; i < tokens.length; i++) {
-                    Token t = tokens[i];
-                    int   x = areaCode.x() + areaPadding.x();
-                    int   y = areaCode.y() + areaPadding.y() + cachedFontH * (i + 1) - codeOffsetY;
-                    g.drawText(t.toString(), x, y, colors[colorEnum.COLOR_TEXT.ordinal()]);
+                    NGVec2i pos = areaText.xy().addY(fontSize.y() * i);
+                    g.drawText(tokens[i].toString(), pos, colors[colorEnum.COLOR_TEXT.ordinal()]);
                 }
             } else NGUtils.error("Not implemented");
         }
@@ -120,38 +121,30 @@ public class DebuggerRenderer extends NGRenderer {
         // Current token outline
         if (!Interpreter.finished && tokens.length > 0) {
             g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
-            Token tk    = tokens[Interpreter.ip];
-            int   prevX = Integer.MIN_VALUE;
-            int   prevY = Integer.MIN_VALUE;
-            while (tk != null) {
-                int ipX = areaCode.x() + areaPadding.w() + tk.col * cachedFontW;
-                int ipY = areaCode.y() + areaPadding.h() + tk.row * cachedFontH - codeOffsetY + 5;
-                int ipW = tk.len() * cachedFontW;
-                int ipH = cachedFontH;
-                g.drawRectBorder(ipX, ipY, ipW, ipH, colors[colorEnum.COLOR_HIGHLIGHT.ordinal()]);
+            Token   token      = tokens[Interpreter.ip];
+            NGVec2i prevCenter = new NGVec2i(Integer.MIN_VALUE);
+
+            // TODO: think about this flow. would be nice to separate first(current) token from the rest of macro expansion.
+            while (token != null) {
+                NGVec4i outline = areaText.addXY(fontSize.scale(token.col, token.row)).scaleW(token.len());
+                g.drawRectBorder(outline, colors[colorEnum.COLOR_HIGHLIGHT.ordinal()]);
                 g.setStroke(new BasicStroke(1));
 
-                // TODO: maybe a pretty drawArc()?)
-
-                if (prevX != Integer.MIN_VALUE && prevY != Integer.MIN_VALUE) {
-                    g.drawLine(ipX + ipW / 2, ipY + ipH / 2, prevX, prevY, colors[colorEnum.COLOR_CONNECTION.ordinal()]);
+                NGVec2i outlineCenter = new NGVec2i(outline.x() + outline.w() / 2, outline.y() + outline.h() / 2);
+                if (prevCenter.x() != Integer.MIN_VALUE && prevCenter.y() != Integer.MIN_VALUE) {
+                    // TODO: maybe a pretty drawArc()?)
+                    g.drawLine(outlineCenter, prevCenter, colors[colorEnum.COLOR_CONNECTION.ordinal()]);
                 }
-
-                prevX = ipX + ipW / 2;
-                prevY = ipY + ipH / 2;
-                tk    = tk.origin;
+                token      = token.origin;
+                prevCenter = outlineCenter;
             }
         }
 
         // Token under mouse outline
         if (mouseToken != null) {
-            int ipX, ipY, ipW, ipH;
-            ipX = areaCode.x() + areaPadding.w() + mouseToken.col * cachedFontW;
-            ipY = areaCode.y() + areaPadding.h() + mouseToken.row * cachedFontH - codeOffsetY + 5;
-            ipW = cachedFontW * mouseToken.len();
-            ipH = cachedFontH;
+            NGVec4i outline = areaText.addXY(fontSize.scale(mouseToken.col, mouseToken.row)).scaleW(mouseToken.len());
             g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
-            g.drawRectBorder(ipX, ipY, ipW, ipH, colors[colorEnum.COLOR_SELECT.ordinal()]);
+            g.drawRectBorder(outline, colors[colorEnum.COLOR_SELECT.ordinal()]);
         }
         g.resetClip();
 
@@ -161,13 +154,9 @@ public class DebuggerRenderer extends NGRenderer {
     public void reset() { }
 
     public static void findMouseToken(NGVec2i pos) {
-        mouseToken = getTokenByRowCol(
-            tokens,
-            pos.sub(areaCode.x(), areaCode.y())
-               .sub(areaPadding)
-               .add(0, codeOffsetY)
-               .divide(cachedFontW, cachedFontH)
-        );
+        mouseToken = getTokenByRowCol(tokens,
+                                      // TODO: this should be just pos.sub(areaText).divide(cachedFontW, cachedFontH)
+                                      pos.sub(areaCode.x(), areaCode.y()).sub(areaPadding).add(0, codeOffsetY).divide(cachedFontW, cachedFontH));
     }
 
     private static Token getTokenByRowCol(Token[] array, NGVec2i pos) {

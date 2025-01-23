@@ -33,6 +33,7 @@ public class Debugger extends NGMain {
         cachedFontH         = metrics.getHeight();
         cachedFontW         = metrics.charWidth('@');
         cachedLinesToBottom = filedata.length - areaCode.h() / cachedFontH;
+        fontSize            = new NGVec2i(cachedFontW, cachedFontH);
 
         if (tokens.length > 0) {
             codeOffsetY = NGUtils.clamp(tokens[0].row * cachedFontH - (h - w / 20) / 2, 0, cachedLinesToBottom * cachedFontH);
@@ -108,8 +109,7 @@ public class Debugger extends NGMain {
 
     @Override
     public void onMouseWheel(NGVec2i pos, int direction) {
-        codeOffsetY = NGUtils.clamp(codeOffsetY + direction * cachedFontH, 0, cachedLinesToBottom * cachedFontH);
+        codeOffsetY = NGUtils.clamp(codeOffsetY + direction * cachedFontH * 3, 0, cachedLinesToBottom * cachedFontH);
         findMouseToken(pos);
     }
-
 }

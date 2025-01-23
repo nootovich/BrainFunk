@@ -1,17 +1,17 @@
-x:$0; // temp value
+x:$0;                              // temp value
 gt0Flag:$1;
 eq0Flag:$2;
 start:$3 "ruv{ABCD"<;
 end:$3 4print 10+.;
 print:.>;
 
-cmp0: gt0Flag set0 eq0Flag set1 // reset flags
-##[ // if n > 0
+cmp0: gt0Flag set0 eq0Flag set1    // reset flags
+##[                                // if n > 0
     gt0Flag set1
     eq0Flag set0
-    ## setX // end loop
-] // endif n > 0
-getX; // return
+    ## setX                        // end loop
+]                                  // endif n > 0
+getX;                              // return
 setX:x set0 #[-x+#];
 getX:  set0 x[-#+x]#;
 set0:[-];
@@ -24,58 +24,58 @@ addHighestByte32:3<[-4<+4>];
 
 addSecondByte32:[- 4< incrSecondByte32 4>];
 incrSecondByte32: +
-cmp0 eq0Flag [ // if n == 0
-    set0 // clear flag
-    #<+ // increment highest byte
-    > eq0Flag // finish the loop
-] // endif
-#; // go back to cur byte (finishing the loop)
+cmp0 eq0Flag [                     // if n == 0
+    set0                           // clear flag
+    #<+                            // increment highest byte
+    > eq0Flag                      // finish the loop
+]                                  // endif
+#;                                 // go back to cur byte (finishing the loop)
 
 addThirdByte32:[- 4< incrThirdByte32 4>];
 incrThirdByte32: +
-cmp0 eq0Flag [ // if n == 0
-    set0 // clear flag
-    #< incrSecondByte32 // increment second byte
-    > eq0Flag // finish the loop
-] // endif
-#; // go back to cur byte (finishing the loop)
+cmp0 eq0Flag [                     // if n == 0
+    set0                           // clear flag
+    #< incrSecondByte32            // increment second byte
+    > eq0Flag                      // finish the loop
+]                                  // endif
+#;                                 // go back to cur byte (finishing the loop)
 
 addForthByte32:[- 4< incrForthByte32 4>];
 incrForthByte32: +
-cmp0 eq0Flag [ // if n == 0
-    set0 // clear flag
-    #< incrThirdByte32 // increment second byte
-    > eq0Flag // finish the loop
-] // endif
-#; // go back to cur byte (finishing the loop)
+cmp0 eq0Flag [                     // if n == 0
+    set0                           // clear flag
+    #< incrThirdByte32             // increment second byte
+    > eq0Flag                      // finish the loop
+]                                  // endif
+#;                                 // go back to cur byte (finishing the loop)
 
 subHighestByte32:3<[-4<-4>];
 
 subSecondByte32:[- 4< decrSecondByte32 4>];
 decrSecondByte32: -
-cmp0 eq0Flag [ // if n == 0
-    set0 // clear flag
-    #<- // decrement highest byte
-    > eq0Flag // finish the loop
-] // endif
-#; // go back to cur byte (finishing the loop)
+cmp0 eq0Flag [                     // if n == 0
+    set0                           // clear flag
+    #<-                            // decrement highest byte
+    > eq0Flag                      // finish the loop
+]                                  // endif
+#;                                 // go back to cur byte (finishing the loop)
 
 subThirdByte32:[- 4< decrThirdByte32 4>];
 decrThirdByte32: -
-cmp0 eq0Flag [ // if n == 0
-    set0 // clear flag
-    #< decrSecondByte32 // decrement second byte
-    > eq0Flag // finish the loop
-] // endif
-#; // go back to cur byte (finishing the loop)
+cmp0 eq0Flag [                     // if n == 0
+    set0                           // clear flag
+    #< decrSecondByte32            // decrement second byte
+    > eq0Flag                      // finish the loop
+]                                  // endif
+#;                                 // go back to cur byte (finishing the loop)
 
 subForthByte32:[- 4< decrForthByte32 4>];
 decrForthByte32: -
-cmp0 eq0Flag [ // if n == 0
-    set0 // clear flag
-    #< decrThirdByte32 // decrement second byte
-    > eq0Flag // finish the loop
-] // endif
-#; // go back to cur byte (finishing the loop)
+cmp0 eq0Flag [                     // if n == 0
+    set0                           // clear flag
+    #< decrThirdByte32             // decrement second byte
+    > eq0Flag                      // finish the loop
+]                                  // endif
+#;                                 // go back to cur byte (finishing the loop)
 
 start sub32 end
