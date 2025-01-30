@@ -32,30 +32,27 @@ public class Lexer {
                 case '.' -> new Token(Type.DOT, filepath, row, col);
                 case '[' -> new Token(Type.LBRACKET, filepath, row, col);
                 case ']' -> new Token(Type.RBRACKET, filepath, row, col);
-                case '$' -> new Token(Type.PTR, filepath, row, col);
-                case '#' -> new Token(Type.RET, filepath, row, col);
-                case ':' -> new Token(Type.COL, filepath, row, col);
-                case ';' -> new Token(Type.SCL, filepath, row, col);
-                case '!' -> new Token(Type.IMP, filepath, row, col);
-                case '@' -> new Token(Type.SYS, filepath, row, col);
+
+                case ':' -> new Token(Type.COLON, filepath, row, col);
+                case ';' -> new Token(Type.SEMICOLON, filepath, row, col);
                 case '/' -> {
-                    if (i < dataChars.length - 1 && dataChars[i + 1] == '/') {
-                        skip = true;
-                        while (dataChars[++i] != '\n') { }
-                        i--;
+                    if (i >= dataChars.length - 1 || dataChars[i + 1] != '/') yield null; //new Token(Type.ERR, filepath, row, col);
+                    for (int commentStart = i += 2; i < dataChars.length; i++) {
+                        if (dataChars[i] == '\n') yield new Token(Type.COMMENT, data.substring(commentStart, i--), filepath, row, col);
                     }
-                    yield null;
+                    yield NGUtils.error("Unreachable. Caused by: " + new Token(Type.ERROR, filepath, row, col));
                 }
+
+                case '!' -> new Token(Type.EXCLAMATION, filepath, row, col);
+                case '@' -> new Token(Type.AT, filepath, row, col);
+                case '#' -> new Token(Type.OCTOTHORPE, filepath, row, col);
+                case '$' -> new Token(Type.DOLLAR, filepath, row, col);
+
                 case '"' -> {
-                    StringBuilder sb = new StringBuilder();
-                    for (i++; i < dataChars.length; i++) {
-                        if (dataChars[i] == '"') break;
-                        else if (i == '\n' || i == dataChars.length - 1) {
-                            yield NGUtils.error("Unfinished string literal at: " + new Token(Type.ERR, filepath, row, col));
-                        }
-                        sb.append(dataChars[i]);
+                    for (int stringStart = ++i; i < dataChars.length && dataChars[i] != '\n'; i++) {
+                        if (dataChars[i] == '"') yield new Token(Type.STRING, data.substring(stringStart, i), filepath, row, col);
                     }
-                    yield new Token(Type.STR, sb.toString(), filepath, row, col);
+                    yield NGUtils.error("Unfinished string literal at: " + new Token(Type.ERROR, filepath, row, col));
                 }
                 default -> null;
             };
@@ -73,7 +70,7 @@ public class Lexer {
                     }
                     num = num * 10 + dataChars[i] - '0';
                 }
-                lexed.push(new Token(Type.NUM, num, filepath, row, col));
+                lexed.push(new Token(Type.NUMBER, num, filepath, row, col));
                 continue;
             } else if (Character.isLetter(c)) {
                 StringBuilder sb = new StringBuilder().append(c);
@@ -84,10 +81,10 @@ public class Lexer {
                     }
                     sb.append(dataChars[i]);
                 }
-                lexed.push(new Token(Type.WRD, sb.toString(), filepath, row, col));
+                lexed.push(new Token(Type.WORD, sb.toString(), filepath, row, col));
                 continue;
             }
-            NGUtils.error("Undefined token '%c'. This is probably a bug in Lexer. %s".formatted(c, new Token(Type.ERR, filepath, row, col)));
+            NGUtils.error("Undefined token '%c': %s".formatted(c, new Token(Type.ERROR, filepath, row, col)));
         }
 
         Token[] result = new Token[lexed.size()];

@@ -78,39 +78,39 @@ public class Interpreter {
             case COMMA -> read(tokens[ip].num);
 
             // BFN, BFNX
-            case STR -> {
-                if (programType == ProgramType.BF) {
-                    NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-                }
-                for (char c: tokens[ip].str.toCharArray()) {
-                    tape[pointer] = (byte) c;
-                    pointer       = (++pointer % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-                }
-            }
-            case PTR -> {
-                if (programType == ProgramType.BF) {
-                    NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-                }
-                returnStack.push(pointer);
-                pointer = tokens[ip].num;
-            }
-            case RET -> {
-                if (programType == ProgramType.BF) {
-                    NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-                } else if (returnStack.isEmpty()) {
-                    NGUtils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[ip]);
-                }
-                pointer = returnStack.pop();
-            }
-            case WRD -> { } // TODO: this is temporary
-
-            // BFNX
-            case SYS -> {
-                if (programType != ProgramType.BFNX) {
-                    NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-                }
-                syscall();
-            }
+            // case STR -> {
+            //     if (programType == ProgramType.BF) {
+            //         NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+            //     }
+            //     for (char c: tokens[ip].str.toCharArray()) {
+            //         tape[pointer] = (byte) c;
+            //         pointer       = (++pointer % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+            //     }
+            // }
+            // case PTR -> {
+            //     if (programType == ProgramType.BF) {
+            //         NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+            //     }
+            //     returnStack.push(pointer);
+            //     pointer = tokens[ip].num;
+            // }
+            // case RET -> {
+            //     if (programType == ProgramType.BF) {
+            //         NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+            //     } else if (returnStack.isEmpty()) {
+            //         NGUtils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[ip]);
+            //     }
+            //     pointer = returnStack.pop();
+            // }
+            // case WRD -> { } // TODO: this is temporary
+            //
+            // // BFNX
+            // case SYS -> {
+            //     if (programType != ProgramType.BFNX) {
+            //         NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+            //     }
+            //     syscall();
+            // }
 
             // UNREACHABLE
             default -> NGUtils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[ip]);

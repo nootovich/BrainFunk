@@ -6,8 +6,7 @@ import java.awt.*;
 import nootovich.nglib.*;
 
 import static BrainFunk.Interpreter.tokens;
-import static debugger.Debugger.WINDOW_HEIGHT;
-import static debugger.Debugger.WINDOW_WIDTH;
+import static debugger.Debugger.*;
 
 public class DebuggerRenderer extends NGRenderer {
 
@@ -104,7 +103,7 @@ public class DebuggerRenderer extends NGRenderer {
                 g.setClip(areaCode.x(), areaCode.y(), areaCode.w(), areaCode.h());
                 NGVec2i p1 = areaText.xy().addY(g.g2d.getFontMetrics().getAscent());
                 for (int i = 0; i < filedata.length; i++) {
-                    g.drawText(filedata[i], p1, colors[colorEnum.COLOR_TEXT.ordinal()]);
+                    g.drawText(filedata[i], p1, new Color(0xbfffc0a0, true));
                     p1 = p1.addY(fontSize.h());
                 }
             } else if (mode == MODE.TOKEN_LIST) {
@@ -114,6 +113,12 @@ public class DebuggerRenderer extends NGRenderer {
                     g.drawText(tokens[i].toString(), pos, colors[colorEnum.COLOR_TEXT.ordinal()]);
                 }
             } else NGUtils.error("Not implemented");
+        }
+
+        g.resetClip();
+        for (Token t: lexed) {
+            g.drawText(t.repr(), areaText.xy().add(fontSize.scale(t.col, t.row)).addY(g.g2d.getFontMetrics().getAscent()), new Color(0xbfc0ffff, true)); // colors[colorEnum.COLOR_TEXT.ordinal()]);
+            // g.drawRectBorder(areaText.xy().add(fontSize.scale(t.col, t.row)), fontSize.scale(t.len(), 1), Color.DARK_GRAY);
         }
 
         // Current token outline

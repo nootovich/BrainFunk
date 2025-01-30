@@ -3,18 +3,16 @@ package BrainFunk;
 public class Op {
     public enum Type {
         INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, // VANILLA
+        JMP, //PTR, RET,
         MACRODEF, MACRO,
-        // NUM, STR, PTR, RET, WRD,
-        // COL, SCL,
-        // IMP,
-        // SYS,
+        // NUM, STR, SYS
     }
 
     public Type  type;
-    public Token token;
+    public Token token; // TODO: Save location instead of token
 
     public int    num = -1;
-    public String str = "";
+    public String str = null;
 
 
     Op(Type type, Token token) {
@@ -38,6 +36,8 @@ public class Op {
 
     @Override
     public String toString() {
-        return "%s, %d, %s".formatted(type, num, str);
+        StringBuilder result = new StringBuilder("[%s{%d}".formatted(type, num));
+        if (str != null) result.append(":{\"%s\"}".formatted(str));
+        return result.append("] @ %s".formatted(token)).toString();
     }
 }

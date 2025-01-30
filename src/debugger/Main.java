@@ -30,8 +30,9 @@ public class Main {
         DebuggerRenderer.filedata = code.split("\n", -1);
 
         Parser.debug = true;
-        Token[] lexed  = Lexer.lex(code, filepath, programType);
-        Token[] parsed = Parser.parse(Token.deepCopy(lexed), filepath);
+        Debugger.lexed  = Lexer.lex(code, filepath, programType);
+        Token[] parsed = Parser.parse(Token.deepCopy(Debugger.lexed), filepath);
+        Op[] parsed2 = Parser.parse2(Debugger.lexed);
         Interpreter.loadProgram(parsed, programType);
 
         new Debugger().main();

@@ -19,6 +19,8 @@ public class Debugger extends NGMain {
 
     // public static NGVec4i BUTTON_TOKEN_LIST;
 
+    public static Token[] lexed = new Token[0];
+
     public void main() {
         setTickRate(0);
         setFrameRate(60);
@@ -38,7 +40,7 @@ public class Debugger extends NGMain {
 
     @Override
     public void afterAnyKeyPress(int keyCode, char keyChar) {
-        if (finished) return;
+        if (finished || ip >= tokens.length) return;
         int tokenTextPos = tokens[ip].row * fontSize.h();
         if (codeOffsetY < tokenTextPos && tokenTextPos < codeOffsetY + areaCode.h()) return;
         codeOffsetY = NGUtils.clamp(tokenTextPos - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
@@ -58,7 +60,7 @@ public class Debugger extends NGMain {
     public void onSpacePress() {
         if (finished) {
             restart();
-        } else if (tokens[ip].type == Type.WRD) {
+        } else if (tokens[ip].type == Type.WORD) {
             // TODO: cache parsed macros
             int target = ip + Parser.parseMacroCall(new Token[]{tokens[ip]}, null).length;
             while (ip < tokens.length - 1 && ip < target) execute();

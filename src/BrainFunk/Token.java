@@ -4,10 +4,10 @@ public class Token {
 
     public enum Type {
         PLUS, MINUS, GREATER, LESS, COMMA, DOT, LBRACKET, RBRACKET, // VANILLA
-        NUM, STR, PTR, RET, WRD,
-        COL, SCL,
-        IMP,
-        SYS, ERR
+        COLON, SEMICOLON, COMMENT,
+        EXCLAMATION, AT, OCTOTHORPE, DOLLAR,
+        NUMBER, STRING, WORD,
+        ERROR
     }
 
     public Type   type;
@@ -18,7 +18,7 @@ public class Token {
     public Token[] macroTokens;
     public Token   origin;
 
-    // loc
+    // TODO: Location class
     public String file;
     public int    row;
     public int    col;
@@ -65,17 +65,21 @@ public class Token {
             case RBRACKET -> "]";
             case DOT -> ".";
             case COMMA -> ",";
-            case NUM -> String.valueOf(num);
-            case STR -> '\"' + str + '\"';
-            // case MACRODEF -> strValue + ':';
-            case WRD -> str;
-            case PTR -> "$";
-            case RET -> "#";
-            case COL -> ":";
-            case SCL -> ";";
-            case IMP -> "!";
-            case SYS -> "@";
-            case ERR -> throw new RuntimeException("Attempted to get a representation of an `ERROR` token... HOW!?");
+
+            case COLON -> ":";
+            case SEMICOLON -> ";";
+            case COMMENT -> "//" + str;
+
+            case EXCLAMATION -> "!";
+            case AT -> "@";
+            case OCTOTHORPE -> "#";
+            case DOLLAR -> "$";
+
+            case NUMBER -> String.valueOf(num);
+            case STRING -> "\"%s\"".formatted(str);
+            case WORD -> str;
+
+            case ERROR -> throw new RuntimeException("Attempted to get a representation of an `ERROR` token... HOW!?");
         };
     }
 
@@ -99,9 +103,10 @@ public class Token {
 
     @Override
     public String toString() {
-        StringBuilder result = new StringBuilder("%s:%d:%d [%s{%d}".formatted(file, row + 1, col, type, num));
-        if (str != null) result.append(":{\"").append(str).append("\"}");
-        result.append("]");
+        StringBuilder result = new StringBuilder("%s:%d:%d".formatted(file, row + 1, col));
+        if (type != Type.ERROR) result.append(" [%s{%d}".formatted(type, num));
+        if (str != null) result.append(":{\"%s\"}".formatted(str));
+        if (type != Type.ERROR) result.append("]");
         return result.toString();
     }
 
