@@ -4,8 +4,6 @@ import java.util.Stack;
 import nootovich.nglib.NGFileSystem;
 import nootovich.nglib.NGUtils;
 
-import static BrainFunk.BrainFunk.ProgramType;
-
 
 public class Testing {
 
@@ -53,15 +51,8 @@ public class Testing {
             String   filepath      = TESTING_DIR + file;
             String[] filenameParts = file.split("\\.");
             String   extension     = filenameParts[filenameParts.length - 1];
-            ProgramType programType = switch (extension) {
-                case "bf" -> ProgramType.BF;
-                case "bfn" -> ProgramType.BFN;
-                case "bfnx" -> ProgramType.BFNX;
-                default -> {
-                    NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
-                    yield ProgramType.ERR;
-                }
-            };
+            if (!extension.equals("bf") && !extension.equals("bfn") && !extension.equals("bfnx"))
+                NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
 
             Interpreter.reset();
             boolean passed = true;
@@ -71,7 +62,7 @@ public class Testing {
             passed &= check(code, expectedName(file, SOURCE_FILE), getLogTemplate("source", file));
 
             // LEXED
-            Token[] lexed = Lexer.lex(code, file, programType);
+            Token[] lexed = Lexer.lex(code, file);
             passed &= check(tokensToString(lexed), expectedName(file, LEXED_FILE), getLogTemplate("lexed", file));
 
             // PARSED
@@ -89,7 +80,7 @@ public class Testing {
             PrintStream           stdout    = System.out;
             ByteArrayOutputStream outStream = new ByteArrayOutputStream();
             System.setOut(new PrintStream(outStream));
-            Interpreter.loadProgram(parsed, programType);
+            Interpreter.loadProgram(parsed);
             while (!Interpreter.finished) Interpreter.execute();
             System.out.flush();
             System.setOut(stdout);

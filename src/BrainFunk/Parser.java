@@ -3,12 +3,10 @@ package BrainFunk;
 import BrainFunk.Op.Type;
 import java.io.File;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Stack;
+import java.util.*;
 import nootovich.nglib.NGFileSystem;
 import nootovich.nglib.NGUtils;
 
-import static BrainFunk.BrainFunk.ProgramType;
 import static BrainFunk.Token.Type.*;
 
 public class Parser {
@@ -19,50 +17,34 @@ public class Parser {
     private static       int recursionCount  = 0;
 
     public static  HashMap<String, Token[]> macros   = new HashMap<>();
-    public static  HashMap<String, Op[]>    macros2  = new HashMap<>();
+    public static  HashMap<String, Token[]> macros2  = new HashMap<>();
     private static int                      savedNum = 1;
 
-    public static Op[] parse2(Token[] tokens) {
-        /*
-        for (int i = 0; i < tokens.length; i++) {
-            switch (tokens[i].type) {
-
-                default -> { }
-            }
-        }
-        if (!jumps.isEmpty()) NGUtils.error("Unmatched brackets at: " + tokens[jumps.pop()]);
-        return tokens;*/
+    public static Op[] parse2(Token[] tokens, int ipOffset) {
         Stack<Op>      ops   = new Stack<>();
         Stack<Integer> jumps = new Stack<>();
-        Stack<Integer> pointers = new Stack<>();
+
         for (int i = 0; i < tokens.length; i++) {
             Token t = tokens[i];
             switch (t.type) {
-                case PLUS, MINUS, GREATER, LESS, COMMA, DOT -> ops.push(new Op(Type.values()[t.type.ordinal()], t, popNum()));
-                case LBRACKET -> {
-                    jumps.push(i);
-                    ops.push(new Op(Type.JEZ, t));
-                }
-                case RBRACKET -> {
-                    if (jumps.isEmpty()) NGUtils.error("Unmatched brackets at: " + tokens[i]);
-                    int jmp = jumps.pop();
-                    ops.get(jmp).num = i;
-                    ops.push(new Op(Type.JNZ, t, jmp));
-                }
+                case PLUS, MINUS, GREATER, LESS, COMMA, DOT, LBRACKET, RBRACKET -> ops.push(new Op(Type.values()[t.type.ordinal()], t, popNum()));
 
                 case COLON, SEMICOLON -> NGUtils.error("Unreachable");
                 case COMMENT -> { }
 
-                case OCTOTHORPE -> ops.push(new Op(Type.JMP, t, pointers.pop()));
+                case EXCLAMATION -> NGUtils.error("Imports are not implemented yet"); // TODO:
+                case AT -> ops.push(new Op(Type.SYSCALL, t, popNum()));
+                case OCTOTHORPE -> ops.push(new Op(Type.RET, t, popNum()));
                 case DOLLAR -> {
-                    pointers.push(-1); // TODO: Figure out a way to push a return address in compile time if possible.
-                    ops.push(new Op(Type.JMP, t, tokens[i + 1].num));
+                    if (i + 1 >= tokens.length) NGUtils.error("The address for jump instruction was not provided");
+                    ops.push(new Op(Type.PTR, t, tokens[++i].num));
                 }
 
                 case NUMBER -> pushNum(t);
-                case STRING -> NGUtils.error("TODO");
+                case STRING -> ops.push(new Op(Type.PUSH_STRING, t, t.str));
                 case WORD -> {
-                    if (i + 1 < tokens.length && tokens[i + 1].type == COLON) { // MACRODEF
+                    if (i + 1 < tokens.length && tokens[i + 1].type == COLON) {
+                        // MACRODEF
                         int macroStart = i += 2;
                         for (; i <= tokens.length; i++) {
                             if (i == tokens.length) NGUtils.error("Unfinished macro definition at " + t);
@@ -70,16 +52,13 @@ public class Parser {
                         }
                         if (macros2.containsKey(t.str)) {
                             NGUtils.error("Redefinition of a macro '%s'".formatted(t.str));
-                            NGUtils.info("Originally defined here: " + macros2.get(t.str)[0].token.origin);
+                            NGUtils.info("Originally defined here: " + macros2.get(t.str)[0].origin);
                         }
                         Token[] macroTokens = new Token[i - macroStart];
                         System.arraycopy(tokens, macroStart, macroTokens, 0, macroTokens.length);
-                        Op[] macroOps = parse2(macroTokens);
-                        macros2.put(t.str, macroOps);
-                    } else { // MACRO
-                        if (!macros2.containsKey(t.str)) NGUtils.error("Undefined macro: " + t);
-                        for (int j = 0, repeats = popNum(); j < repeats; j++)
-                            for (Op op: macros2.get(t.str)) ops.push(op);
+                        macros2.put(t.str, macroTokens);
+                    } else {
+                        ops.push(new Op(Type.MACRO, t, popNum(), t.str));
                     }
                 }
 
@@ -87,11 +66,43 @@ public class Parser {
             }
         }
 
+        for (int i = 0; i < ops.size(); i++) {
+            Op op = ops.get(i);
+            if (op.type != Type.MACRO) continue;
+            if (!macros2.containsKey(op.str)) NGUtils.error("Undefined macro: " + op.token);
+            int repeats = op.num;
+
+            if (debug) op.type = Type.DEBUG_MACRO;
+            else ops.remove(i);
+
+            Op[] macroOps = parse2(macros2.get(op.str), i + 1);
+            if (debug) {
+                for (Op macroOp: macroOps) {
+                    if (macroOp.origin < 0) macroOp.origin = i + ipOffset;
+                }
+                op.num = macroOps.length * repeats;
+                i++;
+            }
+
+            for (int j = 0; j < repeats; j++) {
+                ops.addAll(i, Arrays.asList(macroOps));
+            }
+            i--;
+        }
+
+        for (int i = 0; i < ops.size(); i++) {
+            Op op = ops.get(i);
+            if (op.type == Type.JEZ) jumps.push(i);
+            if (op.type == Type.JNZ) {
+                if (jumps.isEmpty()) NGUtils.error("Unmatched brackets at: " + op.token);
+                int jmpIp = jumps.pop();
+                ops.get(jmpIp).num = i;
+                op.num             = jmpIp;
+            }
+        }
+
         Op[] result = new Op[ops.size()];
-        for (
-            int i = result.length - 1;
-            i >= 0; i--)
-            result[i] = ops.pop();
+        for (int i = result.length - 1; i >= 0; i--) result[i] = ops.pop();
         return result;
     }
 
@@ -119,17 +130,10 @@ public class Parser {
             String   importName      = new File(importPath).getName();
             String[] importNameParts = importName.split("\\.");
             String   importExtension = importNameParts[importNameParts.length - 1];
-            ProgramType importProgramType = switch (importExtension) {
-                case "bf" -> ProgramType.BF;
-                case "bfn" -> ProgramType.BFN;
-                case "bfnx" -> ProgramType.BFNX;
-                default -> {
-                    NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
-                    yield ProgramType.ERR;
-                }
-            };
+            if (!importExtension.equals("bf") && !importExtension.equals("bfn") && !importExtension.equals("bfnx"))
+                NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
             String  importCode  = NGFileSystem.loadFile(importPath);
-            Token[] importLexed = Lexer.lex(importCode, importPath, importProgramType);
+            Token[] importLexed = Lexer.lex(importCode, importPath);
             for (Token t: importLexed) parsed.push(t);
         }
         tokens = new Token[parsed.size()];
@@ -241,7 +245,8 @@ public class Parser {
     }
 
     private static void pushNum(Token numTk) {
-        if (savedNum > 1) NGUtils.error("Two consecutive `NUMBER` tokens are unsupported: " + numTk);
+        if (savedNum > 1)
+            NGUtils.error("Two consecutive `NUMBER` tokens are unsupported: " + numTk);
         savedNum = numTk.num;
     }
 }

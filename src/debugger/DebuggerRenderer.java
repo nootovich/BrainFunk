@@ -1,7 +1,6 @@
 package debugger;
 
-import BrainFunk.Interpreter;
-import BrainFunk.Token;
+import BrainFunk.*;
 import java.awt.*;
 import nootovich.nglib.*;
 
@@ -100,11 +99,10 @@ public class DebuggerRenderer extends NGRenderer {
         // Program
         {
             if (mode == MODE.NORMAL) {
-                g.setClip(areaCode.x(), areaCode.y(), areaCode.w(), areaCode.h());
-                NGVec2i p1 = areaText.xy().addY(g.g2d.getFontMetrics().getAscent());
-                for (int i = 0; i < filedata.length; i++) {
-                    g.drawText(filedata[i], p1, new Color(0xbfffc0a0, true));
-                    p1 = p1.addY(fontSize.h());
+                // g.setClip(areaCode.x(), areaCode.y(), areaCode.w(), areaCode.h());
+                NGVec2i pos = areaText.xy().addY(g.g2d.getFontMetrics().getAscent());
+                for (Token t: lexed) {
+                    g.drawText(t.repr(), pos.add(fontSize.scale(t.col, t.row)), colors[colorEnum.COLOR_TEXT.ordinal()]);
                 }
             } else if (mode == MODE.TOKEN_LIST) {
                 g.resetClip();
@@ -115,20 +113,16 @@ public class DebuggerRenderer extends NGRenderer {
             } else NGUtils.error("Not implemented");
         }
 
-        g.resetClip();
-        for (Token t: lexed) {
-            g.drawText(t.repr(), areaText.xy().add(fontSize.scale(t.col, t.row)).addY(g.g2d.getFontMetrics().getAscent()), new Color(0xbfc0ffff, true)); // colors[colorEnum.COLOR_TEXT.ordinal()]);
-            // g.drawRectBorder(areaText.xy().add(fontSize.scale(t.col, t.row)), fontSize.scale(t.len(), 1), Color.DARK_GRAY);
-        }
-
-        // Current token outline
-        if (!Interpreter.finished && tokens.length > 0) {
-            g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
-            Token   token      = tokens[Interpreter.ip];
+        // Current token
+        if (!Interpreter.finished && Interpreter.ops.length > 0) {
             NGVec2i prevCenter = new NGVec2i(Integer.MIN_VALUE);
+            Op      op         = Interpreter.ops[Interpreter.ip];
+            g.drawTextCentered("[%d] => %s".formatted(Interpreter.ip, op.toString()), areaCode.w() / 2, areaPadding.h() / 2, Color.WHITE);
+            g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
 
             // TODO: think about this flow. would be nice to separate first(current) token from the rest of macro expansion.
-            while (token != null) {
+            while (op != null) {
+                Token   token   = op.token;
                 NGVec4i outline = areaText.addXY(fontSize.scale(token.col, token.row)).scaleW(token.len());
                 g.drawRectBorder(outline, colors[colorEnum.COLOR_HIGHLIGHT.ordinal()]);
                 g.setStroke(new BasicStroke(1));
@@ -138,8 +132,10 @@ public class DebuggerRenderer extends NGRenderer {
                     // TODO: maybe a pretty drawArc()?)
                     g.drawLine(outlineCenter, prevCenter, colors[colorEnum.COLOR_CONNECTION.ordinal()]);
                 }
-                token      = token.origin;
                 prevCenter = outlineCenter;
+
+                if (op.origin >= 0) op = Interpreter.ops[op.origin];
+                else op = null;
             }
         }
 

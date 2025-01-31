@@ -1,8 +1,7 @@
 package debugger;
 
-import BrainFunk.Parser;
+import BrainFunk.Op;
 import BrainFunk.Token;
-import BrainFunk.Token.Type;
 import java.awt.FontMetrics;
 import java.awt.GraphicsEnvironment;
 import nootovich.nglib.*;
@@ -60,14 +59,16 @@ public class Debugger extends NGMain {
     public void onSpacePress() {
         if (finished) {
             restart();
-        } else if (tokens[ip].type == Type.WORD) {
+        } else if (ops[ip].type == Op.Type.DEBUG_MACRO) {
             // TODO: cache parsed macros
-            int target = ip + Parser.parseMacroCall(new Token[]{tokens[ip]}, null).length;
-            while (ip < tokens.length - 1 && ip < target) execute();
-        } else if (tokens[ip].type == Type.LBRACKET) {
-            int target = tokens[ip].num + 1;
-            while (ip < tokens.length - 1 && ip < target) execute();
-        } else execute();
+            int target = ip + ops[ip].num + 1;
+            while (ip < ops.length - 1 && ip < target) execute();
+        } else if (ops[ip].type == Op.Type.JNZ) {
+            int target = ip + 1;
+            while (ip < ops.length && ip < target) execute();
+        } else {
+            execute();
+        }
     }
 
     @Override
@@ -77,7 +78,7 @@ public class Debugger extends NGMain {
 
     @Override
     public void onLMBPress(NGVec2i pos) {
-        if (false) {//pos.isInside(BUTTON_TOKEN_LIST)) {
+        if (false) {// pos.isInside(BUTTON_TOKEN_LIST)) {
             if (mode == NORMAL) {
                 mode                = TOKEN_LIST;
                 cachedLinesToBottom = tokens.length;

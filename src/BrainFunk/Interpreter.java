@@ -1,6 +1,6 @@
 package BrainFunk;
 
-import BrainFunk.BrainFunk.ProgramType;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import nootovich.nglib.NGUtils;
 
@@ -9,114 +9,143 @@ public class Interpreter {
     private static final int TAPE_LEN       = 3000;
     private static final int REPETITION_CAP = 10;
 
-    public static ProgramType programType = ProgramType.ERR;
-
     public static boolean finished = false;
 
-    public static  byte[]         tape         = new byte[TAPE_LEN];
-    public static  int            pointer      = 0;
-    public static  int            ip           = 0;
-    public static  Token[]        tokens       = new Token[0];
-    private static Stack<Integer> returnStack  = new Stack<>();
-    private static Stack<Integer> pointerStack = new Stack<>();
+    public static  byte[]         tape        = new byte[TAPE_LEN];
+    public static  int            pointer     = 0;
+    public static  int            ip          = 0;
+    public static  Op[]           ops         = new Op[0];
+    public static  Token[]        tokens      = new Token[0];
+    private static Stack<Integer> returnStack = new Stack<>();
 
     private static final Scanner         input       = new Scanner(System.in);
     public static        ArrayList<Byte> inputBuffer = new ArrayList<>();
     public static        StringBuilder   inputMemory = new StringBuilder();
 
     public static void reset() {
-        programType = ProgramType.ERR;
-        tokens      = new Token[0];
+        tokens = new Token[0];
+        ops    = new Op[0];
         restart();
     }
 
     public static void restart() {
-        finished     = false;
-        tape         = new byte[TAPE_LEN];
-        pointer      = 0;
-        ip           = 0;
-        returnStack  = new Stack<>();
-        inputBuffer  = new ArrayList<>();
-        pointerStack = new Stack<>();
-        inputMemory  = new StringBuilder();
+        finished    = false;
+        tape        = new byte[TAPE_LEN];
+        pointer     = 0;
+        ip          = 0;
+        inputBuffer = new ArrayList<>();
+        inputMemory = new StringBuilder();
         System.gc();
     }
 
-    public static void loadProgram(Token[] program, ProgramType pType) {
-        tokens      = program;
-        programType = pType;
+    public static void loadProgram(Token[] program) {
+        tokens = program;
+    }
+
+    public static void loadProgram(Op[] instructions) {
+        ops = instructions;
     }
 
     public static void execute() {
-        if (programType == ProgramType.ERR) {
-            NGUtils.error("The program was not loaded properly. Please use `loadProgram()` function.");
-        } else if (finished) {
-            NGUtils.error("Unable to execute the program because it is finished.");
-        }
-        switch (tokens[ip].type) {
-
-            // BF, BFN, BFNX
-            case PLUS -> tape[pointer] += (byte) tokens[ip].num;
-            case MINUS -> tape[pointer] -= (byte) tokens[ip].num;
-            case GREATER -> pointer = ((pointer + tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-            case LESS -> pointer = ((pointer - tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-            case LBRACKET -> {
-                if (tape[pointer] == 0) {
-                    ip = tokens[ip].num + 1;
-                    return;
-                } else if (programType != ProgramType.BF) {
-                    pointerStack.push(pointer);
+        if (finished) NGUtils.error("Unable to execute the program because it is finished.");
+        Op op = ops[ip];
+        switch (op.type) {
+            case INC -> tape[pointer] += (byte) op.num;
+            case DEC -> tape[pointer] -= (byte) op.num;
+            case RGT -> pointer = ((pointer + op.num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+            case LFT -> pointer = ((pointer - op.num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+            case INP -> read(op.num);
+            case OUT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(op.num));
+            case JEZ -> {
+                if (tape[pointer] == 0) ip = op.num;
+            }
+            case JNZ -> {
+                if (tape[pointer] != 0) ip = op.num;
+            }
+            case PTR -> {
+                returnStack.push(pointer);
+                pointer = op.num;
+            }
+            case RET -> {
+                if (returnStack.isEmpty()) NGUtils.error("Program tried to return but the return stack is empty: " + op);
+                for (int i = 0; i < op.num; i++) pointer = returnStack.pop();
+            }
+            case SYSCALL -> NGUtils.error("SYSCALL operation is not implemented yet");
+            case PUSH_STRING -> {
+                for (byte c: op.str.getBytes(StandardCharsets.UTF_8)) {
+                    tape[pointer] = c;
+                    pointer++; // NOTE: The only purpose of this line is to make sure that the formatter stops screwing with me
+                    pointer = NGUtils.mod(pointer, TAPE_LEN);
                 }
             }
-            case RBRACKET -> {
-                if (tape[pointer] != 0) {
-                    ip = tokens[ip].num;
-                    return;
-                }
-            }
-            case DOT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(tokens[ip].num));
-            case COMMA -> read(tokens[ip].num);
-
-            // BFN, BFNX
-            // case STR -> {
-            //     if (programType == ProgramType.BF) {
-            //         NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-            //     }
-            //     for (char c: tokens[ip].str.toCharArray()) {
-            //         tape[pointer] = (byte) c;
-            //         pointer       = (++pointer % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
-            //     }
-            // }
-            // case PTR -> {
-            //     if (programType == ProgramType.BF) {
-            //         NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-            //     }
-            //     returnStack.push(pointer);
-            //     pointer = tokens[ip].num;
-            // }
-            // case RET -> {
-            //     if (programType == ProgramType.BF) {
-            //         NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-            //     } else if (returnStack.isEmpty()) {
-            //         NGUtils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[ip]);
-            //     }
-            //     pointer = returnStack.pop();
-            // }
-            // case WRD -> { } // TODO: this is temporary
-            //
-            // // BFNX
-            // case SYS -> {
-            //     if (programType != ProgramType.BFNX) {
-            //         NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
-            //     }
-            //     syscall();
-            // }
-
-            // UNREACHABLE
-            default -> NGUtils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[ip]);
+            case DEBUG_MACRO -> { }
+            default -> NGUtils.error("Unreachable");
         }
-        if (ip == tokens.length - 1) finished = true;
-        ip++;
+        if (++ip == ops.length) finished = true;
+        // {
+        //     switch (tokens[ip].type) {
+        //
+        //         // BF, BFN, BFNX
+        //         case PLUS -> tape[pointer] += (byte) tokens[ip].num;
+        //         case MINUS -> tape[pointer] -= (byte) tokens[ip].num;
+        //         case GREATER -> pointer = ((pointer + tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+        //         case LESS -> pointer = ((pointer - tokens[ip].num) % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+        //         case LBRACKET -> {
+        //             if (tape[pointer] == 0) {
+        //                 ip = tokens[ip].num + 1;
+        //                 return;
+        //             }
+        //         }
+        //         case RBRACKET -> {
+        //             if (tape[pointer] != 0) {
+        //                 ip = tokens[ip].num;
+        //                 return;
+        //             }
+        //         }
+        //         case DOT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(tokens[ip].num));
+        //         case COMMA -> read(tokens[ip].num);
+        //
+        //         // BFN, BFNX
+        //         case STRING -> {
+        //             if (programType == ProgramType.BF) {
+        //                 NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+        //             }
+        //             for (char c: tokens[ip].str.toCharArray()) {
+        //                 tape[pointer] = (byte) c;
+        //                 pointer       = (++pointer % TAPE_LEN + TAPE_LEN) % TAPE_LEN;
+        //             }
+        //         }
+        //         case DOLLAR -> {
+        //             if (programType == ProgramType.BF) {
+        //                 NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+        //             }
+        //             returnStack.push(pointer);
+        //             pointer = tokens[ip].num;
+        //         }
+        //         case OCTOTHORPE -> {
+        //             if (programType == ProgramType.BF) {
+        //                 NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+        //             } else if (returnStack.isEmpty()) {
+        //                 NGUtils.error("Return stack is empty, but a `RET` token was encountered.\n" + tokens[ip]);
+        //             }
+        //             pointer = returnStack.pop();
+        //         }
+        //         case WORD -> { } // TODO: this is temporary
+        //
+        //         // BFNX
+        //         case AT -> {
+        //             if (programType != ProgramType.BFNX) {
+        //                 NGUtils.error("Invalid token for `.bf` program. This is probably a bug in `Lexer`.");
+        //             }
+        //             syscall();
+        //         }
+        //         case COMMENT -> { }
+        //         // UNREACHABLE
+        //         default -> NGUtils.error("Unexpected token in execution. Probably a bug in `Parser`.\n" + tokens[ip]);
+        //     }
+        //     if (ip == tokens.length - 1) finished = true;
+        //     ip++;
+        // }
     }
 
     private static void read(int amount) {

@@ -4,12 +4,9 @@ import BrainFunk.Token.Type;
 import java.util.Stack;
 import nootovich.nglib.NGUtils;
 
-import static BrainFunk.BrainFunk.ProgramType;
-
 public class Lexer {
 
-    // TODO: add back checks related to 'programType'
-    public static Token[] lex(String data, String filepath, ProgramType programType) {
+    public static Token[] lex(String data, String filepath) {
         Stack<Token> lexed = new Stack<>();
 
         int row = 0;
