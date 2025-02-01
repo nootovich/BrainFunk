@@ -3,12 +3,14 @@ package BrainFunk;
 public class Op {
 
     public enum Type {
-        INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ, // VANILLA
-        PTR, RET, // TODO: replace 'RET' with 'JMP' and figure out a way to push a return address in compile time.
-        MACRODEF, MACRO,
-        SYSCALL,
+        // VANILLA
+        INC, DEC, RGT, LFT, INP, OUT, JEZ, JNZ,
+
+        // BFN
+        PTR, RET,
+        MACRO, DEBUG_MACRO,
         PUSH_STRING,
-        DEBUG_MACRO
+        SYSCALL
     }
 
     public Type  type;

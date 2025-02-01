@@ -5,7 +5,8 @@ import java.awt.*;
 import nootovich.nglib.*;
 
 import static BrainFunk.Interpreter.tokens;
-import static debugger.Debugger.*;
+import static debugger.Debugger.WINDOW_HEIGHT;
+import static debugger.Debugger.WINDOW_WIDTH;
 
 public class DebuggerRenderer extends NGRenderer {
 
@@ -100,16 +101,17 @@ public class DebuggerRenderer extends NGRenderer {
         {
             if (mode == MODE.NORMAL) {
                 // g.setClip(areaCode.x(), areaCode.y(), areaCode.w(), areaCode.h());
-                NGVec2i pos = areaText.xy().addY(g.g2d.getFontMetrics().getAscent());
-                for (Token t: lexed) {
+                NGVec2i pos         = areaText.xy().addY(g.g2d.getFontMetrics().getAscent());
+                String  currentFile = Interpreter.ops[Interpreter.ip].token.file;
+                for (Token t: Debugger.tokens.getOrDefault(currentFile, new Token[]{ })) {
                     g.drawText(t.repr(), pos.add(fontSize.scale(t.col, t.row)), colors[colorEnum.COLOR_TEXT.ordinal()]);
                 }
             } else if (mode == MODE.TOKEN_LIST) {
-                g.resetClip();
-                for (int i = 0; i < tokens.length; i++) {
-                    NGVec2i pos = areaText.xy().addY(fontSize.y() * i);
-                    g.drawText(tokens[i].toString(), pos, colors[colorEnum.COLOR_TEXT.ordinal()]);
-                }
+                // g.resetClip();
+                // for (int i = 0; i < tokens.length; i++) {
+                //     NGVec2i pos = areaText.xy().addY(fontSize.y() * i);
+                //     g.drawText(tokens[i].toString(), pos, colors[colorEnum.COLOR_TEXT.ordinal()]);
+                // }
             } else NGUtils.error("Not implemented");
         }
 

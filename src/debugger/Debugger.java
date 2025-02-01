@@ -1,9 +1,9 @@
 package debugger;
 
-import BrainFunk.Op;
-import BrainFunk.Token;
+import BrainFunk.*;
 import java.awt.FontMetrics;
 import java.awt.GraphicsEnvironment;
+import java.util.HashMap;
 import nootovich.nglib.*;
 
 import static BrainFunk.Interpreter.*;
@@ -18,7 +18,7 @@ public class Debugger extends NGMain {
 
     // public static NGVec4i BUTTON_TOKEN_LIST;
 
-    public static Token[] lexed = new Token[0];
+    public static HashMap<String, Token[]> tokens = new HashMap<>();
 
     public void main() {
         setTickRate(0);
@@ -32,15 +32,15 @@ public class Debugger extends NGMain {
         FontMetrics metrics = window.jf.getFontMetrics(font);
         fontSize            = new NGVec2i(metrics.charWidth('@'), metrics.getHeight());
         cachedLinesToBottom = filedata.length - (areaCode.h() - areaPadding.h()) / fontSize.h();
-        if (tokens.length > 0) codeOffsetY = NGUtils.clamp(tokens[0].row * fontSize.h() - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
+        if (Interpreter.tokens.length > 0) codeOffsetY = NGUtils.clamp(Interpreter.tokens[0].row * fontSize.h() - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
 
         start();
     }
 
     @Override
     public void afterAnyKeyPress(int keyCode, char keyChar) {
-        if (finished || ip >= tokens.length) return;
-        int tokenTextPos = tokens[ip].row * fontSize.h();
+        if (finished || ip >= Interpreter.tokens.length) return;
+        int tokenTextPos = Interpreter.tokens[ip].row * fontSize.h();
         if (codeOffsetY < tokenTextPos && tokenTextPos < codeOffsetY + areaCode.h()) return;
         codeOffsetY = NGUtils.clamp(tokenTextPos - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
     }
@@ -81,7 +81,7 @@ public class Debugger extends NGMain {
         if (false) {// pos.isInside(BUTTON_TOKEN_LIST)) {
             if (mode == NORMAL) {
                 mode                = TOKEN_LIST;
-                cachedLinesToBottom = tokens.length;
+                cachedLinesToBottom = Interpreter.tokens.length;
             } else {
                 mode                = NORMAL;
                 cachedLinesToBottom = filedata.length - areaCode.h() / fontSize.h();
@@ -89,7 +89,7 @@ public class Debugger extends NGMain {
             return;
         }
         if (finished || mouseToken == null) return;
-        while (ip < tokens.length && !tokens[ip].eq(mouseToken)) {
+        while (ip < Interpreter.tokens.length && !Interpreter.tokens[ip].eq(mouseToken)) {
             execute();
         }
     }

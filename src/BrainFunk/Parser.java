@@ -1,6 +1,7 @@
 package BrainFunk;
 
 import BrainFunk.Op.Type;
+import debugger.Debugger;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
@@ -27,12 +28,30 @@ public class Parser {
         for (int i = 0; i < tokens.length; i++) {
             Token t = tokens[i];
             switch (t.type) {
-                case PLUS, MINUS, GREATER, LESS, COMMA, DOT, LBRACKET, RBRACKET -> ops.push(new Op(Type.values()[t.type.ordinal()], t, popNum()));
+                case PLUS -> ops.push(new Op(Type.INC, t, popNum()));
+                case MINUS -> ops.push(new Op(Type.DEC, t, popNum()));
+                case GREATER -> ops.push(new Op(Type.RGT, t, popNum()));
+                case LESS -> ops.push(new Op(Type.LFT, t, popNum()));
+                case COMMA -> ops.push(new Op(Type.INP, t, popNum()));
+                case DOT -> ops.push(new Op(Type.OUT, t, popNum()));
+                case LBRACKET -> ops.push(new Op(Type.JEZ, t, popNum()));
+                case RBRACKET -> ops.push(new Op(Type.JNZ, t, popNum()));
 
                 case COLON, SEMICOLON -> NGUtils.error("Unreachable");
                 case COMMENT -> { }
 
-                case EXCLAMATION -> NGUtils.error("Imports are not implemented yet"); // TODO:
+                case EXCLAMATION -> {
+                    if (++i >= tokens.length || tokens[i].type != STRING) {
+                        NGUtils.error("No import file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a string after the '!' token.");
+                    }
+                    String filepath = NGFileSystem.findRecursively(tokens[i].str);
+                    if (filepath == null) NGUtils.error("Was not able to find import file '%s'".formatted(tokens[i].str));
+                    String  fileData     = NGFileSystem.loadFile(Path.of(filepath).toAbsolutePath().toString());
+                    Token[] importTokens = Lexer.lex(fileData, tokens[i].str);
+                    if (debug) Debugger.tokens.put(tokens[i].str.replace('\\', '/'), importTokens);
+                    Op[] importOps = parse2(importTokens, 0);
+                    ops.addAll(0, Arrays.asList(importOps));
+                }
                 case AT -> ops.push(new Op(Type.SYSCALL, t, popNum()));
                 case OCTOTHORPE -> ops.push(new Op(Type.RET, t, popNum()));
                 case DOLLAR -> {

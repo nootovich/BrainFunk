@@ -3,7 +3,10 @@ package BrainFunk;
 public class Token {
 
     public enum Type {
-        PLUS, MINUS, GREATER, LESS, COMMA, DOT, LBRACKET, RBRACKET, // VANILLA
+        // VANILLA
+        PLUS, MINUS, GREATER, LESS, COMMA, DOT, LBRACKET, RBRACKET,
+
+        // BFN
         COLON, SEMICOLON, COMMENT,
         EXCLAMATION, AT, OCTOTHORPE, DOLLAR,
         NUMBER, STRING, WORD,

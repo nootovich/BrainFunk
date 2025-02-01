@@ -1,4 +1,4 @@
-!"../std/stdout.bfn"
+!"stdout.bfn"
 
 "Hello, world!" println
 
