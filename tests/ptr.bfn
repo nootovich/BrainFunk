@@ -8,7 +8,7 @@ clnregs:cr0 r1[-]r2[-]r3[-]3#;
 dup:clnregs[-r0+r1+##]r1[-#+r1]#;
 
 // writing output to console
-print:<[<]>[.>]<;
 println:print >10+.[-]<;
+print:<[<]>[.>]<;
 
 $4 "Hello, world!" println dup println

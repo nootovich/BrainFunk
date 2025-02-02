@@ -33,9 +33,12 @@ public class Lexer {
                 case ':' -> new Token(Type.COLON, filepath, row, col);
                 case ';' -> new Token(Type.SEMICOLON, filepath, row, col);
                 case '/' -> {
-                    if (i >= dataChars.length - 1 || dataChars[i + 1] != '/') yield null; //new Token(Type.ERR, filepath, row, col);
+                    if (i >= dataChars.length - 1 || dataChars[i + 1] != '/') yield null; // new Token(Type.ERR, filepath, row, col);
                     for (int commentStart = i += 2; i < dataChars.length; i++) {
-                        if (dataChars[i] == '\n') yield new Token(Type.COMMENT, data.substring(commentStart, i--), filepath, row, col);
+                        if (dataChars[i] == '\n') {
+                            String comment = data.substring(commentStart, i--).replace("\r", "");
+                            yield new Token(Type.COMMENT, comment, filepath, row, col);
+                        }
                     }
                     yield NGUtils.error("Unreachable. Caused by: " + new Token(Type.ERROR, filepath, row, col));
                 }

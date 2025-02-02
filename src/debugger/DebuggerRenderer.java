@@ -99,7 +99,7 @@ public class DebuggerRenderer extends NGRenderer {
 
         // Program
         {
-            if (mode == MODE.NORMAL) {
+            if (!Interpreter.finished && mode == MODE.NORMAL) {
                 // g.setClip(areaCode.x(), areaCode.y(), areaCode.w(), areaCode.h());
                 NGVec2i pos         = areaText.xy().addY(g.g2d.getFontMetrics().getAscent());
                 String  currentFile = Interpreter.ops[Interpreter.ip].token.file;
@@ -112,7 +112,7 @@ public class DebuggerRenderer extends NGRenderer {
                 //     NGVec2i pos = areaText.xy().addY(fontSize.y() * i);
                 //     g.drawText(tokens[i].toString(), pos, colors[colorEnum.COLOR_TEXT.ordinal()]);
                 // }
-            } else NGUtils.error("Not implemented");
+            }
         }
 
         // Current token

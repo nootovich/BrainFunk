@@ -18,7 +18,6 @@ public class Parser {
     private static       int recursionCount  = 0;
 
     public static  HashMap<String, Token[]> macros   = new HashMap<>();
-    public static  HashMap<String, Token[]> macros2  = new HashMap<>();
     private static int                      savedNum = 1;
 
     public static Op[] parse2(Token[] tokens, int ipOffset) {
@@ -69,13 +68,13 @@ public class Parser {
                             if (i == tokens.length) NGUtils.error("Unfinished macro definition at " + t);
                             else if (tokens[i].type == SEMICOLON) break;
                         }
-                        if (macros2.containsKey(t.str)) {
+                        if (macros.containsKey(t.str)) {
                             NGUtils.error("Redefinition of a macro '%s'".formatted(t.str));
-                            NGUtils.info("Originally defined here: " + macros2.get(t.str)[0].origin);
+                            NGUtils.info("Originally defined here: " + macros.get(t.str)[0].origin);
                         }
                         Token[] macroTokens = new Token[i - macroStart];
                         System.arraycopy(tokens, macroStart, macroTokens, 0, macroTokens.length);
-                        macros2.put(t.str, macroTokens);
+                        macros.put(t.str, macroTokens);
                     } else {
                         ops.push(new Op(Type.MACRO, t, popNum(), t.str));
                     }
@@ -88,13 +87,13 @@ public class Parser {
         for (int i = 0; i < ops.size(); i++) {
             Op op = ops.get(i);
             if (op.type != Type.MACRO) continue;
-            if (!macros2.containsKey(op.str)) NGUtils.error("Undefined macro: " + op.token);
+            if (!macros.containsKey(op.str)) NGUtils.error("Undefined macro: " + op.token);
             int repeats = op.num;
 
             if (debug) op.type = Type.DEBUG_MACRO;
             else ops.remove(i);
 
-            Op[] macroOps = parse2(macros2.get(op.str), i + 1);
+            Op[] macroOps = parse2(macros.get(op.str), i + 1);
             if (debug) {
                 for (Op macroOp: macroOps) {
                     if (macroOp.origin < 0) macroOp.origin = i + ipOffset;
@@ -109,20 +108,32 @@ public class Parser {
             i--;
         }
 
-        for (int i = 0; i < ops.size(); i++) {
-            Op op = ops.get(i);
-            if (op.type == Type.JEZ) jumps.push(i);
-            if (op.type == Type.JNZ) {
-                if (jumps.isEmpty()) NGUtils.error("Unmatched brackets at: " + op.token);
-                int jmpIp = jumps.pop();
-                ops.get(jmpIp).num = i;
-                op.num             = jmpIp;
+        // NOTE: parse jumps only at a top level
+        if (ipOffset == 0) {
+            for (int i = 0; i < ops.size(); i++) {
+                Op op = ops.get(i);
+                if (op.type == Type.JEZ) jumps.push(i);
+                if (op.type == Type.JNZ) {
+                    if (jumps.isEmpty())
+                        NGUtils.error("Unmatched brackets at: " + op.token);
+                    int jmpIp = jumps.pop();
+                    ops.get(jmpIp).num = i;
+                    op.num             = jmpIp;
+                }
             }
         }
 
         Op[] result = new Op[ops.size()];
         for (int i = result.length - 1; i >= 0; i--) result[i] = ops.pop();
         return result;
+    }
+
+    public static void reset() {
+        debug          = false;
+        recursionCount = 0;
+        macros         = new HashMap<>();
+        popNum();
+        System.gc();
     }
 
     public static Token[] parse(Token[] tokens, String filepath) {

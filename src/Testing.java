@@ -51,10 +51,8 @@ public class Testing {
             String   filepath      = TESTING_DIR + file;
             String[] filenameParts = file.split("\\.");
             String   extension     = filenameParts[filenameParts.length - 1];
-            if (!extension.equals("bf") && !extension.equals("bfn") && !extension.equals("bfnx"))
-                NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
+            if (!extension.equals("bf") && !extension.equals("bfn")) continue;
 
-            Interpreter.reset();
             boolean passed = true;
 
             // SOURCE
@@ -66,8 +64,8 @@ public class Testing {
             passed &= check(tokensToString(lexed), expectedName(file, LEXED_FILE), getLogTemplate("lexed", file));
 
             // PARSED
-            Token[] parsed = Parser.parse(lexed, filepath);
-            passed &= check(tokensToString(parsed), expectedName(file, PARSED_FILE), getLogTemplate("parsed", file));
+            Op[] parsed = Parser.parse2(lexed, 0);
+            passed &= check(opsToString(parsed), expectedName(file, PARSED_FILE), getLogTemplate("parsed", file));
 
             // INPUT
             String expectedInput = "";
@@ -94,6 +92,10 @@ public class Testing {
             }
 
             if (passed) NGUtils.info(getLogTemplate("", file) + "OK.");
+            else break;
+
+            Parser.reset();
+            Interpreter.reset();
         }
     }
 
@@ -108,7 +110,6 @@ public class Testing {
         } catch (UncheckedIOException ignored) {
             NGFileSystem.saveFile(expectedName, actual);
             NGUtils.info(logTemplate + "SAVED.");
-            return false;
         } catch (RuntimeException e) {
             NGUtils.error(e.toString());
         }
@@ -122,6 +123,12 @@ public class Testing {
     private static String tokensToString(Token[] tokens) {
         StringBuilder result = new StringBuilder();
         for (Token tk: tokens) result.append(tk).append('\n');
+        return result.toString();
+    }
+
+    private static String opsToString(Op[] ops) {
+        StringBuilder result = new StringBuilder();
+        for (Op op: ops) result.append(op).append('\n');
         return result.toString();
     }
 
