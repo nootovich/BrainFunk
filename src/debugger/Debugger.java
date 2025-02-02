@@ -57,12 +57,15 @@ public class Debugger extends NGMain {
 
     @Override
     public void onSpacePress() {
+        // TODO: cache parsed macros
         if (finished) {
             restart();
         } else if (ops[ip].type == Op.Type.DEBUG_MACRO) {
-            // TODO: cache parsed macros
             int target = ip + ops[ip].num + 1;
-            while (ip < ops.length - 1 && ip < target) execute();
+            while (ip < ops.length && ip < target) execute();
+        } else if (ops[ip].type == Op.Type.JEZ) {
+            int target = ops[ip].num + 1;
+            while (ip < ops.length && ip < target) execute();
         } else if (ops[ip].type == Op.Type.JNZ) {
             int target = ip + 1;
             while (ip < ops.length && ip < target) execute();

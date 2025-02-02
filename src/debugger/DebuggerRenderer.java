@@ -4,7 +4,7 @@ import BrainFunk.*;
 import java.awt.*;
 import nootovich.nglib.*;
 
-import static BrainFunk.Interpreter.tokens;
+import static BrainFunk.Interpreter.*;
 import static debugger.Debugger.WINDOW_HEIGHT;
 import static debugger.Debugger.WINDOW_WIDTH;
 
@@ -69,7 +69,7 @@ public class DebuggerRenderer extends NGRenderer {
             g.setStroke(new BasicStroke(1));
         }
 
-        if (Interpreter.finished) {
+        if (finished) {
             String execFinished = "Execution finished, press \"SPACE\" to restart";
             g.drawTextCentered(
                 execFinished,
@@ -81,12 +81,12 @@ public class DebuggerRenderer extends NGRenderer {
 
         // Memory values
         {
-            for (int y = 0; y < Interpreter.tape.length / 8 && y < areaTape.h() / fontSize.h(); y++) {
+            for (int y = 0; y < tape.length / 8 && y < areaTape.h() / fontSize.h(); y++) {
                 for (int x = 0; x < 8; x++) {
                     int cx = x * fontSize.w() * 3 + areaTape.x() + areaPadding.x() / 3;
                     int cy = (y + 1) * fontSize.h() + areaTape.y();
-                    g.drawText(hex(Interpreter.tape[y * 8 + x]), cx, cy, colors[colorEnum.COLOR_TEXT.ordinal()]);
-                    if (y * 8 + x == Interpreter.pointer) {
+                    g.drawText(hex(tape[y * 8 + x]), cx, cy, colors[colorEnum.COLOR_TEXT.ordinal()]);
+                    if (y * 8 + x == pointer) {
                         g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
                         g.drawRectBorder(cx, cy - fontSize.h() + 5, fontSize.w() * 2, fontSize.h(), colors[colorEnum.COLOR_HIGHLIGHT.ordinal()]);
                         g.setStroke(new BasicStroke(1));
@@ -99,10 +99,10 @@ public class DebuggerRenderer extends NGRenderer {
 
         // Program
         {
-            if (!Interpreter.finished && mode == MODE.NORMAL) {
+            if (mode == MODE.NORMAL) {
                 // g.setClip(areaCode.x(), areaCode.y(), areaCode.w(), areaCode.h());
                 NGVec2i pos         = areaText.xy().addY(g.g2d.getFontMetrics().getAscent());
-                String  currentFile = Interpreter.ops[Interpreter.ip].token.file;
+                String  currentFile = ops[finished ? ip - 1 : ip].token.file;
                 for (Token t: Debugger.tokens.getOrDefault(currentFile, new Token[]{ })) {
                     g.drawText(t.repr(), pos.add(fontSize.scale(t.col, t.row)), colors[colorEnum.COLOR_TEXT.ordinal()]);
                 }
@@ -116,10 +116,10 @@ public class DebuggerRenderer extends NGRenderer {
         }
 
         // Current token
-        if (!Interpreter.finished && Interpreter.ops.length > 0) {
+        if (!finished && ops.length > 0) {
             NGVec2i prevCenter = new NGVec2i(Integer.MIN_VALUE);
-            Op      op         = Interpreter.ops[Interpreter.ip];
-            g.drawTextCentered("[%d] => %s".formatted(Interpreter.ip, op.toString()), areaCode.w() / 2, areaPadding.h() / 2, Color.WHITE);
+            Op      op         = ops[ip];
+            g.drawTextCentered("[%d] => %s".formatted(ip, op.toString()), areaCode.w() / 2, areaPadding.h() / 2, Color.WHITE);
             g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL));
 
             // TODO: think about this flow. would be nice to separate first(current) token from the rest of macro expansion.
@@ -136,7 +136,7 @@ public class DebuggerRenderer extends NGRenderer {
                 }
                 prevCenter = outlineCenter;
 
-                if (op.origin >= 0) op = Interpreter.ops[op.origin];
+                if (op.origin >= 0) op = ops[op.origin];
                 else op = null;
             }
         }
