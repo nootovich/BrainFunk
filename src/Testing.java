@@ -72,7 +72,7 @@ public class Testing {
             try {
                 expectedInput = NGFileSystem.loadFile(expectedName(file, INPUT_FILE));
                 for (char c: expectedInput.toCharArray()) Interpreter.inputBuffer.add((byte) c);
-            } catch (RuntimeException ignored) {}
+            } catch (RuntimeException ignored) { }
 
             // OUTPUT
             PrintStream           stdout    = System.out;
@@ -140,7 +140,7 @@ public class Testing {
 
     private static class Levenstein {
 
-        private record Patch(char action, int line, String data) {}
+        private record Patch(char action, int line, String data) { }
 
         public static void printDiff(String cur, String prev) {
             String[] linesA = prev.split("\n", -1);

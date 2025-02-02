@@ -46,11 +46,6 @@ public class Debugger extends NGMain {
     }
 
     @Override
-    public void onEscapePress() {
-        exit();
-    }
-
-    @Override
     public void onEnterPress() {
         if (!finished) execute();
     }

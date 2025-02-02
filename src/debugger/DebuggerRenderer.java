@@ -1,6 +1,7 @@
 package debugger;
 
-import BrainFunk.*;
+import BrainFunk.Op;
+import BrainFunk.Token;
 import java.awt.*;
 import nootovich.nglib.*;
 
