@@ -68,10 +68,10 @@ public class Optimizer {
                 case JEZ -> {
                     if (pseudoTape[pseudoPointer] != null && pseudoTape[pseudoPointer] == 0) {
                         i                = op.num;
-                        op.token.visited = false;
+                        op.token.visited = output.get(i).token.visited;
                     }
                 }
-                case JNZ -> { }
+                case JNZ -> { if (pseudoTape[pseudoPointer] != 0) i = op.num; }
                 case PTR -> {
                     pseudoReturnStack.push(pseudoPointer);
                     pseudoPointer = op.num;
@@ -92,7 +92,7 @@ public class Optimizer {
             }
         }
 
-        for (int i = output.size() -1; i >= 0; i--) {
+        for (int i = output.size() - 1; i >= 0; i--) {
             if (!output.get(i).token.visited) output.remove(i);
         }
 
