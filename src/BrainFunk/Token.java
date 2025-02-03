@@ -26,6 +26,8 @@ public class Token {
     public int    row;
     public int    col;
 
+    public boolean visited = false; // NOTE: only for debugging purposes
+
     public Token(Type type, String file, int row, int col) {
         this.type = type;
         this.file = file.replace('\\', '/');
@@ -76,7 +78,7 @@ public class Token {
             case EXCLAMATION -> "!";
             case AT -> "@";
             case OCTOTHORPE -> "#";
-            case DOLLAR -> "$";
+            case DOLLAR -> "$" + (num >= 0 ? num : "");
 
             case NUMBER -> String.valueOf(num);
             case STRING -> "\"%s\"".formatted(str);

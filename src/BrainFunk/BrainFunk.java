@@ -43,35 +43,35 @@ public class BrainFunk {
         Token[] lexed = Lexer.lex(code, filepath);
         NGUtils.info("Lexer  OK.");
 
-        Token[] parsed = Parser.parse(lexed, filepath);
+        Op[] parsed = Parser.parse(lexed, 0);
         NGUtils.info("Parser OK.");
 
-        if (transpile) {
-            int           pad = 0;
-            StringBuilder sb  = new StringBuilder();
-            for (int i = 0; i < parsed.length; i++) {
-                Token t = parsed[i];
-                if (t.type.ordinal() < 6) {
-                    sb.append(t.repr().repeat(t.num));
-                } else if (t.type == Token.Type.LBRACKET) {
-                    if (t.num - parsed[t.num].num < 5) {
-                        sb.append(t.repr());
-                        i++;
-                        while (i < t.num) {
-                            sb.append(parsed[i].repr().repeat(parsed[i].num));
-                            i++;
-                        }
-                        sb.append(parsed[i].repr());
-                    } else {
-                        sb.append('\n').append("  ".repeat(pad++)).append(t.repr()).append('\n').append("  ".repeat(pad));
-                    }
-                } else if (t.type == Token.Type.RBRACKET) {
-                    sb.append('\n').append("  ".repeat(--pad)).append(t.repr()).append('\n').append("  ".repeat(pad));
-                }
-            }
-            NGFileSystem.saveFile(transpiledFilepath, sb.toString());
-            System.exit(0);
-        }
+        // if (transpile) {
+        //     int           pad = 0;
+        //     StringBuilder sb  = new StringBuilder();
+        //     for (int i = 0; i < parsed.length; i++) {
+        //         Token t = parsed[i];
+        //         if (t.type.ordinal() < 6) {
+        //             sb.append(t.repr().repeat(t.num));
+        //         } else if (t.type == Token.Type.LBRACKET) {
+        //             if (t.num - parsed[t.num].num < 5) {
+        //                 sb.append(t.repr());
+        //                 i++;
+        //                 while (i < t.num) {
+        //                     sb.append(parsed[i].repr().repeat(parsed[i].num));
+        //                     i++;
+        //                 }
+        //                 sb.append(parsed[i].repr());
+        //             } else {
+        //                 sb.append('\n').append("  ".repeat(pad++)).append(t.repr()).append('\n').append("  ".repeat(pad));
+        //             }
+        //         } else if (t.type == Token.Type.RBRACKET) {
+        //             sb.append('\n').append("  ".repeat(--pad)).append(t.repr()).append('\n').append("  ".repeat(pad));
+        //         }
+        //     }
+        //     NGFileSystem.saveFile(transpiledFilepath, sb.toString());
+        //     System.exit(0);
+        // }
 
         Interpreter.loadProgram(parsed);
         if (!profiling) {

@@ -1,5 +1,7 @@
 package BrainFunk;
 
+import nootovich.nglib.NGUtils;
+
 public class Op {
 
     public enum Type {
@@ -19,17 +21,13 @@ public class Op {
     public int    num = -1;
     public String str = null;
 
-    public int origin = -1; // NOTE: Only for debug purposes
+    // NOTE: Only for debug purposes
+    public int   origin = -1;
+    public Token modifierToken;
 
     Op(Type type, Token token) {
         this.type  = type;
         this.token = token;
-    }
-
-    Op(Type type, Token token, int num) {
-        this.type  = type;
-        this.token = token;
-        this.num   = num;
     }
 
     Op(Type type, Token token, String str) {
@@ -38,11 +36,41 @@ public class Op {
         this.str   = str;
     }
 
-    Op(Type type, Token token, int num, String str) {
+    Op(Type type, Token token, Token modifierToken) {
         this.type  = type;
         this.token = token;
-        this.num   = num;
+        if (modifierToken == null) {
+            num = 1;
+        } else if (modifierToken.type == Token.Type.NUMBER) {
+            this.modifierToken = modifierToken;
+            this.num           = modifierToken.num;
+        } else NGUtils.error("Unreachable");
+    }
+
+    Op(Type type, Token token, Token modifierToken, String str) {
+        this.type  = type;
+        this.token = token;
         this.str   = str;
+        if (modifierToken == null) {
+            num = 1;
+        } else if (modifierToken.type == Token.Type.NUMBER) {
+            this.modifierToken = modifierToken;
+            this.num           = modifierToken.num;
+        } else NGUtils.error("Unreachable");
+    }
+
+    public String repr() {
+        return switch (type) {
+            case INC, DEC, RGT, LFT, INP, OUT -> (num > 1 ? num : "") + token.repr();
+            case JEZ -> "[";
+            case JNZ -> "]";
+            case PTR -> "$" + num;
+            case RET -> "#";
+            case DEBUG_MACRO -> (num > 1 ? num : "") + str;
+            case PUSH_STRING -> "\"%s\"".formatted(str);
+            case SYSCALL -> "@";
+            default -> NGUtils.error("Unreachable");
+        };
     }
 
     @Override

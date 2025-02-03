@@ -64,7 +64,7 @@ public class Testing {
             passed &= check(tokensToString(lexed), expectedName(file, LEXED_FILE), getLogTemplate("lexed", file));
 
             // PARSED
-            Op[] parsed = Parser.parse2(lexed, 0);
+            Op[] parsed = Parser.parse(lexed, 0);
             passed &= check(opsToString(parsed), expectedName(file, PARSED_FILE), getLogTemplate("parsed", file));
 
             // INPUT

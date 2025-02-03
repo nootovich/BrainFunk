@@ -35,6 +35,7 @@ public class Interpreter {
         ip          = 0;
         inputBuffer = new ArrayList<>();
         inputMemory = new StringBuilder();
+        for (Token t: tokens) t.visited = false;
         System.gc();
     }
 
@@ -49,6 +50,8 @@ public class Interpreter {
     public static void execute() {
         if (finished) NGUtils.error("Unable to execute the program because it is finished.");
         Op op = ops[ip];
+        op.token.visited = true;
+        if (op.modifierToken != null) op.modifierToken.visited = true;
         switch (op.type) {
             case INC -> tape[pointer] += (byte) op.num;
             case DEC -> tape[pointer] -= (byte) op.num;

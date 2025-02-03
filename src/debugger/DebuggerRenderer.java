@@ -1,7 +1,6 @@
 package debugger;
 
-import BrainFunk.Op;
-import BrainFunk.Token;
+import BrainFunk.*;
 import java.awt.*;
 import nootovich.nglib.*;
 
@@ -105,7 +104,7 @@ public class DebuggerRenderer extends NGRenderer {
                 NGVec2i pos         = areaText.xy().addY(g.g2d.getFontMetrics().getAscent());
                 String  currentFile = ops[finished ? ip - 1 : ip].token.file;
                 for (Token t: Debugger.tokens.getOrDefault(currentFile, new Token[]{ })) {
-                    g.drawText(t.repr(), pos.add(fontSize.scale(t.col, t.row)), colors[colorEnum.COLOR_TEXT.ordinal()]);
+                    g.drawText(t.repr(), pos.add(fontSize.scale(t.col, t.row)), colors[(t.visited ? colorEnum.COLOR_TEXT : colorEnum.COLOR_TEXT_FADED).ordinal()]);
                 }
             } else if (mode == MODE.TOKEN_LIST) {
                 // g.resetClip();

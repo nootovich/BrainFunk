@@ -26,7 +26,7 @@ public class Main {
         Debugger.tokens.put(filepath, lexed);
 
         Parser.debug = true;
-        Op[] parsed = Parser.parse2(lexed, 0);
+        Op[] parsed = Parser.parse(lexed, 0);
 
         Interpreter.loadProgram(parsed);
         new Debugger().main();
