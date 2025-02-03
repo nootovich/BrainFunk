@@ -32,15 +32,14 @@ public class Debugger extends NGMain {
         FontMetrics metrics = window.jf.getFontMetrics(font);
         fontSize            = new NGVec2i(metrics.charWidth('@'), metrics.getHeight());
         cachedLinesToBottom = filedata.length - (areaCode.h() - areaPadding.h()) / fontSize.h();
-        if (Interpreter.tokens.length > 0) codeOffsetY = NGUtils.clamp(Interpreter.tokens[0].row * fontSize.h() - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
+        if (Interpreter.ops.length > 0) codeOffsetY = NGUtils.clamp(Interpreter.ops[0].token.row * fontSize.h() - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
 
         start();
     }
 
     @Override
     public void afterAnyKeyPress(int keyCode, char keyChar) {
-        if (finished || ip >= Interpreter.tokens.length) return;
-        int tokenTextPos = Interpreter.tokens[ip].row * fontSize.h();
+        int tokenTextPos = ops[finished || ip >= ops.length ? ops.length - 1 : ip].token.row * fontSize.h();
         if (codeOffsetY < tokenTextPos && tokenTextPos < codeOffsetY + areaCode.h()) return;
         codeOffsetY = NGUtils.clamp(tokenTextPos - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
     }
