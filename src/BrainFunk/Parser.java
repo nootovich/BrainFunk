@@ -13,9 +13,6 @@ public class Parser {
 
     public static boolean debug = false;
 
-    private static final int RECURSION_LIMIT = 1000;
-    private static       int recursionCount  = 0;
-
     public static  HashMap<String, Token[]> macros = new HashMap<>();
     private static Token                    savedNumModifier;
 
@@ -95,7 +92,7 @@ public class Parser {
             if (debug) op.type = Type.DEBUG_MACRO;
             else ops.remove(i);
 
-            Op[] macroOps = parse(macros.get(op.str), i + 1);
+            Op[] macroOps = parse(macros.get(op.str), i + ipOffset + 1);
             if (debug) {
                 for (Op macroOp: macroOps) {
                     if (macroOp.origin < 0) macroOp.origin = i + ipOffset;
@@ -131,9 +128,8 @@ public class Parser {
     }
 
     public static void reset() {
-        debug          = false;
-        recursionCount = 0;
-        macros         = new HashMap<>();
+        debug  = false;
+        macros = new HashMap<>();
         popNum();
         System.gc();
     }

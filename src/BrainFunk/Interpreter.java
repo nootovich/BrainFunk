@@ -60,7 +60,10 @@ public class Interpreter {
             case INP -> read(op.num);
             case OUT -> System.out.print(String.valueOf((char) tape[pointer]).repeat(op.num));
             case JEZ -> {
-                if (tape[pointer] == 0) ip = op.num;
+                if (tape[pointer] == 0) {
+                    ip = op.num;
+                    if (!ops[ip - 1].token.visited) op.token.visited = false;
+                }
             }
             case JNZ -> {
                 if (tape[pointer] != 0) ip = op.num;
