@@ -9,8 +9,6 @@ public class BrainFunk {
 
     public static void main(String[] args) {
         boolean profiling          = false;
-        boolean transpile          = false;
-        String  transpiledFilepath = null;
 
         if (args.length < 1) {
             NGUtils.error("No file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
@@ -26,13 +24,7 @@ public class BrainFunk {
         for (int i = 1; i < args.length; i++) {
             switch (args[i]) {
                 case "-p", "--profiling" -> profiling = true;
-                case "-t", "--transpile" -> {
-                    if (i == args.length - 1) {
-                        NGUtils.error("No name for transpiled file was provided");
-                    }
-                    transpile          = true;
-                    transpiledFilepath = "./%s.bf".formatted(args[++i]);
-                }
+                case "-t", "--transpile" -> NGUtils.error("Transpiling to '.bf' is not implemented yet");
                 default -> NGUtils.error("Unknown argument " + args[i]);
             }
         }
@@ -46,44 +38,21 @@ public class BrainFunk {
         Op[] parsed = Parser.parse(lexed, 0);
         NGUtils.info("Parser OK.");
 
-        // if (transpile) {
-        //     int           pad = 0;
-        //     StringBuilder sb  = new StringBuilder();
-        //     for (int i = 0; i < parsed.length; i++) {
-        //         Token t = parsed[i];
-        //         if (t.type.ordinal() < 6) {
-        //             sb.append(t.repr().repeat(t.num));
-        //         } else if (t.type == Token.Type.LBRACKET) {
-        //             if (t.num - parsed[t.num].num < 5) {
-        //                 sb.append(t.repr());
-        //                 i++;
-        //                 while (i < t.num) {
-        //                     sb.append(parsed[i].repr().repeat(parsed[i].num));
-        //                     i++;
-        //                 }
-        //                 sb.append(parsed[i].repr());
-        //             } else {
-        //                 sb.append('\n').append("  ".repeat(pad++)).append(t.repr()).append('\n').append("  ".repeat(pad));
-        //             }
-        //         } else if (t.type == Token.Type.RBRACKET) {
-        //             sb.append('\n').append("  ".repeat(--pad)).append(t.repr()).append('\n').append("  ".repeat(pad));
-        //         }
-        //     }
-        //     NGFileSystem.saveFile(transpiledFilepath, sb.toString());
-        //     System.exit(0);
-        // }
+        // Op[] optimized = Optimizer.optimize(Op.deepCopy(parsed));
+        Op[] optimized = parsed;
+        NGUtils.info("Optimizer OK.");
 
-        Interpreter.loadProgram(parsed);
+        Interpreter.loadProgram(optimized);
         if (!profiling) {
             while (!Interpreter.finished) Interpreter.execute();
         } else {
-            int[]  counter = new int[Token.Type.values().length];
-            long[] timer   = new long[Token.Type.values().length];
+            int[]  counter = new int[Op.Type.values().length];
+            long[] timer   = new long[Op.Type.values().length];
 
             long executionTime;
             long prevExecutionTime = System.nanoTime();
             while (!Interpreter.finished) {
-                int ord = parsed[Interpreter.ip].type.ordinal();
+                int ord = optimized[Interpreter.ip].type.ordinal();
                 Interpreter.execute();
                 executionTime = System.nanoTime();
                 timer[ord] += executionTime - prevExecutionTime;
@@ -93,10 +62,12 @@ public class BrainFunk {
 
             System.out.println();
             for (int i = 0; i < counter.length; i++) {
-                System.out.printf("Token '%s' was encountered % 12d times and took % 12f secs%n", Token.Type.values()[i], counter[i], timer[i] * 0.000000001f);
+                System.out.printf("Token '%s' was encountered % 12d times and took % 12f secs%n", Op.Type.values()[i], counter[i], timer[i] * 0.000000001f);
             }
-            System.out.printf("Parsed tokens: %d%n", parsed.length);
-            System.out.printf("Executed tokens: %d%n", Arrays.stream(counter).sum());
+            System.out.printf("Lexed tokens count: %d%n", lexed.length);
+            System.out.printf("Parsed operations count: %d%n", parsed.length);
+            System.out.printf("Optimized operations count: %d%n", optimized.length);
+            System.out.printf("Executed operations count: %d%n", Arrays.stream(counter).sum());
             System.out.printf("Total time: %f secs%n", Arrays.stream(timer).sum() * 1e-9);
         }
     }

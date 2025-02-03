@@ -78,7 +78,7 @@ public class Debugger extends NGMain {
         if (false) {// pos.isInside(BUTTON_TOKEN_LIST)) {
             if (mode == NORMAL) {
                 mode                = TOKEN_LIST;
-                cachedLinesToBottom = Interpreter.tokens.length;
+                cachedLinesToBottom = Interpreter.ops.length;
             } else {
                 mode                = NORMAL;
                 cachedLinesToBottom = filedata.length - areaCode.h() / fontSize.h();
@@ -86,7 +86,7 @@ public class Debugger extends NGMain {
             return;
         }
         if (finished || mouseToken == null) return;
-        while (ip < Interpreter.tokens.length && !Interpreter.tokens[ip].eq(mouseToken)) {
+        while (ip < Interpreter.ops.length && !Interpreter.ops[ip].token.eq(mouseToken)) {
             execute();
         }
     }

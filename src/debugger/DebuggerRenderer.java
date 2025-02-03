@@ -155,7 +155,7 @@ public class DebuggerRenderer extends NGRenderer {
     public void reset() { }
 
     public static void findMouseToken(NGVec2i pos) {
-        mouseToken = getTokenByRowCol(tokens, pos.sub(areaCode.xy().add(areaPadding).subY(codeOffsetY)).divide(fontSize.w(), fontSize.h()));
+        // mouseToken = getTokenByRowCol(pos.sub(areaCode.xy().add(areaPadding).subY(codeOffsetY)).divide(fontSize.w(), fontSize.h()));
     }
 
     private static Token getTokenByRowCol(Token[] array, NGVec2i pos) {

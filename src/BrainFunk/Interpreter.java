@@ -6,7 +6,7 @@ import nootovich.nglib.NGUtils;
 
 public class Interpreter {
 
-    private static final int TAPE_LEN       = 3000;
+    public static final  int TAPE_LEN       = 3000;
     private static final int REPETITION_CAP = 10;
 
     public static boolean finished = false;
@@ -15,7 +15,6 @@ public class Interpreter {
     public static  int            pointer     = 0;
     public static  int            ip          = 0;
     public static  Op[]           ops         = new Op[0];
-    public static  Token[]        tokens      = new Token[0];
     private static Stack<Integer> returnStack = new Stack<>();
 
     private static final Scanner         input       = new Scanner(System.in);
@@ -23,8 +22,7 @@ public class Interpreter {
     public static        StringBuilder   inputMemory = new StringBuilder();
 
     public static void reset() {
-        tokens = new Token[0];
-        ops    = new Op[0];
+        ops = new Op[0];
         restart();
     }
 
@@ -35,12 +33,11 @@ public class Interpreter {
         ip          = 0;
         inputBuffer = new ArrayList<>();
         inputMemory = new StringBuilder();
-        for (Token t: tokens) t.visited = false;
+        for (Op op: ops) {
+            op.token.visited = false;
+            for (int origin = op.origin; origin > -1; origin = ops[origin].origin) ops[origin].token.visited = false;
+        }
         System.gc();
-    }
-
-    public static void loadProgram(Token[] program) {
-        tokens = program;
     }
 
     public static void loadProgram(Op[] instructions) {
@@ -52,6 +49,7 @@ public class Interpreter {
         Op op = ops[ip];
         op.token.visited = true;
         if (op.modifierToken != null) op.modifierToken.visited = true;
+        for (int origin = op.origin; origin > -1; origin = ops[origin].origin) ops[origin].token.visited = true;
         switch (op.type) {
             case INC -> tape[pointer] += (byte) op.num;
             case DEC -> tape[pointer] -= (byte) op.num;
@@ -87,7 +85,7 @@ public class Interpreter {
             case DEBUG_MACRO -> { }
             default -> NGUtils.error("Unreachable");
         }
-        if (++ip == ops.length) finished = true;
+        if (++ip >= ops.length) finished = true;
         // {
         //     switch (tokens[ip].type) {
         //
