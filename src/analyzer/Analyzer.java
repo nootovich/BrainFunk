@@ -15,7 +15,6 @@ public class Analyzer extends NGMain {
     public void main() {
         setTickRate(0);
         setFrameRate(60);
-
         createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, new AnalyzerRenderer());
 
         FontMetrics metrics = window.jf.getFontMetrics(font);

@@ -17,20 +17,20 @@ public class Parser {
     private static Token                    savedNumModifier;
 
     public static Op[] parse(Token[] tokens, int ipOffset) {
-        Stack<Op>      ops   = new Stack<>();
+        ArrayList<Op>      ops   = new ArrayList<>();
         Stack<Integer> jumps = new Stack<>();
 
         for (int i = 0; i < tokens.length; i++) {
             Token t = tokens[i];
             switch (t.type) {
-                case PLUS -> ops.push(new Op(Type.INC, t, popNum()));
-                case MINUS -> ops.push(new Op(Type.DEC, t, popNum()));
-                case GREATER -> ops.push(new Op(Type.RGT, t, popNum()));
-                case LESS -> ops.push(new Op(Type.LFT, t, popNum()));
-                case COMMA -> ops.push(new Op(Type.INP, t, popNum()));
-                case DOT -> ops.push(new Op(Type.OUT, t, popNum()));
-                case LBRACKET -> ops.push(new Op(Type.JEZ, t, popNum()));
-                case RBRACKET -> ops.push(new Op(Type.JNZ, t, popNum()));
+                case PLUS -> ops.add(new Op(Type.INC, t, popNum()));
+                case MINUS -> ops.add(new Op(Type.DEC, t, popNum()));
+                case GREATER -> ops.add(new Op(Type.RGT, t, popNum()));
+                case LESS -> ops.add(new Op(Type.LFT, t, popNum()));
+                case COMMA -> ops.add(new Op(Type.INP, t, popNum()));
+                case DOT -> ops.add(new Op(Type.OUT, t, popNum()));
+                case LBRACKET -> ops.add(new Op(Type.JEZ, t, popNum()));
+                case RBRACKET -> ops.add(new Op(Type.JNZ, t, popNum()));
 
                 case COLON, SEMICOLON -> NGUtils.error("Unreachable");
                 case COMMENT -> { }
@@ -47,15 +47,15 @@ public class Parser {
                     Op[] importOps = parse(importTokens, 0);
                     ops.addAll(0, Arrays.asList(importOps));
                 }
-                case AT -> ops.push(new Op(Type.SYSCALL, t, popNum()));
-                case OCTOTHORPE -> ops.push(new Op(Type.RET, t, popNum()));
+                case AT -> ops.add(new Op(Type.SYSCALL, t, popNum()));
+                case OCTOTHORPE -> ops.add(new Op(Type.RET, t, popNum()));
                 case DOLLAR -> {
                     if (i + 1 >= tokens.length) NGUtils.error("The address for jump instruction was not provided");
-                    ops.push(new Op(Type.PTR, t, tokens[++i]));
+                    ops.add(new Op(Type.PTR, t, tokens[++i]));
                 }
 
                 case NUMBER -> pushNum(t);
-                case STRING -> ops.push(new Op(Type.PUSH_STRING, t, t.str));
+                case STRING -> ops.add(new Op(Type.PUSH_STRING, t, t.str));
                 case WORD -> {
                     if (i + 1 < tokens.length && tokens[i + 1].type == COLON) {
                         // MACRODEF
@@ -75,7 +75,7 @@ public class Parser {
                         tokens[macroStart - 1].visited = true;
                         tokens[i].visited              = true;
                     } else {
-                        ops.push(new Op(Type.MACRO, t, popNum(), t.str));
+                        ops.add(new Op(Type.MACRO, t, popNum(), t.str));
                     }
                 }
 
@@ -123,7 +123,9 @@ public class Parser {
         }
 
         Op[] result = new Op[ops.size()];
-        for (int i = result.length - 1; i >= 0; i--) result[i] = ops.pop();
+        for (int i = result.length - 1; i >= 0; i--) result[i] = ops.removeLast();
+        ops = new ArrayList<>();
+        jumps = new Stack<>();
         return result;
     }
 

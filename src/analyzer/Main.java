@@ -18,9 +18,10 @@ public class Main {
         if (!extension.equals("bf") && !extension.equals("bfn") && !extension.equals("bfnx"))
             NGUtils.error("Invalid file type `%s`. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
 
-        String  code   = NGFileSystem.loadFile(filepath);
-        Token[] lexed  = Lexer.lex(code, filepath);
-        Op[]    parsed = Parser.parse2(lexed, 0);
+        String  code  = NGFileSystem.loadFile(filepath);
+        Token[] lexed = Lexer.lex(code, filepath);
+        Parser.debug = true;
+        Op[] parsed = Parser.parse(lexed, 0);
         Interpreter.loadProgram(parsed);
         new Analyzer().main();
     }
