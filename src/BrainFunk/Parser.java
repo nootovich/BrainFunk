@@ -17,8 +17,7 @@ public class Parser {
     private static Token                    savedNumModifier;
 
     public static Op[] parse(Token[] tokens, int ipOffset) {
-        Stack<Op>      ops   = new Stack<>();
-        Stack<Integer> jumps = new Stack<>();
+        Stack<Op> ops = new Stack<>();
 
         for (int i = 0; i < tokens.length; i++) {
             Token t = tokens[i];
@@ -55,7 +54,7 @@ public class Parser {
                 }
 
                 case NUMBER -> pushNum(t);
-                case STRING -> ops.push(new Op(Type.PUSH_STRING, t, t.str));
+                case STRING -> ops.push(new Op(Type.PUSH_STRING, t, popNum(), t.str));
                 case WORD -> {
                     if (i + 1 < tokens.length && tokens[i + 1].type == COLON) {
                         // MACRODEF
@@ -92,32 +91,35 @@ public class Parser {
             if (debug) op.type = Type.DEBUG_MACRO;
             else ops.remove(i);
 
-            Op[] macroOps = parse(macros.get(op.str), i + ipOffset + 1);
-            if (debug) {
-                for (Op macroOp: macroOps) {
-                    if (macroOp.origin < 0) macroOp.origin = i + ipOffset;
-                }
-                op.num = macroOps.length * repeats;
-                i++;
-            }
 
             for (int j = 0; j < repeats; j++) {
+                Op[] macroOps = parse(macros.get(op.str), i + ipOffset + 1);
+                if (debug) {
+                    for (Op macroOp: macroOps) {
+                        if (macroOp.origin < 0) macroOp.origin = i + ipOffset;
+                    }
+                    op.num = macroOps.length * repeats;
+                    i++;
+                }
                 ops.addAll(i, Arrays.asList(macroOps));
+                // i += macroOps.length;
             }
             i--;
         }
 
-        // NOTE: parse jumps only at a top level
-        if (ipOffset == 0) {
+        Stack<Integer> jumps = new Stack<>();
+        if (ipOffset == 0) { // NOTE: jumps are parsed only at a top level
             for (int i = 0; i < ops.size(); i++) {
                 Op op = ops.get(i);
-                if (op.type == Type.JEZ) jumps.push(i);
+                if (op.type == Type.JEZ) {
+                    op.num = i;
+                    jumps.push(i);
+                }
                 if (op.type == Type.JNZ) {
-                    if (jumps.isEmpty())
-                        NGUtils.error("Unmatched brackets at: " + op.token);
-                    int jmpIp = jumps.pop();
-                    ops.get(jmpIp).num = i;
-                    op.num             = jmpIp;
+                    if (jumps.isEmpty()) NGUtils.error("Unmatched brackets at: " + op.token);
+                    op.num       = i;
+                    op.link      = ops.get(jumps.pop());
+                    op.link.link = op;
                 }
             }
         }

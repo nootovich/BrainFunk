@@ -18,8 +18,10 @@ public class Op {
     public Type  type;
     public Token token; // TODO: Save location instead of token
 
-    public int    num = -1;
-    public String str = null;
+    public int    num  = -1;
+    public String str  = null;
+    public Op     link = null;
+    public boolean visited;
 
     // NOTE: Only for debug purposes
     public int   origin = -1;
@@ -59,17 +61,6 @@ public class Op {
         } else NGUtils.error("Unreachable");
     }
 
-    public static Op[] deepCopy(Op[] source) {
-        Op[] result = new Op[source.length];
-        for (int i = 0; i < result.length; i++) {
-            result[i]        = new Op(source[i].type, source[i].token, source[i].modifierToken);
-            result[i].num    = source[i].num;
-            result[i].str    = source[i].str;
-            result[i].origin = source[i].origin;
-        }
-        return result;
-    }
-
     public String repr() {
         return switch (type) {
             case INC, DEC, RGT, LFT, INP, OUT -> (num > 1 ? num : "") + token.repr();
@@ -86,7 +77,7 @@ public class Op {
 
     @Override
     public String toString() {
-        StringBuilder result = new StringBuilder("{%c} [%s{%d}".formatted(token.visited ? 'X' : ' ', type, num));
+        StringBuilder result = new StringBuilder("{%c} [%s{%d}".formatted(visited ? 'X' : ' ', type, num));
         if (str != null) result.append(":{\"%s\"}".formatted(str));
         return result.append("] @ %s".formatted(token)).toString();
     }

@@ -1,14 +1,15 @@
 package BrainFunk;
 
 import java.io.File;
-import java.util.Arrays;
+import java.util.*;
+import java.util.stream.Collectors;
 import nootovich.nglib.NGFileSystem;
 import nootovich.nglib.NGUtils;
 
 public class BrainFunk {
 
     public static void main(String[] args) {
-        boolean profiling          = false;
+        boolean profiling = false;
 
         if (args.length < 1) {
             NGUtils.error("No file was provided. Please provide a `.bf`, `.bfn` or `.bfnx` file as a command line argument.");
@@ -38,7 +39,7 @@ public class BrainFunk {
         Op[] parsed = Parser.parse(lexed, 0);
         NGUtils.info("Parser OK.");
 
-        // Op[] optimized = Optimizer.optimize(Op.deepCopy(parsed));
+        // Op[] optimized = Optimizer.optimize(parsed);
         Op[] optimized = parsed;
         NGUtils.info("Optimizer OK.");
 
@@ -46,7 +47,10 @@ public class BrainFunk {
         if (!profiling) {
             while (!Interpreter.finished) Interpreter.execute();
         } else {
-            int[]  counter = new int[Op.Type.values().length];
+            HashMap<String, Integer> ptrMovement = new HashMap<>();
+            int                      prevPtr     = Interpreter.pointer;
+
+            long[] counter = new long[Op.Type.values().length];
             long[] timer   = new long[Op.Type.values().length];
 
             long executionTime;
@@ -58,7 +62,21 @@ public class BrainFunk {
                 timer[ord] += executionTime - prevExecutionTime;
                 counter[ord]++;
                 prevExecutionTime = executionTime;
+
+                if (Interpreter.pointer != prevPtr) {
+                    String key   = "%d:%d".formatted(Math.min(prevPtr, Interpreter.pointer), Math.max(prevPtr, Interpreter.pointer));
+                    int    value = ptrMovement.getOrDefault(key, 0) + 1;
+                    ptrMovement.put(key, value);
+                    prevPtr = Interpreter.pointer;
+                }
             }
+
+            LinkedHashMap<String, Integer> sortedMap = ptrMovement.entrySet().stream().sorted(
+                (a, b) -> b.getValue().compareTo(a.getValue())
+            ).collect(
+                Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new)
+            );
+            System.out.println(sortedMap);
 
             System.out.println();
             for (int i = 0; i < counter.length; i++) {

@@ -28,7 +28,10 @@ public class Main {
         Parser.debug = true;
         Op[] parsed = Parser.parse(lexed, 0);
 
-        Interpreter.loadProgram(parsed);
+        // Op[] optimized = Optimizer.optimize(parsed);
+        Op[] optimized = parsed;
+
+        Interpreter.loadProgram(optimized);
         new Debugger().main();
     }
 }

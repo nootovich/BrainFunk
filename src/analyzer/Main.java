@@ -20,7 +20,7 @@ public class Main {
 
         String  code   = NGFileSystem.loadFile(filepath);
         Token[] lexed  = Lexer.lex(code, filepath);
-        Op[]    parsed = Parser.parse2(lexed, 0);
+        Op[]    parsed = Parser.parse(lexed, 0);
         Interpreter.loadProgram(parsed);
         new Analyzer().main();
     }

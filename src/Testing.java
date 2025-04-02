@@ -7,13 +7,14 @@ import nootovich.nglib.NGUtils;
 
 public class Testing {
 
-    private static final int TEST_NAME_LIMIT = 8;
+    private static final int TEST_NAME_LIMIT = 20;
 
     private static final String TESTING_DIR     = "./tests/";
     private static final String EXPECTED_DIR    = TESTING_DIR + "expected/";
     private static final String SOURCE_FILE     = "src";
     private static final String LEXED_FILE      = "lex";
     private static final String PARSED_FILE     = "prs";
+    private static final String OPTIMIZED_FILE  = "opt";
     private static final String TRANSPILED_FILE = "tsp";
     private static final String INPUT_FILE      = "inp";
     private static final String OUTPUT_FILE     = "out";
@@ -67,8 +68,12 @@ public class Testing {
             Op[] parsed = Parser.parse(lexed, 0);
             passed &= check(opsToString(parsed), expectedName(file, PARSED_FILE), getLogTemplate("parsed", file));
 
+            // OPTIMIZED
+            Op[] optimized = Optimizer.optimize(parsed);
+            passed &= check(opsToString(optimized), expectedName(file, OPTIMIZED_FILE), getLogTemplate("optimized", file));
+
             // INPUT
-            String expectedInput = "";
+            String expectedInput = null;
             try {
                 expectedInput = NGFileSystem.loadFile(expectedName(file, INPUT_FILE));
                 for (char c: expectedInput.toCharArray()) Interpreter.inputBuffer.add((byte) c);
@@ -83,10 +88,21 @@ public class Testing {
             System.out.flush();
             System.setOut(stdout);
             passed &= check(outStream.toString(), expectedName(file, OUTPUT_FILE), getLogTemplate("output", file));
+            Interpreter.reset();
+
+            // OPTIMIZED OUTPUT
+            if (expectedInput != null) for (char c: expectedInput.toCharArray()) Interpreter.inputBuffer.add((byte) c);
+            outStream = new ByteArrayOutputStream();
+            System.setOut(new PrintStream(outStream));
+            Interpreter.loadProgram(optimized);
+            while (!Interpreter.finished) Interpreter.execute();
+            System.out.flush();
+            System.setOut(stdout);
+            passed &= check(outStream.toString(), expectedName(file, OUTPUT_FILE), getLogTemplate("optimized output", file));
 
             // SAVE INPUT
             String input = Interpreter.inputMemory.toString();
-            if (expectedInput.isEmpty() && !input.isEmpty()) {
+            if (expectedInput != null && !input.isEmpty()) {
                 NGFileSystem.saveFile(expectedName(file, INPUT_FILE), input);
                 NGUtils.info(getLogTemplate("input", file) + "SAVED.");
             }
