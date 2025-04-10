@@ -1,17 +1,19 @@
-ln:10+.[-];
+!"stdalg.bfn"
+
+ln:10+.drop;
 
 printCln:printC ln;
-printC:.[-];
+printC:.drop;
 
 printNln:printN ln;
-printN:48+.[-];
+printN:48+.drop;
 
 printUln:printU ln;
-printU:65+.[-];
+printU:65+.drop;
 
 printLln:printL ln;
-printL:97+.[-];
+printL:97+.drop;
 
 printSln:printS ln;
-printS:<[<]>[.>]<clear;
-clear:[[-]<]>;
+printS:<<[<<]>>[.>>]<<cleanS;
+cleanS:[drop<<];

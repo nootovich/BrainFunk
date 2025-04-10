@@ -16,6 +16,6 @@
 
 [[-]<]> // reset
 
-"Hello world!" <[<]>[.>]
+"Hello world!" <<[<<]>>[.>>]<<
 
 <[[-]<]> // reset

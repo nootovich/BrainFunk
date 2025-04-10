@@ -1,0 +1,3 @@
+!"stdalg.bfn"
+
+readln:<true[drop>,duph>10-]<drop;

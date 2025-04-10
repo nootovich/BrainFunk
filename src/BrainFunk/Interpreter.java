@@ -76,10 +76,10 @@ public class Interpreter {
             }
             case SYSCALL -> NGUtils.error("SYSCALL operation is not implemented yet");
             case PUSH_STRING -> {
+                tape[pointer+=2] = 0;
                 for (byte c: op.str.getBytes(StandardCharsets.UTF_8)) {
-                    tape[pointer] = c;
-                    pointer++; // NOTE: The only purpose of this line is to make sure that the formatter stops screwing with me
-                    pointer = NGUtils.mod(pointer, TAPE_LEN);
+                    tape[pointer] = (c);
+                    pointer       = NGUtils.mod(pointer + 2, TAPE_LEN);
                 }
             }
             case DEBUG_MACRO -> { }
@@ -154,7 +154,7 @@ public class Interpreter {
 
     private static void read(int amount) {
         for (int repetitions = 0; inputBuffer.size() < amount && repetitions < REPETITION_CAP; repetitions++) {
-            char[] in = input.nextLine().toCharArray();
+            char[] in = (input.nextLine() + '\n').toCharArray();
             for (char inChar: in) {
                 inputBuffer.add((byte) inChar);
                 inputMemory.append(inChar);

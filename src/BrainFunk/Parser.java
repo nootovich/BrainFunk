@@ -69,15 +69,18 @@ public class Parser {
                             else if (tokens[i].type == SEMICOLON) break;
                         }
                         if (macros.containsKey(t.str)) {
-                            NGUtils.error("Redefinition of a macro '%s'".formatted(t.str));
-                            NGUtils.info("Originally defined here: " + macros.get(t.str)[0].origin);
+                            if (!macros.get(t.str)[0].file.equals(t.file)) {
+                                NGUtils.error("Redefinition of a macro '%s'".formatted(t.str));
+                                NGUtils.info("Originally defined here: " + macros.get(t.str)[0].origin);
+                            }
+                        } else {
+                            Token[] macroTokens = new Token[i - macroStart];
+                            System.arraycopy(tokens, macroStart, macroTokens, 0, macroTokens.length);
+                            macros.put(t.str, macroTokens);
+                            t.visited                      = true;
+                            tokens[macroStart - 1].visited = true;
+                            tokens[i].visited              = true;
                         }
-                        Token[] macroTokens = new Token[i - macroStart];
-                        System.arraycopy(tokens, macroStart, macroTokens, 0, macroTokens.length);
-                        macros.put(t.str, macroTokens);
-                        t.visited                      = true;
-                        tokens[macroStart - 1].visited = true;
-                        tokens[i].visited              = true;
                     } else {
                         ops.push(new Op(Type.MACRO, t, popNum(), t.str));
                     }

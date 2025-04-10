@@ -80,7 +80,7 @@ public class Lexer {
                 }
                 lexed.push(new Token(Type.NUMBER, num, filepath, row, col));
                 continue;
-            } else if (Character.isLetter(c)) {
+            } else if (Character.isLetter(c) || c == '_') {
                 StringBuilder sb = new StringBuilder().append(c);
                 for (i++; i < dataChars.length; i++) {
                     if (!Character.isLetterOrDigit(dataChars[i]) && dataChars[i] != '_') {

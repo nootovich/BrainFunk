@@ -3,9 +3,9 @@
 
 !"stdout.bfn"
 
-"Brainfuck is an esoteric programming language created in 1993 by Urban Muller." 10+>
-"Notable for its extreme minimalism, the language consists of only eight simple commands, a data pointer and an instruction pointer." 10+>
-"While it is fully Turing complete, it is not intended for practical use, but to challenge and amuse programmers." 10+>
-"Brainfuck requires one to break commands into microscopic steps." 10+>
-"The language's name is a reference to the slang term brainfuck, which refers to things so complicated or unusual that they exceed the limits "
+"Brainfuck is an esoteric programming language created in 1993 by Urban Muller." printSln
+"Notable for its extreme minimalism, the language consists of only eight simple commands, a data pointer and an instruction pointer." printSln
+"While it is fully Turing complete, it is not intended for practical use, but to challenge and amuse programmers." printSln
+"Brainfuck requires one to break commands into microscopic steps." printSln
+"The language's name is a reference to the slang term brainfuck, which refers to things so complicated or unusual that they exceed the limits " printS
 "of one's understanding, as it was not meant or made for designing actual software but to challenge the boundaries of computer programming." printSln
