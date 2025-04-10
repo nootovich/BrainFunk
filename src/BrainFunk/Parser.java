@@ -54,6 +54,11 @@ public class Parser {
                 }
 
                 case NUMBER -> pushNum(t);
+                case CHAR -> {
+                    Token mt = popNum();
+                    final int n = mt == null ? 1 : mt.num;
+                    for (int j = 0; j < n; j++) ops.push(new Op(Type.INC, t, t));
+                }
                 case STRING -> ops.push(new Op(Type.PUSH_STRING, t, popNum(), t.str));
                 case WORD -> {
                     if (i + 1 < tokens.length && tokens[i + 1].type == COLON) {

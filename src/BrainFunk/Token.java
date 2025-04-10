@@ -9,7 +9,7 @@ public class Token {
         // BFN
         COLON, SEMICOLON, COMMENT,
         EXCLAMATION, AT, OCTOTHORPE, DOLLAR,
-        NUMBER, STRING, WORD,
+        NUMBER, CHAR, STRING, WORD,
         ERROR
     }
 
@@ -81,6 +81,7 @@ public class Token {
             case DOLLAR -> "$" + (num >= 0 ? num : "");
 
             case NUMBER -> String.valueOf(num);
+            case CHAR -> "'%c'".formatted(num);
             case STRING -> "\"%s\"".formatted(str);
             case WORD -> str;
 

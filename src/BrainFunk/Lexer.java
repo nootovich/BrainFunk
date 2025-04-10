@@ -54,6 +54,14 @@ public class Lexer {
                     }
                     yield NGUtils.error("Unfinished string literal at: " + new Token(Type.ERROR, filepath, row, col));
                 }
+                case '\'' -> {
+                    // TODO: handle escaping
+                    i+=2;
+                    if (i >= dataChars.length || dataChars[i] != '\'') {
+                        NGUtils.error("Invalid char literal at: " + new Token(Type.ERROR, filepath, row, col));
+                    }
+                    yield new Token(Type.CHAR, (byte) dataChars[i - 1], filepath, row, col);
+                }
                 default -> null;
             };
             if (token != null) {

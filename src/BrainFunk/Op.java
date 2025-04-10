@@ -43,7 +43,7 @@ public class Op {
         this.token = token;
         if (modifierToken == null) {
             num = 1;
-        } else if (modifierToken.type == Token.Type.NUMBER) {
+        } else if (modifierToken.type == Token.Type.NUMBER || modifierToken.type == Token.Type.CHAR) {
             this.modifierToken = modifierToken;
             this.num           = modifierToken.num;
         } else NGUtils.error("Unreachable");
