@@ -1,0 +1,9 @@
+!"stdalg.bfn"
+!"stdout.bfn"
+
+10+ for
+    for_getI  printN ' ' printC
+    for_getI  printU ' ' printC
+    for_getI  printL ' ' printC
+    for_getNI printNln
+endfor

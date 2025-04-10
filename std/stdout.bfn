@@ -1,3 +1,17 @@
-println:print 10+.[-];
-print:<[<]>[.>]<clear;
+ln:10+.[-];
+
+printCln:printC ln;
+printC:.[-];
+
+printNln:printN ln;
+printN:48+.[-];
+
+printUln:printU ln;
+printU:65+.[-];
+
+printLln:printL ln;
+printL:97+.[-];
+
+printSln:printS ln;
+printS:<[<]>[.>]<clear;
 clear:[[-]<]>;

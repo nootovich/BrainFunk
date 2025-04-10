@@ -1,0 +1,66 @@
+drop:[-];
+
+true:drop+;
+false:drop;
+
+movl:<drop>[-<+>]<;
+movr:>drop<[->+<]>;
+
+dup:[->+>+<<]>[-<+>]<;
+duph:[->+>+<<]>>[-<<+>>]<<;
+dupho:[->>+>+<<<]>>>[-<<<+>>>]<<<;
+//rdup:[-<+<+>>]<[->+<]>;
+//rduph:[-<+<+>>]<[->>+<]>>;
+
+for:[>>;
+for_getI:<duph>;
+for_getNI:<<dupho>>-;
+endfor:<+<-]>movl;
+
+// IF
+if:duph>[drop>;
+endif:<]<;
+
+// IF-ELSE
+// tape:[eNdX]
+// e - else flag
+// N - entry
+// t - temp
+// X - next cell
+ife:
+    <true> // e
+    duph > // t
+    [drop<<false>>> // X
+;
+else:
+    < // t
+    ]<< // e
+    [drop>>> // X
+;
+endife:
+    <<< // e
+    ]> // N
+;
+
+// BOOLEAN LOGIC
+not:
+    if
+        <<[-]->>
+    endif
+    +
+;
+and:
+    ife
+        <<drop<<
+        if
+            <<true>>
+        endif
+        >>
+    else
+        <<<<drop>>
+    endife
+;
+or:add;
+
+// ARITHMETICS
+add:[-<<+>>]<<;

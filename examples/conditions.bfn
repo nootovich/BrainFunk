@@ -1,0 +1,82 @@
+!"stdalg.bfn"
+!"stdout.bfn"
+
+true if
+    "true" printSln
+endif drop
+
+false if
+    "false" printSln
+endif drop
+
+false not if
+    "!false" printSln
+endif drop
+
+0+ if
+    '0' printCln
+endif drop
+
+1+ if
+    '1' printCln
+endif drop
+
+2+ if
+    '2' printCln
+endif drop
+
+255+ if
+    "255" printSln
+endif drop
+
+256+ if
+    "256" printSln
+endif drop
+
+false >> false and if
+    "false && false" printSln
+endif drop
+
+true >> false and if
+    "true && false" printSln
+endif drop
+
+false >> true and if
+    "false && true" printSln
+endif drop
+
+true >> true and if
+    "true && true" printSln
+endif drop
+
+true >> false and not if
+    "!(true && false)" printSln
+endif drop
+
+true >> 1+ and if
+    "true && 1" printSln
+endif drop
+
+1+ >> 2+ and if
+    "1 && 2" printSln
+endif drop
+
+true >> false or if
+    "true || false" printSln
+endif drop
+
+false >> 0+ or if
+    "false || 0" printSln
+endif drop
+
+false >> 0+ or not if
+    "!(false || 0)" printSln
+endif drop
+
+255+ >> false or if
+    "255 || false" printSln
+endif
+
+true >> false >> true >> false or and or if
+    "((false || true) && false) || true" printSln
+endif
