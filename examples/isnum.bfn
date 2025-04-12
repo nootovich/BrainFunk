@@ -1,0 +1,14 @@
+!"stdalg.bfn"
+!"stdio.bfn"
+
+8>                      // offset for easier view in debugger
++[                      // forever
+    readln              // read input from user
+    <<[<<]>>            // go to first char
+    [                   // for every char
+        isnum printN
+    >>]                 // go to next char
+    ln
++]                      // forever
+
+isnum: dupl << '0' >> gte >> '9' >> lte and movr movr;
