@@ -1,5 +1,9 @@
 !"stdalg.bfn"
 
+// INPUT
+readln:<true[drop>,duph 10-]<drop;
+
+//OUTPUT
 ln:10+.drop;
 
 printCln:printC ln;

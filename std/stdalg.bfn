@@ -3,34 +3,41 @@ drop:[-];
 true:drop+;
 false:drop;
 
-movl:<drop>[-<+>]<;
-movr:>drop<[->+<]>;
+movl:<<drop>>[-<<+>>]<<;
+movr:>>drop<<[->>+<<]>>;
+movlh:<drop>[-<+>]<;
+movrh:>drop<[->+<]>;
 
-dup:[->+>+<<]>[-<+>]<;
-duph:[->+>+<<]>>[-<<+>>]<<;
-dupho:[->>+>+<<<]>>>[-<<<+>>>]<<<;
-//rdup:[-<+<+>>]<[->+<]>;
-//rduph:[-<+<+>>]<[->>+<]>>;
+dup:[->+>+<<]>movlh>>;
+duph:[-<+>>+<]<movrh>;
+duphs:[->+>>+<<<]>>>[-<<<+>>>]<<;
+dupoh:[->+>>+<<<]>movlh>>>;
+duphoh:[-<+>>+>>+<<<]<movrh>>>;
+dupl:[-<+<+>>]<movrh<<;
+hduph:[->>+>>+<<<<]>>>>[-<<<<+>>>>]<<;
+hdupo:[->>+>+<<<]>>movl>>>;
+hdupoh:[->>+>>+<<<<]>>movl>>>>;
 
 for:[>>;
-for_getI:<duph>;
-for_getNI:<<dupho>>-;
-endfor:<+<-]>movl;
+for_getI:<<<hdupo;
+for_getNI:<<dup-;
+endfor:<<<+>-]<movrh;
 
 // IF
-if:duph>[drop>;
+if:duph[drop>;
 endif:<]<;
 
 // IF-ELSE
-// tape:[eNdX]
+// tape:[eNtX]
 // e - else flag
 // N - entry
 // t - temp
 // X - next cell
 ife:
     <true> // e
-    duph > // t
-    [drop<<false>>> // X
+    duphs  // t
+    [drop<<false // e
+    >>> // X
 ;
 else:
     < // t
@@ -61,6 +68,33 @@ and:
     endife
 ;
 or:add;
+
+// LOGIC
+// TODO: implement proper >, >= and <=
+// TODO: check if works near 255 values
+
+gt:+gte;
+gte:lt not;
+lte:-lt;
+
+// OzNZ
+// N  - entry
+// O  - other number
+// zZ - zeros
+lt:
+<drop       // z = 0
+>>drop      // Z = 0
+<[          // N
+    <<      // O
+    [-
+        >>- // N
+        <   // z
+    ]
+    >       // N
+]
+>[>]<       // sync to N
+drop
+<<;         // O
 
 // ARITHMETICS
 add:[-<<+>>]<<;

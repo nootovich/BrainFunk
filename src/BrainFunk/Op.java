@@ -63,7 +63,7 @@ public class Op {
 
     public String repr() {
         return switch (type) {
-            case INC, DEC, RGT, LFT, INP, OUT -> (num > 1 ? num : "") + token.repr();
+            case INC, DEC, RGT, LFT, INP, OUT -> (num > 1 && token.type != Token.Type.CHAR ? num : "") + token.repr();
             case JEZ -> "[";
             case JNZ -> "]";
             case PTR -> "$" + num;

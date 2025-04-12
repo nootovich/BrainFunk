@@ -1,2 +1,2 @@
-!"stdin.bfn"  readln
-!"stdout.bfn" printSln
+!"stdio.bfn"
+readln printSln

@@ -1,5 +1,5 @@
 !"stdalg.bfn"
-!"stdout.bfn"
+!"stdio.bfn"
 
 true if
     "true" printSln

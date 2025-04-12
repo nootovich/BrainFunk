@@ -13,6 +13,7 @@ public class Parser {
 
     public static boolean debug = false;
 
+    // TODO: make macros local to current file (for proper imports)
     public static  HashMap<String, Token[]> macros = new HashMap<>();
     private static Token                    savedNumModifier;
 

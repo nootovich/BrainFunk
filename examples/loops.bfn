@@ -1,5 +1,5 @@
 !"stdalg.bfn"
-!"stdout.bfn"
+!"stdio.bfn"
 
 10+ for
     for_getI  printN ' ' printC

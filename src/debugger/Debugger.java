@@ -41,7 +41,7 @@ public class Debugger extends NGMain {
     public void afterAnyKeyPress(int keyCode, char keyChar) {
         int tokenTextPos = ops[finished || ip >= ops.length ? ops.length - 1 : ip].token.row * fontSize.h();
         if (codeOffsetY < tokenTextPos && tokenTextPos < codeOffsetY + areaCode.h()) return;
-        codeOffsetY = NGUtils.clamp(tokenTextPos - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
+        codeOffsetY = Math.max(tokenTextPos - areaCode.h() / 2, 0);
     }
 
     @Override
@@ -93,7 +93,7 @@ public class Debugger extends NGMain {
 
     @Override
     public void onMouseWheel(NGVec2i pos, int direction) {
-        codeOffsetY = NGUtils.clamp(codeOffsetY + direction * fontSize.h() * 3, 0, cachedLinesToBottom * fontSize.h());
+        codeOffsetY = Math.max(codeOffsetY + direction * fontSize.h() * 3, 0);
         findMouseToken(pos);
     }
 }

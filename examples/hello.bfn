@@ -1,2 +1,2 @@
-!"stdout.bfn"
+!"stdio.bfn"
 "Hello, world!" printSln
