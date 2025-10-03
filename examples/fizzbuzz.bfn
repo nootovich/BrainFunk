@@ -1,0 +1,8 @@
+!"stdalg.bfn"
+!"stdio.bfn"
+
+8>
+100+
+for
+    for_getI printNln
+endfor

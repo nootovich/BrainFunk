@@ -18,7 +18,7 @@ public class Analyzer extends NGMain {
 
         createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, new AnalyzerRenderer());
 
-        FontMetrics metrics = window.jf.getFontMetrics(font);
+        FontMetrics metrics = windows.getFirst().jf.getFontMetrics(font);
         fontSize = new NGVec2i(metrics.charWidth('@'), metrics.getHeight());
 
         start();

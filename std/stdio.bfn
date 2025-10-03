@@ -10,7 +10,14 @@ printCln:printC ln;
 printC:.drop;
 
 printNln:printN ln;
-printN:48+.drop;
+//printN:48+.drop;
+printN:
+dup dup 48- >> drop 10+ gt ife // if (n < 10)
+    4< 48+. drop << drop 6>
+else
+
+endife
+;
 
 printUln:printU ln;
 printU:65+.drop;

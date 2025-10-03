@@ -25,11 +25,11 @@ public class Debugger extends NGMain {
         setFrameRate(60);
 
         createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, new DebuggerRenderer());
-        window.jf.setLocation(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[0].getDefaultConfiguration().getBounds().getLocation());
+        windows.getFirst().jf.setLocation(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[0].getDefaultConfiguration().getBounds().getLocation());
 
         // BUTTON_TOKEN_LIST = new NGVec4i(areaCode.x(), 5, areaCode.y() - 10, areaCode.y() - 10);
 
-        FontMetrics metrics = window.jf.getFontMetrics(font);
+        FontMetrics metrics = windows.getFirst().jf.getFontMetrics(font);
         fontSize            = new NGVec2i(metrics.charWidth('@'), metrics.getHeight());
         cachedLinesToBottom = filedata.length - (areaCode.h() - areaPadding.h()) / fontSize.h();
         if (Interpreter.ops.length > 0) codeOffsetY = NGUtils.clamp(Interpreter.ops[0].token.row * fontSize.h() - areaCode.h() / 2, 0, cachedLinesToBottom * fontSize.h());
